@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orca-box-generator"
+version = "1.0.0"
+description = "Offline parametric Box & Enclosure Studio for OrcaSlicer"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [{name = "Orca Box Studio"}]
+dependencies = ["numpy>=1.26"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+box_studio = ["icon.svg"]
+
+[tool.orcaslicer.plugin]
+id = "orca-box-studio"
+name = "Orca Box Studio"
+description = "Parametric boxes, enclosures, PCB mounts and fit calibration"
+author = "Orca Box Studio"
+version = "1.0.0"
