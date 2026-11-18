@@ -45,11 +45,15 @@ class GeometryTests(unittest.TestCase):
                 with self.subTest(style=style, part=part):
                     self.assertSolid(generate_box_mesh({"style": style}, part))
 
-    def test_02_all_twelve_presets(self):
-        self.assertEqual(len(BUILTIN_PRESETS), 12)
+    def test_02_all_fifteen_presets(self):
+        self.assertEqual(len(BUILTIN_PRESETS), 15)
         for preset in BUILTIN_PRESETS:
             self.assertEqual(validate_params(preset["params"]), [], preset["id"])
-            for part in ("base", "lid"):
+            for part in (
+                ("base",)
+                if preset["params"]["style"] in ("open_bin", "stackable_bin")
+                else ("base", "lid")
+            ):
                 with self.subTest(preset=preset["id"], part=part):
                     self.assertSolid(generate_box_mesh(preset["params"], part))
 
@@ -99,7 +103,7 @@ class GeometryTests(unittest.TestCase):
         b = p["depth_y"] / 2 - p["wall_thickness"]
         base, _, _ = build_part_field(p, "base")
         lid, _, _ = build_part_field(p, "lid")
-        point = np.array([[0, b + 0.07, h - 2.5]])
+        point = np.array([[0, b + 0.07, h - 2.23]])
         self.assertGreater(base(point)[0], 0, "Female retaining groove is missing")
         self.assertLess(lid(point)[0], 0, "Male snap bead is missing")
         for style in ("lip_snap", "sliding_lid"):

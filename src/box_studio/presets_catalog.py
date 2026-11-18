@@ -1,4 +1,4 @@
-"""Twelve editable starting designs and atomic user-preset persistence."""
+"""Fifteen editable starting designs and atomic user-preset persistence."""
 
 from __future__ import annotations
 import copy, json, os, re, tempfile
@@ -144,6 +144,46 @@ BUILTIN_PRESETS = [
             for z in (12, 24)
         ],
     ),
+    _preset(
+        "open_bin_handles",
+        "Caixa aberta com alças",
+        "Open bin with hand grips",
+        style="open_bin",
+        width_x=140,
+        depth_y=100,
+        height_z=60,
+        handles_enabled=True,
+        handle_faces="left_right",
+        handle_width=45,
+        handle_height=12,
+        handle_top_margin=8,
+    ),
+    _preset(
+        "snap_latch_case",
+        "Tampa removível · duas travas",
+        "Removable lid · two latches",
+        style="snap_latch",
+        width_x=110,
+        depth_y=80,
+        height_z=40,
+        lid_wall_height=8,
+        latch_width=18,
+        latch_thickness=2,
+        latch_retention=0.6,
+    ),
+    _preset(
+        "stackable_parts_bin",
+        "Organizador empilhável · acesso frontal",
+        "Stackable organizer · front access",
+        style="stackable_bin",
+        width_x=140,
+        depth_y=100,
+        height_z=80,
+        stack_foot_height=2,
+        stack_clearance=0.25,
+        front_access_width=90,
+        front_access_drop=30,
+    ),
 ]
 
 
@@ -221,3 +261,81 @@ def delete_user_preset(path: str | Path, preset_id: str) -> bool:
     remaining = [x for x in items if x["id"] != preset_id]
     _persist(Path(path), remaining)
     return len(items) != len(remaining)
+
+
+def generate_random_printable_params(current=None, seed=None, limits=None):
+    """Seeded, validated current-style variation; never silently discard features."""
+    import random
+
+    original = normalize_params(current)
+    errors = validate_params(original)
+    if errors:
+        raise ValueError(
+            "Corrija os recursos / fix features before randomizing: "
+            + "\n".join(errors)
+        )
+    rng = random.Random(seed)
+    constrained = any(
+        original[k] for k in ("standoffs", "cutouts", "dividers_x", "dividers_y")
+    )
+    host = limits or {}
+    stacking_family = original["style"] == "stackable_bin"
+    maxima = {
+        "width_x": min(350.0, float(host.get("bed_x", 358)) - 8),
+        "depth_y": min(
+            350.0,
+            float(host.get("bed_y", 372))
+            - (22 if original["style"] == "rugged_box" else 8),
+        ),
+        "height_z": min(
+            250.0,
+            float(host.get("max_z", 265))
+            - (
+                0
+                if original["style"] in ("open_bin", "stackable_bin")
+                else original["lid_height"] + 1
+            ),
+        ),
+    }
+    dimensions_to_vary = ("height_z",) if stacking_family else tuple(maxima)
+
+    def fits(candidate):
+        return not validate_params(candidate) and all(
+            candidate[k] <= limit for k, limit in maxima.items()
+        )
+
+    for _ in range(64):
+        candidate = copy.deepcopy(original)
+        for key in dimensions_to_vary:
+            maximum = maxima[key]
+            lo = original[key] if constrained else original[key] * 0.78
+            hi = min(maximum, original[key] * 1.24)
+            if hi < lo:
+                break
+            candidate[key] = round(rng.uniform(lo, hi), 1)
+        else:
+            candidate["fit_clearance"] = round(rng.uniform(0.12, 0.35), 2)
+            if not constrained and not stacking_family:
+                candidate["corner_radius"] = round(
+                    rng.uniform(2, min(candidate["width_x"], candidate["depth_y"]) / 9),
+                    1,
+                )
+            candidate = normalize_params(candidate)
+            if fits(candidate):
+                return candidate
+    for preset in BUILTIN_PRESETS:
+        if preset["params"]["style"] != original["style"]:
+            continue
+        candidate = copy.deepcopy(original)
+        for key in dimensions_to_vary:
+            candidate[key] = (
+                max(original[key], preset["params"][key])
+                if constrained
+                else preset["params"][key]
+            )
+        candidate = normalize_params(candidate)
+        if fits(candidate):
+            return candidate
+    raise ValueError(
+        "Nenhuma variação segura cabe sem alterar recursos / no safe variation fits without changing requested features."
+    )

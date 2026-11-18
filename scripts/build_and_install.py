@@ -45,7 +45,7 @@ MODULE_ORDER: list[str] = [
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.0.0"
+DEFAULT_PLUGIN_VERSION = "1.2.0"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION
@@ -64,7 +64,7 @@ PEP723_HEADER = f"""\
 # [tool.orcaslicer.plugin]
 # id = "orca-box-studio"
 # name = "Orca Box Studio"
-# description = "Offline parametric enclosure studio with four construction styles and calibration parts"
+# description = "Offline parametric boxes, handgrip bins, removable latching lids and calibration parts"
 # author = "Orca Box Studio"
 # version = "{PLUGIN_VERSION}"
 # ///
