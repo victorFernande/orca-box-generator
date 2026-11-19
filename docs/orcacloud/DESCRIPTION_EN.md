@@ -1,6 +1,6 @@
 **Boxes for your projects. Storage in your size.**
 
-Design offline inside OrcaSlicer. Adjust width, depth, height and walls, start from 17 editable presets and save your own designs.
+Design offline inside OrcaSlicer. Adjust width, depth, height and walls, start from 8 standard presets and save your own designs.
 
 ![Parametric open bin with actual hand openings](../../assets/marketplace/01-box-studio-en.png)
 

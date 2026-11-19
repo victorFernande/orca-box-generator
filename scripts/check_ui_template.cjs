@@ -186,7 +186,7 @@ async function featureChecks(page,slug,url,passed){
     const beforeRandom=await page.evaluate(()=>window.__hostMessages.length);await page.locator('#randomize, #btn-randomize').first().click();
     await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='geometry'&&m.params?.standard==='mason_86'&&m.params?.measurements_confirmed===false&&m.meshes===0),beforeRandom,{timeout:30000});passed.push('Experimental Mason 86 stays blocked after Surprise');
   }else{
-    let n=await geometryCount(page);await page.locator('.preset-card').filter({hasText:'Mini'}).click();await waitGeometry(page,n,{width_x:45,depth_y:35});passed.push('Preset gallery changes real box geometry');
+    let n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="everyday"]').click();await waitGeometry(page,n,{width_x:90,depth_y:65});passed.push('Preset gallery changes real box geometry');
     n=await geometryCount(page);await page.locator('#target').selectOption('fit_test_kit');await waitGeometry(page,n,{export_target:'fit_test_kit'});
     const parts=await page.evaluate(()=>window.__hostMessages.filter(m=>m.type==='preview_result').at(-1).meshes);if(parts!==3)throw Error('Expected the three-part Box fit kit preview');passed.push('Box fit-kit preview reflects export target');
     await page.screenshot({path:path.join(output,'box-calibration-fit.png')});
@@ -257,8 +257,8 @@ async function featureChecks(page,slug,url,passed){
     const pipExportBefore=await page.evaluate(()=>window.__hostMessages.length);await clickAction(page,'3mf');
     await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='action_result'&&m.ok===true),pipExportBefore,{timeout:180000});passed.push('PIP case exports as a preserved open assembly');
     await page.locator('[data-cam="fit"]').click();await page.screenshot({path:path.join(output,'box-clamshell-pip-open.png')});
-    n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="clamshell_pip_deep"]').click();await waitGeometry(page,n,{style:'clamshell_pip',height_z:25});
-    passed.push('Deep PIP preset keeps equal halves');
+    n=await geometryCount(page);const deepHeight=page.locator('input[type="number"][data-p="height_z"]');await deepHeight.fill('25');await deepHeight.press('Tab');await waitGeometry(page,n,{style:'clamshell_pip',height_z:25});
+    passed.push('Custom PIP depth keeps equal halves');
     n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="everyday"]').click();await waitGeometry(page,n,{style:'lip_snap'});
     if(Number(await page.locator('#open').getAttribute('max'))!==100||!await page.locator('input[type="number"][data-p="lid_height"]').isVisible())throw Error('Normal lid controls did not return after PIP mode');
     passed.push('Leaving PIP mode restores standard lid and percentage controls');

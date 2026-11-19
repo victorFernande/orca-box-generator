@@ -1,12 +1,12 @@
 # Verificação completa pela interface / Full UI verification
 
-O runner `scripts/check_box_e2e.cjs` exercita a interface real do Box com Playwright/Chromium e o controlador Python real. A versão 1.2.1 inclui correções funcionais encontradas durante essa revisão. Este documento descreve o método; a execução local completa e a CI desta revisão ainda precisam de seus resultados finais. Consulte os resultados por revisão no [histórico da CI](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml).
+O runner `scripts/check_box_e2e.cjs` exercita a interface real do Box com Playwright/Chromium e o controlador Python real. A versão 1.2.2 simplifica a galeria para oito modelos padrão, um por estilo, sem acessórios pré-configurados. Este documento descreve o método; avalie o resultado da execução correspondente a cada revisão. Consulte os resultados por revisão no [histórico da CI](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml).
 
 ## Escopo
 
-O comando completo percorre os oito estilos e os 17 presets, alterando os controles pela interface. Os testes incluem:
+O comando completo percorre os oito estilos e os 8 presets, alterando os controles pela interface. Os testes incluem:
 
-- Seleção dos 17 presets na página e no painel lateral, com prévias reais; exportação STL/3MF de cada preset na página, além de dimensões e controles específicos dos oito estilos.
+- Seleção dos 8 presets na página e no painel lateral, com prévias reais; exportação STL/3MF de cada preset na página, além de dimensões e controles específicos dos oito estilos.
 - Todos os alvos de exportação habilitados para o estilo/configuração de ensaio; opções incompatíveis desabilitadas e rejeições explícitas, sem redução silenciosa de escala. O STL bruto preserva uma peça de 270 mm numa configuração de mesa de 260 mm, enquanto o 3MF automático deve rejeitar essa organização sem criar novo arquivo 3MF. O STL anterior permanece intacto; a pasta não precisa estar vazia. A guarda existente de altura permanece nos dois formatos.
 - Movimento observado nas matrizes realmente enviadas ao WebGL, incluindo destravar os fechos antes de levantar a tampa e preservar os eixos das dobradiças. Câmera, materiais, cortes, cotas, malha, rotação e análise visual também são exercitados.
 - Torres PCB com inserto/piloto, tipos e faces de recortes, divisórias, dimensões da junta TPU, qualidade e opção de processo. São configurações amostradas, não todas as combinações possíveis.
@@ -93,4 +93,4 @@ Não se infere aprovação de fatiamento, impressão, encaixe físico, esforço 
 
 ## English scope note
 
-The full command uses real browser controls, real Python geometry and real STL/3MF bytes across eight styles, seventeen presets and the enabled targets in the sampled configurations. Native dispatch and folder opening are disabled only in the isolated DEV bridge. Artifact downloads use registered temporary-file IDs; independent readers compare the delivered preview, print snapshot and serialized float32 geometry, then check topology, shell counts, placement and process settings. The report must be assessed for its exact revision and enabled sections. Native application acceptance and physical printing/mating tests remain separate evidence; no completed-run count is asserted here before the final result.
+The full command uses real browser controls, real Python geometry and real STL/3MF bytes across eight styles, eight standard presets and the enabled targets in the sampled configurations. Native dispatch and folder opening are disabled only in the isolated DEV bridge. Artifact downloads use registered temporary-file IDs; independent readers compare the delivered preview, print snapshot and serialized float32 geometry, then check topology, shell counts, placement and process settings. The report must be assessed for its exact revision and enabled sections. Native application acceptance and physical printing/mating tests remain separate evidence; no completed-run count is asserted here before the final result.

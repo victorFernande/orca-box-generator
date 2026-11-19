@@ -1252,7 +1252,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.2.1",
+            "version": "1.2.2",
         }
 
     @staticmethod

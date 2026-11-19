@@ -15,9 +15,9 @@ const root = path.resolve(__dirname, '..');
 const output = process.env.ORCA_E2E_OUTPUT || path.join(os.tmpdir(), 'orca-box-e2e-'+crypto.randomUUID());
 const timeout = Number(process.env.ORCA_E2E_TIMEOUT || 240000);
 const report = {started: new Date().toISOString(), output, complete:false, checks: [], failures: [], consoleErrors: [], exports: []};
-const presets = ['everyday','esp32','raspberry_pi','arduino','mini_lip','sensor','tool_rugged','rugged_pip','pencil','parts','gasket','vented','open_bin_handles','snap_latch_case','stackable_parts_bin','clamshell_pip_short','clamshell_pip_deep'];
+const presets = ['everyday','screw_corner_standard','tool_rugged','pencil','open_bin_handles','snap_latch_case','stackable_parts_bin','clamshell_pip_short'];
 const styles = ['lip_snap','rugged_box','sliding_lid','screw_corner','open_bin','snap_latch','stackable_bin','clamshell_pip'];
-const stylePresets = {lip_snap:'everyday',rugged_box:'rugged_pip',sliding_lid:'pencil',screw_corner:'esp32',open_bin:'open_bin_handles',snap_latch:'snap_latch_case',stackable_bin:'stackable_parts_bin',clamshell_pip:'clamshell_pip_short'};
+const stylePresets = {lip_snap:'everyday',rugged_box:'tool_rugged',sliding_lid:'pencil',screw_corner:'screw_corner_standard',open_bin:'open_bin_handles',snap_latch:'snap_latch_case',stackable_bin:'stackable_parts_bin',clamshell_pip:'clamshell_pip_short'};
 
 function startServer() {
   const child = spawn(process.env.ORCA_TEST_PYTHON || 'python', ['-B', path.join(__dirname, 'ui_test_server.py')], {
@@ -340,6 +340,7 @@ async function styleChecks(studio) {
       if (style==='rugged_box') {
         await studio.select('#hinge_mode','print_in_place','hinge_mode');
         for(const target of ['base_only','lid_only'])assert.equal(await studio.optionDisabled(target),true,'Captive Rugged requires its paired shells');
+        for(const format of ['stl','3mf']) await studio.action(format);
         await studio.select('#hinge_mode','pin','hinge_mode');await studio.number('hinge_pin_diameter',3.2);
       }
       if (style==='sliding_lid') await studio.number('fit_clearance',.3);
@@ -445,7 +446,7 @@ async function generalChecks(studio) {
     start=await studio.mark();await card.click();await studio.waitPreview(start,{width_x:90});
     await card.locator('.preset-del-btn').click();await card.waitFor({state:'detached'});
     await studio.page.locator('[data-cat="all"]').click();
-    assert.equal(await studio.page.locator('.preset-card').count(),17);
+    assert.equal(await studio.page.locator('.preset-card').count(),presets.length);
   });
   await studio.check('view','five camera pills and all materials',async()=>{
     const cameras=[];

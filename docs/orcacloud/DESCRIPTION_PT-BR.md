@@ -1,6 +1,6 @@
 **Caixas para seus projetos. Organização na sua medida.**
 
-Projete offline no OrcaSlicer. Ajuste largura, profundidade, altura e paredes, comece com 17 presets editáveis e salve seus modelos.
+Projete offline no OrcaSlicer. Ajuste largura, profundidade, altura e paredes, comece com oito modelos padrão editáveis e salve seus modelos.
 
 ![Caixa aberta paramétrica com aberturas reais para as mãos](../../assets/marketplace/01-box-studio-pt-BR.png)
 
