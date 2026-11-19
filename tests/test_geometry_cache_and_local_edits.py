@@ -253,6 +253,10 @@ class LocalEditTests(unittest.TestCase):
           }
           p.style='lip_snap';updatePrintHelp();
           if(!/kit/i.test(label.textContent))throw Error('original fit kit advice missing');
+          for(p.style of ['sliding_lid','rugged_box']) {
+            updatePrintHelp();
+            if(!/orienta|orientation/i.test(label.textContent)||/invertida|flipped/i.test(label.textContent))throw Error('generic instructions contradict the exported lid pose');
+          }
         }
         """
         self.run_js(setup + translations + help_script + checks)
@@ -271,8 +275,8 @@ class LocalEditTests(unittest.TestCase):
         ]
         setup = """
         let serial=1,latest=1,timer=null,localDirty=false,p={width_x:90},lang='pt',theme='dark',meshParams={},meshRevisionKey=null;
-        const INITIAL={},sent=[],clone=o=>JSON.parse(JSON.stringify(o)),tr=x=>x;
-        function clearTimeout(){}function setTimeout(fn){return fn}function status(){}
+        const INITIAL={},sent=[],notices=[],clone=o=>JSON.parse(JSON.stringify(o)),tr=x=>x;
+        function clearTimeout(){}function setTimeout(fn){return fn}function status(message){notices.push(message)}
         function send(m){sent.push(m);return true}function sync(){}function presets(){}
         function updatePrinter(){}function resolveHostTheme(){}function busy(){}
         function loadMeshes(){throw Error('Old geometry replaced the current viewport')}
@@ -285,6 +289,11 @@ class LocalEditTests(unittest.TestCase):
         if(p.width_x!==120)throw Error('in-flight response erased gesture');
         requestPreview();timer();
         if(sent.length!==1||sent[0].params.width_x!==120||sent[0].request_id!==3)throw Error('final gesture was not committed');
+        notices.length=0;
+        receive({type:'preview_result',ok:false,request_id:2,message:'obsolete invalid edit'});
+        if(notices.length)throw Error('stale validation error replaced current status');
+        receive({type:'preview_result',ok:false,request_id:3,message:'adjust the gasket'});
+        if(notices.length!==1||notices[0]!=='adjust the gasket'||p.width_x!==120)throw Error('current validation error lost or changed the design');
         """
         self.run_js(setup + request + receive + checks)
 
@@ -352,7 +361,17 @@ class LocalEditTests(unittest.TestCase):
         if($('gasket_enabled').closest().style.display!=='none'||!$('clamshell-feature-warning').hidden)throw Error('unsupported resource controls remain');
         p.style='lip_snap';sync();if(row('lid_height')!=='grid'||row('snap_retention')!=='grid')throw Error('lip controls not restored');
         if(rows['[data-i18n="printHelp"]'].textContent!=='printHelp')throw Error('original print help not restored');
-        if($('open').disabled||$('play').disabled||$('target').options.some(option=>option.disabled))throw Error('lid controls not restored');
+        if($('open').disabled||$('play').disabled||$('target').options.some(option=>option.disabled!==(option.value==='gasket')))throw Error('lid controls or gasket precondition not restored');
+        p.gasket_enabled=true;sync();
+        if($('target').options.some(option=>option.disabled))throw Error('enabled gasket target not restored');
+        for(const style of ['open_bin','stackable_bin','sliding_lid']){
+          p.style=style;sync();
+          if($('gasket_enabled').closest().style.display!=='flex')throw Error('cannot remove incompatible gasket: '+style);
+          if(!$('target').options.find(option=>option.value==='gasket').disabled)throw Error('unsupported gasket target enabled: '+style);
+        }
+        p.gasket_enabled=false;sync();
+        if($('gasket_enabled').closest().style.display!=='none')throw Error('unsupported disabled gasket control remains');
+        p.style='lip_snap';p.gasket_enabled=true;sync();
         INITIAL.preview_mode='calibration';sync();
         if(!$('open').disabled||!$('play').disabled)throw Error('sync reenabled kit opening animation');
         """

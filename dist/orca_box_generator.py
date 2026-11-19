@@ -7,7 +7,7 @@
 # name = "Orca Box Studio"
 # description = "Offline parametric boxes, handgrip bins, removable latching lids and calibration parts"
 # author = "Orca Box Studio"
-# version = "1.2.0"
+# version = "1.2.1"
 # ///
 
 # MIT License
@@ -1109,15 +1109,15 @@ def build_part_field(
                 )
 
             result = _union(result, rail)
-            # A rear shelf carries a recessed socket. The lid's downward tooth
-            # must climb this shelf on withdrawal; a pocket open toward -Y alone
-            # cannot retain a sliding lid.
+            # A rear ceiling carries an underside socket. Keeping the mating
+            # tooth above the plate leaves the entire lid underside printable
+            # on the bed, rather than balancing it on a small downward foot.
             rear = d / 2 - t
-            result = _union(result, _box(-2.5, 2.5, rear - 4, rear + 0.2, h - 5, h - 3))
+            result = _union(result, _box(-2.5, 2.5, rear - 4, rear + 0.2, h - 1.4, h))
             result = _difference(
-                result, _box(-1.5, 1.5, rear - 1.7, rear - 0.2, h - 4.2, h - 2.8)
+                result, _box(-1.5, 1.5, rear - 1.7, rear - 0.2, h - 1.6, h - 0.9)
             )
-            levels.extend([h - 5, h - 4.2, h - 3, h - 2.8, h - 4, h - 1.4])
+            levels.extend([h - 1.6, h - 1.4, h - 0.9, h - 4, h])
         cuts = list(p["cutouts"])
         if style == "open_bin" and p["handles_enabled"]:
             for face in (
@@ -1147,12 +1147,12 @@ def build_part_field(
                     cross = np.hypot(u / a, z / b) - 1
                     cross = cross * min(a, b)
                 elif cut["shape"] == "hex":
+                    # Scale a normalized six-sided envelope independently.
+                    # Vertices are (±a,0), (±a/2,±b): controls are actual W/H.
                     cross = (
-                        np.maximum(
-                            np.abs(u) * 0.866025403784 + np.abs(z) * 0.5, np.abs(z)
-                        )
-                        - min(a, b) * 0.866025403784
-                    )
+                        np.maximum(np.abs(u) / a + np.abs(z) / (2 * b), np.abs(z) / b)
+                        - 1
+                    ) * min(a, b)
                 else:
                     cross = _round2(
                         u,
@@ -1172,6 +1172,11 @@ def build_part_field(
                 return np.maximum(cross, slab)
 
             result = _difference(result, opening)
+            if cut["shape"] == "hex":
+                axis = 0 if face in ("front", "back") else 1
+                a, b = cut["width"] / 2, cut["height"] / 2
+                _planes(axis, *[cut["u"] + v for v in (-a, -a / 2, a / 2, a)])
+                _planes(2, cut["z"] - b, cut["z"], cut["z"] + b)
             if cut["shape"] == "circle":
                 circles.append(
                     (
@@ -1242,9 +1247,9 @@ def build_part_field(
                     h + 1.2,
                 ),
             )
-            # Two slots leave a connected 7 mm flexure. The tooth has a rear
-            # insertion ramp and a front retaining shoulder, with positive
-            # clearance while seated in the shelf socket.
+            # A connected 7 mm flexure carries an upward tooth. Its rear ramp
+            # enters the ceiling socket; the front shoulder retains withdrawal.
+            # Only the tooth flexes down temporarily during insertion/removal.
             rear = d / 2 - t
             result = _difference(
                 result,
@@ -1253,27 +1258,59 @@ def build_part_field(
             )
 
             def tooth(v):
-                bottom = (
+                top = (
                     h
-                    - 3
-                    - 0.35
-                    + np.clip((v[:, 1] - (rear - 0.9)) / 0.5, 0, 1) * (0.35 + c)
+                    - 1.05
+                    - np.clip((v[:, 1] - (rear - 0.9)) / 0.5, 0, 1) * (0.35 + c)
                 )
                 return np.maximum.reduce(
                     (
                         np.abs(v[:, 0]) - 1.1,
                         _slab(v[:, 1], rear - 1.5, rear - 0.4),
-                        bottom - v[:, 2],
-                        v[:, 2] - (h - 3 + c + 0.3),
+                        (h - 1.7 - c) - v[:, 2],
+                        v[:, 2] - top,
                     )
                 )
 
             result = _union(result, tooth)
+            # The rails define the nominal width, while the back corners must
+            # also clear the rounded female cavity. Clamp only the rear half;
+            # the front opening and pull handle retain their original outline.
+            unrelieved = result
+            relief_radius = max(0.15, r - t - c)
+
+            def rear_clearance(v):
+                return _round2(
+                    v[:, 0],
+                    np.maximum(v[:, 1], 0),
+                    w / 2 - t - c,
+                    d / 2 - t - c,
+                    relief_radius,
+                )
+
+            result = lambda v: np.maximum(unrelieved(v), rear_clearance(v))
+            registry["rectangles"].append(
+                (w - 2 * t - 2 * c, d - 2 * t - 2 * c, relief_radius, 0.0, 0.0)
+            )
+            # Sample the curved rear-envelope / 45-degree rail intersection
+            # locally through the plate thickness; long Z slabs chamfer it.
+            registry["sample_z"] = np.linspace(
+                h - 3 + c, h - 1.4 - c, int(math.ceil((1.6 - 2 * c) / 0.1)) + 1
+            ).tolist()
+            intrusion = np.asarray(registry["sample_z"]) - (h - 3)
+            edge = w / 2 - t - c - intrusion
+            delta = np.clip(relief_radius - intrusion, 0, relief_radius)
+            registry["sample_x"] = np.r_[-edge, edge].tolist()
+            registry["sample_y"] = (
+                d / 2
+                - t
+                - c
+                - relief_radius
+                + np.sqrt(np.maximum(0, relief_radius**2 - delta**2))
+            ).tolist()
             _planes(0, -1.1, 1.1)
             _planes(1, rear - 1.5, rear - 0.9, rear - 0.4)
-            levels.extend(
-                [h - 3 - 0.35, h - 3 + c, h - 3 + c + 0.3, h - 1.4 - c, h + 1.2]
-            )
+            levels.extend([h - 1.05, h - 1.7 - c, h - 3 + c, h - 1.4 - c, h + 1.2])
         else:
             result = _rect(w, d, zcap, zcap + lh, r)
             skirt = _ring(
@@ -1344,7 +1381,7 @@ def build_part_field(
             w - t + gw - 0.12,
             d - t + gw - 0.12,
             h - gd + 0.05,
-            h + 0.15,
+            h + c + 0.15,
             gw - 0.12,
             max(0.2, r - t / 2 + gw / 2 - 0.06),
         )
@@ -1356,7 +1393,7 @@ def build_part_field(
                 max(0.15, r - t / 2 - gw / 2 + 0.06),
             ),
         ]
-        levels.extend([h - gd + 0.05, h + 0.15])
+        levels.extend([h - gd + 0.05, h + c + 0.15])
     elif part == "pin":
         hg = hinge_geometry(p)
         span, kl, pr = hg["span"], hg["knuckle_length"], hg["radius"]
@@ -1533,6 +1570,12 @@ def build_part_field(
                     result,
                     _cylinder_x(x - kl / 2 - 0.2, x + kl / 2 + 0.2, cy, cz, pr + c),
                 )
+        elif p["hinge_mode"] == "pin":
+            # The lid arm is fused after the barrel. Bore the final union so
+            # the arm cannot refill the upper half of the separate pin passage.
+            result = _difference(
+                result, _cylinder_x(-kl / 2 - 0.2, kl / 2 + 0.2, cy, cz, pr + c)
+            )
         circles.extend([(1, 2, cy, cz, hr), (1, 2, cy, cz, pr + c), (1, 2, cy, cz, pr)])
         levels.extend([cz - hr, cz, cz + hr, cz - hr * 0.8, cz - hr * 0.1])
         bounds = (-w / 2 - 3, w / 2 + 3, -d / 2 - 4, d / 2 + 12, -2, h + c + lh + 3)
@@ -1548,6 +1591,9 @@ def build_part_field(
         "levels": levels,
         "planes": registry["planes"],
         "params": p,
+        "sample_z": registry.get("sample_z", []),
+        "sample_x": registry.get("sample_x", []),
+        "sample_y": registry.get("sample_y", []),
     }
     _GEOMETRY_HINTS.set(None)
     return result, bounds, hints
@@ -1575,7 +1621,11 @@ def _refinement(
 ) -> tuple[list[np.ndarray], float]:
     p = hints["params"]
     tol = min(p["fit_clearance"] / 4, 0.04)
-    extra = [[], [], list(hints["levels"])]
+    extra = [
+        list(hints.get("sample_x", [])),
+        list(hints.get("sample_y", [])),
+        list(hints["levels"]) + list(hints.get("sample_z", [])),
+    ]
     for axis in range(3):
         for value in set(hints.get("planes", [[], [], []])[axis]):
             extra[axis].extend([value - tol * 0.15, value + tol * 0.15])
@@ -2860,6 +2910,14 @@ def collect_target_meshes(
     p = normalize_params(raw)
     generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
+    if (
+        p["style"] == "rugged_box"
+        and p["hinge_mode"] == "print_in_place"
+        and target in ("base_only", "lid_only")
+    ):
+        raise ValueError(
+            "Dobradiça cativa: use Base + tampa ou Conjunto completo / captive hinge: use Base + lid or Full suite to preserve the assembly."
+        )
     if p["style"] == "clamshell_pip":
         if target not in ("base_and_lid", "full_suite"):
             raise ValueError(
@@ -6776,6 +6834,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     <option value="print_in_place">Print-in-place</option>
                   </select></label
                 >
+                <p id="rugged-motion-phase" class="helper-note" aria-live="polite" hidden></p>
               </div>
                 <div data-slider="hinge_pin_diameter" class="ctrl-row">
                   <label class="ctrl-top"
@@ -7535,6 +7594,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
       releaseAndOpen: "Soltar fechos e abrir",
+      releaseClipsAndOpen: "Retirar presilhas e abrir",
+      ruggedClosed: "Presilhas instaladas · tampa fechada",
+      ruggedReleasing: "Retirando presilhas · tampa parada",
+      ruggedOpening: "Presilhas retiradas · abrindo a tampa",
+      ruggedOpen: "Presilhas retiradas · tampa aberta",
       latchesEngaged: "Fechos presos · tampa fechada",
       releasingLatches: "Soltando os fechos · tampa parada",
       liftingLid: "Fechos abertos · afastando a tampa",
@@ -7596,7 +7660,7 @@ const INITIAL = __BOX_CONTEXT__;
       auto: "Aplicar fatiamento mecânico",
       folder: "Abrir pasta de exportação",
       printHelp:
-        "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+        "Base com fundo na mesa; preserve a orientação exportada das peças. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
       printHelpClamshell:
         "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
       printHelpOpen:
@@ -7651,6 +7715,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
       releaseAndOpen: "Release latches & open",
+      releaseClipsAndOpen: "Remove clips & open",
+      ruggedClosed: "Clips installed · lid closed",
+      ruggedReleasing: "Removing clips · lid stationary",
+      ruggedOpening: "Clips removed · opening the lid",
+      ruggedOpen: "Clips removed · lid open",
       latchesEngaged: "Latches engaged · lid closed",
       releasingLatches: "Releasing latches · lid stationary",
       liftingLid: "Latches open · lifting the lid",
@@ -7712,7 +7781,7 @@ const INITIAL = __BOX_CONTEXT__;
       auto: "Apply mechanical slicing",
       folder: "Open export folder",
       printHelp:
-        "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
+        "Base on its floor; preserve the exported orientation of each part. Print the fit kit first. Print time depends on printer and profile.",
       printHelpClamshell:
         "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
       printHelpOpen:
@@ -7834,7 +7903,7 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updateOpeningCaption() {
     document.querySelector('[data-i18n="open"]').textContent = tr(
-      p.style === "snap_latch" ? "releaseAndOpen" : "open",
+      p.style === "snap_latch" ? "releaseAndOpen" : p.style === "rugged_box" ? "releaseClipsAndOpen" : "open",
     );
   }
   function updatePreviewText() {
@@ -7866,6 +7935,7 @@ const INITIAL = __BOX_CONTEXT__;
     updateOpeningCaption();
     updatePrintHelp();
     updateClamshellNote();
+    if (p.style === "rugged_box") updateRuggedMotionStatus();
     const names = {
       base_and_lid: tr("both"),
       base_only: tr("baseOnly"),
@@ -7966,17 +8036,20 @@ const INITIAL = __BOX_CONTEXT__;
           : "grid";
     }
     $("gasket_enabled").closest(".switch-row").style.display =
-      lidless || (clamshell && !p.gasket_enabled) ? "none" : "flex";
+      (lidless || clamshell || p.style === "sliding_lid") && !p.gasket_enabled ? "none" : "flex";
     for (const key of ["gasket_width", "gasket_depth"])
       document.querySelector('[data-slider="' + key + '"]').style.display =
-        lidless || p.style === "clamshell_pip" ? "none" : "grid";
+        lidless || ["clamshell_pip", "sliding_lid"].includes(p.style) ? "none" : "grid";
     for (const option of $("target").options) {
       option.disabled =
         (lidless &&
           ["lid_only", "gasket", "fit_test_kit"].includes(option.value)) ||
         (p.style === "snap_latch" && option.value === "fit_test_kit") ||
         (p.style === "clamshell_pip" &&
-          !["base_and_lid", "full_suite"].includes(option.value));
+          !["base_and_lid", "full_suite"].includes(option.value)) ||
+        (p.style === "rugged_box" && p.hinge_mode === "print_in_place" &&
+          ["base_only", "lid_only"].includes(option.value)) ||
+        (option.value === "gasket" && (!p.gasket_enabled || p.style === "sliding_lid"));
       if (option.value === "base_and_lid")
         option.textContent =
           p.style === "clamshell_pip"
@@ -7985,6 +8058,8 @@ const INITIAL = __BOX_CONTEXT__;
               ? tr("baseOnly")
               : tr("both");
     }
+    if ([...$("target").options].some(option => option.value === p.export_target && option.disabled))
+      p.export_target = "base_and_lid";
     $("name").value = p.name;
     document
       .querySelectorAll("[data-p]")
@@ -9016,18 +9091,19 @@ const INITIAL = __BOX_CONTEXT__;
     const suffix = meshParams.style === "clamshell_pip" ? "°" : "%";
     $("openValue").textContent = Math.round(Number($("open").value)) + suffix;
     if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+    if (meshParams.style === "rugged_box") updateRuggedMotionStatus();
   }
   function configureOpening() {
     const nextStyle = meshParams.style;
     const isClamshell = nextStyle === "clamshell_pip";
     $("open").max = isClamshell ? "180" : "100";
     if (isClamshell && openingStyle !== nextStyle) $("open").value = "180";
-    else if (nextStyle === "snap_latch" && openingStyle !== nextStyle)
+    else if (["snap_latch", "rugged_box"].includes(nextStyle) && openingStyle !== nextStyle)
       $("open").value = "0";
     else if (
       !isClamshell &&
-      nextStyle !== "snap_latch" &&
-      ["clamshell_pip", "snap_latch"].includes(openingStyle)
+      !["snap_latch", "rugged_box"].includes(nextStyle) &&
+      ["clamshell_pip", "snap_latch", "rugged_box"].includes(openingStyle)
     )
       $("open").value = "25";
     openingStyle = nextStyle;
@@ -9084,6 +9160,16 @@ const INITIAL = __BOX_CONTEXT__;
     const message = tr(key);
     if (label.textContent !== message) label.textContent = message;
   }
+  function updateRuggedMotionStatus() {
+    const label = $("rugged-motion-phase");
+    if (!label) return;
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    label.hidden = shape.style !== "rugged_box" || INITIAL.preview_mode === "calibration";
+    if (label.hidden) return;
+    const phase = openingFraction();
+    const message = tr(phase <= 0 ? "ruggedClosed" : phase < 0.25 ? "ruggedReleasing" : phase < 1 ? "ruggedOpening" : "ruggedOpen");
+    if (label.textContent !== message) label.textContent = message;
+  }
   function partTransform(part, opening = openingFraction(), offset = null) {
     const shape = typeof meshParams === "undefined" ? p : meshParams;
     const frame = translateM(...(offset || [0, 0, 0]));
@@ -9094,8 +9180,21 @@ const INITIAL = __BOX_CONTEXT__;
         snapLatchTransform(part, opening, INITIAL.latch_motion),
       );
     let model = I();
+    if (shape.style === "rugged_box") {
+      // Remove the spring clips completely before the hinged lid rotates.
+      const phase = Math.max(0, Math.min(1, opening));
+      const releaseFraction = 0.25;
+      if (part.startsWith("clip"))
+        model = translateM(0, -15 * Math.min(1, phase / releaseFraction), 0);
+      else if (part === "lid") {
+        const h = INITIAL.hinge || {y: shape.depth_y / 2 + 5, z: shape.height_z - 4};
+        const angle = -Math.PI * Math.max(0, (phase - releaseFraction) / (1 - releaseFraction));
+        model = mult(translateM(0, h.y, h.z), mult(rotateX(angle), translateM(0, -h.y, -h.z)));
+      }
+      return mult(frame, model);
+    }
     if (part === "lid") {
-      if (shape.style === "rugged_box" || shape.style === "clamshell_pip") {
+      if (shape.style === "clamshell_pip") {
         const h = INITIAL.hinge || {
           y: shape.depth_y / 2 + 5,
           z: shape.height_z - 4,
@@ -9108,7 +9207,6 @@ const INITIAL = __BOX_CONTEXT__;
         model = translateM(0, -opening * (shape.depth_y + 10), 0);
       else model = translateM(0, 0, opening * 50);
     }
-    if (shape.style === "rugged_box" && part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
     return mult(frame, model);
   }
   function transformPoint(m, x, y, z) {
@@ -11643,7 +11741,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.2.0",
+            "version": "1.2.1",
         }
 
     @staticmethod
@@ -11971,6 +12069,7 @@ class BoxStudioController:
             )
 
     def handle_message(self, raw_data, send_fn, default_mode="page"):
+        msg = None
         try:
             msg = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
             if not isinstance(msg, dict):
@@ -12070,6 +12169,16 @@ class BoxStudioController:
                 except Exception:
                     pass
         except Exception as exc:
+            if isinstance(msg, dict) and msg.get("type") in ("preview", "update_params"):
+                send_fn(
+                    {
+                        "type": "preview_result",
+                        "ok": False,
+                        "request_id": msg.get("request_id"),
+                        "message": str(exc),
+                    }
+                )
+                return
             send_fn(
                 {
                     "type": "action_result",

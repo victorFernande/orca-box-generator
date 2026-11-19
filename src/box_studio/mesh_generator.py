@@ -600,15 +600,15 @@ def build_part_field(
                 )
 
             result = _union(result, rail)
-            # A rear shelf carries a recessed socket. The lid's downward tooth
-            # must climb this shelf on withdrawal; a pocket open toward -Y alone
-            # cannot retain a sliding lid.
+            # A rear ceiling carries an underside socket. Keeping the mating
+            # tooth above the plate leaves the entire lid underside printable
+            # on the bed, rather than balancing it on a small downward foot.
             rear = d / 2 - t
-            result = _union(result, _box(-2.5, 2.5, rear - 4, rear + 0.2, h - 5, h - 3))
+            result = _union(result, _box(-2.5, 2.5, rear - 4, rear + 0.2, h - 1.4, h))
             result = _difference(
-                result, _box(-1.5, 1.5, rear - 1.7, rear - 0.2, h - 4.2, h - 2.8)
+                result, _box(-1.5, 1.5, rear - 1.7, rear - 0.2, h - 1.6, h - 0.9)
             )
-            levels.extend([h - 5, h - 4.2, h - 3, h - 2.8, h - 4, h - 1.4])
+            levels.extend([h - 1.6, h - 1.4, h - 0.9, h - 4, h])
         cuts = list(p["cutouts"])
         if style == "open_bin" and p["handles_enabled"]:
             for face in (
@@ -638,12 +638,12 @@ def build_part_field(
                     cross = np.hypot(u / a, z / b) - 1
                     cross = cross * min(a, b)
                 elif cut["shape"] == "hex":
+                    # Scale a normalized six-sided envelope independently.
+                    # Vertices are (±a,0), (±a/2,±b): controls are actual W/H.
                     cross = (
-                        np.maximum(
-                            np.abs(u) * 0.866025403784 + np.abs(z) * 0.5, np.abs(z)
-                        )
-                        - min(a, b) * 0.866025403784
-                    )
+                        np.maximum(np.abs(u) / a + np.abs(z) / (2 * b), np.abs(z) / b)
+                        - 1
+                    ) * min(a, b)
                 else:
                     cross = _round2(
                         u,
@@ -663,6 +663,11 @@ def build_part_field(
                 return np.maximum(cross, slab)
 
             result = _difference(result, opening)
+            if cut["shape"] == "hex":
+                axis = 0 if face in ("front", "back") else 1
+                a, b = cut["width"] / 2, cut["height"] / 2
+                _planes(axis, *[cut["u"] + v for v in (-a, -a / 2, a / 2, a)])
+                _planes(2, cut["z"] - b, cut["z"], cut["z"] + b)
             if cut["shape"] == "circle":
                 circles.append(
                     (
@@ -733,9 +738,9 @@ def build_part_field(
                     h + 1.2,
                 ),
             )
-            # Two slots leave a connected 7 mm flexure. The tooth has a rear
-            # insertion ramp and a front retaining shoulder, with positive
-            # clearance while seated in the shelf socket.
+            # A connected 7 mm flexure carries an upward tooth. Its rear ramp
+            # enters the ceiling socket; the front shoulder retains withdrawal.
+            # Only the tooth flexes down temporarily during insertion/removal.
             rear = d / 2 - t
             result = _difference(
                 result,
@@ -744,27 +749,59 @@ def build_part_field(
             )
 
             def tooth(v):
-                bottom = (
+                top = (
                     h
-                    - 3
-                    - 0.35
-                    + np.clip((v[:, 1] - (rear - 0.9)) / 0.5, 0, 1) * (0.35 + c)
+                    - 1.05
+                    - np.clip((v[:, 1] - (rear - 0.9)) / 0.5, 0, 1) * (0.35 + c)
                 )
                 return np.maximum.reduce(
                     (
                         np.abs(v[:, 0]) - 1.1,
                         _slab(v[:, 1], rear - 1.5, rear - 0.4),
-                        bottom - v[:, 2],
-                        v[:, 2] - (h - 3 + c + 0.3),
+                        (h - 1.7 - c) - v[:, 2],
+                        v[:, 2] - top,
                     )
                 )
 
             result = _union(result, tooth)
+            # The rails define the nominal width, while the back corners must
+            # also clear the rounded female cavity. Clamp only the rear half;
+            # the front opening and pull handle retain their original outline.
+            unrelieved = result
+            relief_radius = max(0.15, r - t - c)
+
+            def rear_clearance(v):
+                return _round2(
+                    v[:, 0],
+                    np.maximum(v[:, 1], 0),
+                    w / 2 - t - c,
+                    d / 2 - t - c,
+                    relief_radius,
+                )
+
+            result = lambda v: np.maximum(unrelieved(v), rear_clearance(v))
+            registry["rectangles"].append(
+                (w - 2 * t - 2 * c, d - 2 * t - 2 * c, relief_radius, 0.0, 0.0)
+            )
+            # Sample the curved rear-envelope / 45-degree rail intersection
+            # locally through the plate thickness; long Z slabs chamfer it.
+            registry["sample_z"] = np.linspace(
+                h - 3 + c, h - 1.4 - c, int(math.ceil((1.6 - 2 * c) / 0.1)) + 1
+            ).tolist()
+            intrusion = np.asarray(registry["sample_z"]) - (h - 3)
+            edge = w / 2 - t - c - intrusion
+            delta = np.clip(relief_radius - intrusion, 0, relief_radius)
+            registry["sample_x"] = np.r_[-edge, edge].tolist()
+            registry["sample_y"] = (
+                d / 2
+                - t
+                - c
+                - relief_radius
+                + np.sqrt(np.maximum(0, relief_radius**2 - delta**2))
+            ).tolist()
             _planes(0, -1.1, 1.1)
             _planes(1, rear - 1.5, rear - 0.9, rear - 0.4)
-            levels.extend(
-                [h - 3 - 0.35, h - 3 + c, h - 3 + c + 0.3, h - 1.4 - c, h + 1.2]
-            )
+            levels.extend([h - 1.05, h - 1.7 - c, h - 3 + c, h - 1.4 - c, h + 1.2])
         else:
             result = _rect(w, d, zcap, zcap + lh, r)
             skirt = _ring(
@@ -835,7 +872,7 @@ def build_part_field(
             w - t + gw - 0.12,
             d - t + gw - 0.12,
             h - gd + 0.05,
-            h + 0.15,
+            h + c + 0.15,
             gw - 0.12,
             max(0.2, r - t / 2 + gw / 2 - 0.06),
         )
@@ -847,7 +884,7 @@ def build_part_field(
                 max(0.15, r - t / 2 - gw / 2 + 0.06),
             ),
         ]
-        levels.extend([h - gd + 0.05, h + 0.15])
+        levels.extend([h - gd + 0.05, h + c + 0.15])
     elif part == "pin":
         hg = hinge_geometry(p)
         span, kl, pr = hg["span"], hg["knuckle_length"], hg["radius"]
@@ -1024,6 +1061,12 @@ def build_part_field(
                     result,
                     _cylinder_x(x - kl / 2 - 0.2, x + kl / 2 + 0.2, cy, cz, pr + c),
                 )
+        elif p["hinge_mode"] == "pin":
+            # The lid arm is fused after the barrel. Bore the final union so
+            # the arm cannot refill the upper half of the separate pin passage.
+            result = _difference(
+                result, _cylinder_x(-kl / 2 - 0.2, kl / 2 + 0.2, cy, cz, pr + c)
+            )
         circles.extend([(1, 2, cy, cz, hr), (1, 2, cy, cz, pr + c), (1, 2, cy, cz, pr)])
         levels.extend([cz - hr, cz, cz + hr, cz - hr * 0.8, cz - hr * 0.1])
         bounds = (-w / 2 - 3, w / 2 + 3, -d / 2 - 4, d / 2 + 12, -2, h + c + lh + 3)
@@ -1039,6 +1082,9 @@ def build_part_field(
         "levels": levels,
         "planes": registry["planes"],
         "params": p,
+        "sample_z": registry.get("sample_z", []),
+        "sample_x": registry.get("sample_x", []),
+        "sample_y": registry.get("sample_y", []),
     }
     _GEOMETRY_HINTS.set(None)
     return result, bounds, hints
@@ -1066,7 +1112,11 @@ def _refinement(
 ) -> tuple[list[np.ndarray], float]:
     p = hints["params"]
     tol = min(p["fit_clearance"] / 4, 0.04)
-    extra = [[], [], list(hints["levels"])]
+    extra = [
+        list(hints.get("sample_x", [])),
+        list(hints.get("sample_y", [])),
+        list(hints["levels"]) + list(hints.get("sample_z", [])),
+    ]
     for axis in range(3):
         for value in set(hints.get("planes", [[], [], []])[axis]):
             extra[axis].extend([value - tol * 0.15, value + tol * 0.15])
@@ -2351,6 +2401,14 @@ def collect_target_meshes(
     p = normalize_params(raw)
     generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
+    if (
+        p["style"] == "rugged_box"
+        and p["hinge_mode"] == "print_in_place"
+        and target in ("base_only", "lid_only")
+    ):
+        raise ValueError(
+            "Dobradiça cativa: use Base + tampa ou Conjunto completo / captive hinge: use Base + lid or Full suite to preserve the assembly."
+        )
     if p["style"] == "clamshell_pip":
         if target not in ("base_and_lid", "full_suite"):
             raise ValueError(

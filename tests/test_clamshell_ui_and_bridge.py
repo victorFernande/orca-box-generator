@@ -132,7 +132,7 @@ class ClamshellUiTests(unittest.TestCase):
         $('open').value='90';configureOpening();
         if(openingFraction()!==.5||$('openValue').textContent!=='90°')throw Error('refresh reset the chosen angle');
         meshParams={style:'rugged_box'};configureOpening();
-        if($('open').max!=='100'||$('open').value!=='25'||openingFraction()!==.25||$('openValue').textContent!=='25%')throw Error('legacy percentage view not restored');
+        if($('open').max!=='100'||$('open').value!=='0'||openingFraction()!==0||$('openValue').textContent!=='0%')throw Error('rugged percentage view must start with its clips installed');
         """)
 
     def test_preview_hinge_transform_matches_the_python_export_pose(self):
