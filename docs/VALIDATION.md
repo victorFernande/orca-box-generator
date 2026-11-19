@@ -1,5 +1,11 @@
 # Validation status
 
+## Exact standard-preset performance — 1.2.3, 2026-11-19
+
+The complete local suite passed **171 tests in 280.631 seconds**, using `-B -W error`, Chromium enabled and **no skips**. The final template/browser run passed **12 layouts and 37 interactions**, with zero issues or script errors. Both standalone bundles and the wheel passed isolated imports and loading of all nine prepared resources. These are separate checks and their case counts are not added together.
+
+Nine prepared surfaces for the three expensive standard designs retain the 1.2.2 vertex/triangle/normal arrays exactly. The six resource-cache tests and six numeric-indexing tests passed with `-B -W error`, including source/asset corruption misses, parameter invalidation, immutable arrays, print-orientation reuse, standalone dependency-fingerprint rejection and inverted-face counterexamples. A separate actual comparison retained all V/T/N bytes and topology results for nineteen preset pieces and ten edited pieces. Standalone bundle/wheel import checks also load all nine resources without the repository. The completed isolated selection benchmark passed 32/32 observations below 2000 ms on Intel UHD 630/D3D11 (worst 1431.1 ms), across eight standard cards, page/dock, first selection and after two declared tours. The observer checks request identity, actual buffer uploads/bindings, index sequences and nonblocking GPU completion; negative self-checks reject stale equal-count frames. This is not a native Orca latency test. See [performance method and measurements](PERFORMANCE.md). The complete source/CI and native-application results must be assessed for their own revisions; earlier 1.2.1/1.2.2 counts below are not approval of 1.2.3.
+
 ## Standard box gallery — 1.2.2, 2026-11-19
 
 The built-in gallery now has eight standard designs, one per existing box style. Board-specific/IoT examples and duplicate accessory variants were removed. No PCB posts, ports, partitions or TPU gasket are enabled in these starting designs. Box geometry and the optional feature controls are unchanged. Personal presets remain separate. The 1.2.1 results below describe the previous seventeen-preset catalog; assess 1.2.2 using its own reports and CI revision.

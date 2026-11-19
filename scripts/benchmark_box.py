@@ -22,16 +22,21 @@ def main():
     parser.add_argument("--styles", nargs="+", default=["lip_snap", "open_bin", "snap_latch"])
     parser.add_argument("--sizes", nargs="+", default=["90x65x35", "160x95x35"])
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--ignore-prepared", action="store_true",
+                        help="Measure fresh computation instead of the exact standard-preset resources.")
     args = parser.parse_args()
 
     from box_studio import plugin_main
     from box_studio.schema import VALID_STYLES, normalize_params, validate_params
     from box_studio.mesh_generator import np
+    if args.ignore_prepared:
+        plugin_main.load_standard_preset_mesh = lambda *_: None
 
     if any(style not in VALID_STYLES for style in args.styles):
         parser.error("A requested style is unavailable in this checkout.")
     report = {"python": platform.python_version(), "numpy": np.__version__,
-              "system": platform.system(), "native_application_test": False, "cases": []}
+              "system": platform.system(), "native_application_test": False,
+              "prepared_presets_enabled": not args.ignore_prepared, "cases": []}
     with tempfile.TemporaryDirectory(prefix="orca-box-benchmark-") as folder:
         plugin_main._resolve_storage_dir = lambda: Path(folder)
         for size in args.sizes:

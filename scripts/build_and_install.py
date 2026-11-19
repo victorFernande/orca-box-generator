@@ -40,12 +40,14 @@ MODULE_ORDER: list[str] = [
     "mesh_generator.py",
     "exporters.py",
     "presets_catalog.py",
+    "preset_mesh_index.py",
+    "preset_mesh_cache.py",
     "studio_ui.py",
     "linux_ipc.py",
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.2.2"
+DEFAULT_PLUGIN_VERSION = "1.2.3"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION
@@ -281,6 +283,42 @@ def _strip_internal_imports(source: str) -> tuple[str, set[str]]:
     return "".join(lines), future_features
 
 
+PRESET_SOURCE_FILES = ("schema.py", "mesh_generator.py", "presets_catalog.py")
+
+
+def _preset_dependency_digest(parts: dict[str, bytes]) -> str:
+    digest = hashlib.sha256()
+    for name in PRESET_SOURCE_FILES:
+        digest.update(name.encode("ascii") + b"\0")
+        digest.update(parts[name].replace(b"\r\n", b"\n"))
+    return digest.hexdigest()
+
+
+def _read_preset_resources() -> tuple[str, dict[str, bytes]]:
+    """Reject missing, stale or corrupt package meshes before distribution."""
+    tree = ast.parse((SRC_PKG_DIR / "preset_mesh_index.py").read_text(encoding="utf-8"))
+    constants = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            constants[node.targets[0].id] = ast.literal_eval(node.value)
+    expected = constants.get("PRESET_MESH_SOURCE_HASH")
+    actual = _preset_dependency_digest({n: (SRC_PKG_DIR / n).read_bytes() for n in PRESET_SOURCE_FILES})
+    index = constants.get("PRESET_MESH_INDEX", {})
+    if expected != actual or len(index) != 3:
+        raise RuntimeError("Standard meshes are stale; run scripts/build_preset_meshes.py before packaging.")
+    resources = {}
+    for design in index.values():
+        for entry in design["parts"].values():
+            name = entry["file"]
+            if not re.fullmatch(r"[a-z0-9_]+-[a-z0-9_]+\.npz", name) or name in resources:
+                raise RuntimeError("Invalid standard-mesh resource name.")
+            blob = (SRC_PKG_DIR / "preset_meshes" / name).read_bytes()
+            if len(blob) != entry["size_bytes"] or hashlib.sha256(blob).hexdigest() != entry["sha256"]:
+                raise RuntimeError(f"Standard mesh is corrupt: {name}")
+            resources[name] = blob
+    return actual, resources
+
+
 def build_bundle() -> Path:
     """Compile all `src/box_studio/*.py` modules into `dist/orca_box_generator.py`."""
     missing = [m for m in MODULE_ORDER if not (SRC_PKG_DIR / m).is_file()]
@@ -306,12 +344,20 @@ def build_bundle() -> Path:
 
     colliding_privates = {nm for nm, count in def_counts.items() if count > 1}
 
+    preset_source_hash, preset_resources = _read_preset_resources()
+    geometry_sections: dict[str, bytes] = {}
     all_future_features: set[str] = {"annotations"}
     sections: list[str] = []
 
     for mod_file in MODULE_ORDER:
         mod_stem = Path(mod_file).stem
         src = raw_sources[mod_file]
+        if mod_file == "preset_mesh_cache.py":
+            src = src.replace("_BUNDLED_PRESET_DATA = {}", "_BUNDLED_PRESET_DATA = " + repr(
+                {name: base64.b64encode(data).decode("ascii") for name, data in preset_resources.items()}))
+            src = src.replace('_BUNDLED_PRESET_RAW_HASH = ""', '_BUNDLED_PRESET_RAW_HASH = ' + repr(preset_source_hash))
+            src = src.replace('_BUNDLED_PRESET_CODE_HASH = ""', '_BUNDLED_PRESET_CODE_HASH = ' + repr(
+                _preset_dependency_digest(geometry_sections)))
         rename_set = (
             private_defs_by_mod[mod_file] & colliding_privates
         ) - class_attrs_by_mod[mod_file]
@@ -322,7 +368,12 @@ def build_bundle() -> Path:
         all_future_features.update(fut)
 
         banner = f"\n# {'=' * 75}\n# MODULE: box_studio.{mod_stem}\n# {'=' * 75}\n\n"
-        sections.append(banner + transformed.rstrip() + "\n")
+        body = transformed.rstrip() + "\n"
+        if mod_file in PRESET_SOURCE_FILES:
+            geometry_sections[mod_file] = body.encode("utf-8")
+            body = (f"# BOX_GEOMETRY_SOURCE_BEGIN {mod_file}\n" + body +
+                    f"# BOX_GEOMETRY_SOURCE_END {mod_file}\n")
+        sections.append(banner + body)
 
     future_stmt = f"from __future__ import {', '.join(sorted(all_future_features))}\n"
     module_bootstrap = (
@@ -456,6 +507,10 @@ def build_wheel() -> Path:
     for fname in pkg_files:
         raw_bytes = (SRC_PKG_DIR / fname).read_bytes().replace(b"\r\n", b"\n")
         entries.append((f"box_studio/{fname}", raw_bytes))
+
+    _, preset_resources = _read_preset_resources()
+    for fname, data in preset_resources.items():
+        entries.append((f"box_studio/preset_meshes/{fname}", data))
 
     if (PROJECT_ROOT / "LICENSE").is_file():
         entries.append(
@@ -601,6 +656,15 @@ assert bridge.orca._requested_permissions == {"threading": True}
 page = bridge.BoxStudioPageCapability()
 assert "Orca Box Studio" in page.get_ui()
 assert pathlib.Path(page.get_icon()).is_file()
+if sys.argv[2] == "bundle":
+    load_mesh = bridge.load_standard_preset_mesh
+else:
+    load_mesh = importlib.import_module("box_studio.preset_mesh_cache").load_standard_preset_mesh
+for item in bridge.BUILTIN_PRESETS:
+    if item["params"]["style"] in ("screw_corner", "rugged_box", "sliding_lid"):
+        parts = ("base", "lid", "pin", "clip_left", "clip_right") if item["params"]["style"] == "rugged_box" else ("base", "lid")
+        for part in parts:
+            assert load_mesh(item["params"], part) is not None, "Missing exact standalone preset surface"
 print("Isolated registration, page, dock and embedded icon: PASS")
 """
 

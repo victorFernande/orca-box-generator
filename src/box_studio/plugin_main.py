@@ -26,6 +26,7 @@ from .presets_catalog import (
 )
 from .studio_ui import get_studio_html
 from .linux_ipc import send_linux_plater_request
+from .preset_mesh_cache import load_standard_preset_mesh
 
 
 def _build_fallback_orca_module() -> types.ModuleType:
@@ -1252,7 +1253,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.2.2",
+            "version": "1.2.3",
         }
 
     @staticmethod
@@ -1337,9 +1338,15 @@ class BoxStudioController:
         shape_key = self._geometry_key(p)
 
         def factory(raw, part, print_orientation=False):
+            def generate_canonical():
+                prepared = load_standard_preset_mesh(raw, part)
+                if prepared is not None:
+                    return prepared
+                return self._validate_mesh(generate_box_mesh(raw, part, False), part)
+
             mesh = self._cached_geometry(
                 ("part", shape_key, part),
-                lambda: self._validate_mesh(generate_box_mesh(raw, part, False), part),
+                generate_canonical,
             )
             return orient_mesh_for_print(mesh, raw, part) if print_orientation else mesh
 

@@ -1,0 +1,2014 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "plugin_version": "1.2.3",
+  "native_application_test": false,
+  "platform": "Windows",
+  "renderer": [
+    "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00003E98) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  ],
+  "browser_versions": [
+    "149.0.7827.55"
+  ],
+  "method": {
+    "native_application_test": false,
+    "transport": "real isolated Python controller through development HTTP bridge; existing150ms message polling retained",
+    "first_frame": "correlated latest preview request + exact TRIANGLES index sequence + real attribute0/element buffer bindings tagged with uploaded request/key/byte lengths, followed by nonblocking GPU fence",
+    "presentation": "GPU completion is observed at RAF polling; two further RAFs are reported separately, not claimed as physical screen presentation",
+    "cache": "fresh Python and browser processes per cold target; bootstrap explicitlydifferent only for Lip; OS file cache is not flushed",
+    "warmup": "two complete preset rounds retained in report before measured rounds; no hidden preset clicks",
+    "backend_stages": "nested timing observations only; original calls/results preserved; source generation andvalidation are children ofgeometry total",
+    "bound_buffers": "Actual position attribute 0 and element buffer bindings must match the current request/key uploads, or a previously verified unchanged geometry key."
+  },
+  "conditions": [
+    "Real local Intel GPU; isolated HTTP test bridge, not Orca WebView.",
+    "Cold means fresh Python/Chromium/context and in-memory caches, not a flushed OS file or shader cache.",
+    "Bootstrap and two warm-up rounds are declared separately. No hidden loading of all presets.",
+    "GPU completion plus later frames is observed; physical display presentation is not measured."
+  ],
+  "valid": true,
+  "within_2000ms": true,
+  "measurements": [
+    {
+      "preset_id": "everyday",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 565.3999999761581,
+      "click_to_two_more_frames_ms": 596.8999999761581,
+      "backend_payload_ms": 150.94139997381717,
+      "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+      "request_id": 2,
+      "expected_indices": [
+        3456,
+        4752
+      ],
+      "observed_indices": [
+        3456,
+        4752
+      ],
+      "upload_bytes": 71248,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 5,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 6936,
+            "has_data": true
+          },
+          "index": {
+            "id": 8,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 13824,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 9528,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 19008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "screw_corner_standard",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1431.1000000238419,
+      "click_to_two_more_frames_ms": 1464.6000000238419,
+      "backend_payload_ms": 412.58740006014705,
+      "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+      "request_id": 2,
+      "expected_indices": [
+        2101200,
+        2015952
+      ],
+      "observed_indices": [
+        2101200,
+        2015952
+      ],
+      "upload_bytes": 35681872,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 4202424,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 8404800,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 4031832,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 8063808,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "tool_rugged",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1347.1000000238419,
+      "click_to_two_more_frames_ms": 1380.5,
+      "backend_payload_ms": 293.8482000026852,
+      "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+      "request_id": 2,
+      "expected_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "observed_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "upload_bytes": 33177984,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 4997256,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 9994560,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 2166600,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 4333200,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 17,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 418440,
+            "has_data": true
+          },
+          "index": {
+            "id": 20,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 836832,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 21,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 24,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 74136,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 25,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 28,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 74136,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "pencil",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 863.1000000238419,
+      "click_to_two_more_frames_ms": 896.2999999523163,
+      "backend_payload_ms": 125.83310005720705,
+      "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+      "request_id": 2,
+      "expected_indices": [
+        1049802,
+        667464
+      ],
+      "observed_indices": [
+        1049802,
+        667464
+      ],
+      "upload_bytes": 14883084,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 2099628,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 4199208,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 1334952,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 2669856,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "open_bin_handles",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 646.2000000476837,
+      "click_to_two_more_frames_ms": 679.5,
+      "backend_payload_ms": 178.06419997941703,
+      "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+      "request_id": 2,
+      "expected_indices": [
+        7752
+      ],
+      "observed_indices": [
+        7752
+      ],
+      "upload_bytes": 67128,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 2,
+            "bytes": 15480,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 2,
+            "bytes": 31008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "snap_latch_case",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1247.6000000238419,
+      "click_to_two_more_frames_ms": 1280.8999999761581,
+      "backend_payload_ms": 801.6335999127477,
+      "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+      "request_id": 2,
+      "expected_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "observed_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "upload_bytes": 258352,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 33336,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 66624,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 6744,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 13440,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 17,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 20,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 19536,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 21,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 24,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 19536,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "stackable_parts_bin",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 462.39999997615814,
+      "click_to_two_more_frames_ms": 497.39999997615814,
+      "backend_payload_ms": 50.22610002197325,
+      "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+      "request_id": 2,
+      "expected_indices": [
+        2736
+      ],
+      "observed_indices": [
+        2736
+      ],
+      "upload_bytes": 23768,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 2,
+            "bytes": 5496,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 2,
+            "bytes": 10944,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "clamshell_pip_short",
+      "mode": "page",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 763.3999999761581,
+      "click_to_two_more_frames_ms": 796.6000000238419,
+      "backend_payload_ms": 293.18600008264184,
+      "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+      "request_id": 2,
+      "expected_indices": [
+        6624,
+        9432
+      ],
+      "observed_indices": [
+        6624,
+        9432
+      ],
+      "upload_bytes": 138816,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 13176,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 26496,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 18792,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 37728,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "everyday",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 664.6000000238419,
+      "click_to_two_more_frames_ms": 697.7999999523163,
+      "backend_payload_ms": 150.12379991821945,
+      "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+      "request_id": 18,
+      "expected_indices": [
+        3456,
+        4752
+      ],
+      "observed_indices": [
+        3456,
+        4752
+      ],
+      "upload_bytes": 71248,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 153,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 6936,
+            "has_data": true
+          },
+          "index": {
+            "id": 156,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 13824,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 157,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 9528,
+            "has_data": true
+          },
+          "index": {
+            "id": 160,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 19008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "screw_corner_standard",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 1248.3000000715256,
+      "click_to_two_more_frames_ms": 1281.6000000238419,
+      "backend_payload_ms": 287.3367000138387,
+      "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+      "request_id": 19,
+      "expected_indices": [
+        2101200,
+        2015952
+      ],
+      "observed_indices": [
+        2101200,
+        2015952
+      ],
+      "upload_bytes": 35681872,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 161,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 4202424,
+            "has_data": true
+          },
+          "index": {
+            "id": 164,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 8404800,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 165,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 4031832,
+            "has_data": true
+          },
+          "index": {
+            "id": 168,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 8063808,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "tool_rugged",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 1136.2999999523163,
+      "click_to_two_more_frames_ms": 1164.8999999761581,
+      "backend_payload_ms": 280.182599904947,
+      "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+      "request_id": 20,
+      "expected_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "observed_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "upload_bytes": 33177984,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 169,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 4997256,
+            "has_data": true
+          },
+          "index": {
+            "id": 172,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 9994560,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 173,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 2166600,
+            "has_data": true
+          },
+          "index": {
+            "id": 176,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 4333200,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 177,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 418440,
+            "has_data": true
+          },
+          "index": {
+            "id": 180,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 836832,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 181,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 184,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 74136,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 185,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 188,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 74136,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "pencil",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 716.2999999523163,
+      "click_to_two_more_frames_ms": 740.2000000476837,
+      "backend_payload_ms": 124.5442999061197,
+      "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+      "request_id": 21,
+      "expected_indices": [
+        1049802,
+        667464
+      ],
+      "observed_indices": [
+        1049802,
+        667464
+      ],
+      "upload_bytes": 14883084,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 189,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 2099628,
+            "has_data": true
+          },
+          "index": {
+            "id": 192,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 4199208,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 193,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 1334952,
+            "has_data": true
+          },
+          "index": {
+            "id": 196,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 2669856,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "open_bin_handles",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 597.8999999761581,
+      "click_to_two_more_frames_ms": 631,
+      "backend_payload_ms": 156.7710000090301,
+      "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+      "request_id": 22,
+      "expected_indices": [
+        7752
+      ],
+      "observed_indices": [
+        7752
+      ],
+      "upload_bytes": 67128,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 197,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 22,
+            "bytes": 15480,
+            "has_data": true
+          },
+          "index": {
+            "id": 200,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 22,
+            "bytes": 31008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "snap_latch_case",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 981.3000000715256,
+      "click_to_two_more_frames_ms": 1014.6000000238419,
+      "backend_payload_ms": 546.7713000252843,
+      "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+      "request_id": 23,
+      "expected_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "observed_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "upload_bytes": 258352,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 201,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 33336,
+            "has_data": true
+          },
+          "index": {
+            "id": 204,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 66624,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 205,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 6744,
+            "has_data": true
+          },
+          "index": {
+            "id": 208,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 13440,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 209,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 212,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 19536,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 213,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 216,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 19536,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "stackable_parts_bin",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 496.7000000476837,
+      "click_to_two_more_frames_ms": 529.7999999523163,
+      "backend_payload_ms": 55.873500066809356,
+      "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+      "request_id": 24,
+      "expected_indices": [
+        2736
+      ],
+      "observed_indices": [
+        2736
+      ],
+      "upload_bytes": 23768,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 217,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 24,
+            "bytes": 5496,
+            "has_data": true
+          },
+          "index": {
+            "id": 220,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 24,
+            "bytes": 10944,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "clamshell_pip_short",
+      "mode": "page",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 830.7000000476837,
+      "click_to_two_more_frames_ms": 864.1000000238419,
+      "backend_payload_ms": 302.44669993408024,
+      "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+      "request_id": 25,
+      "expected_indices": [
+        6624,
+        9432
+      ],
+      "observed_indices": [
+        6624,
+        9432
+      ],
+      "upload_bytes": 138816,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 221,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 13176,
+            "has_data": true
+          },
+          "index": {
+            "id": 224,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 26496,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 225,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 18792,
+            "has_data": true
+          },
+          "index": {
+            "id": 228,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 37728,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "everyday",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 579.0999999046326,
+      "click_to_two_more_frames_ms": 612.2999999523163,
+      "backend_payload_ms": 159.5473000779748,
+      "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+      "request_id": 2,
+      "expected_indices": [
+        3456,
+        4752
+      ],
+      "observed_indices": [
+        3456,
+        4752
+      ],
+      "upload_bytes": 71248,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 5,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 6936,
+            "has_data": true
+          },
+          "index": {
+            "id": 8,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 13824,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 9528,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 2,
+            "bytes": 19008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "screw_corner_standard",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1246.2000000476837,
+      "click_to_two_more_frames_ms": 1280.8000000715256,
+      "backend_payload_ms": 279.95420002844185,
+      "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+      "request_id": 2,
+      "expected_indices": [
+        2101200,
+        2015952
+      ],
+      "observed_indices": [
+        2101200,
+        2015952
+      ],
+      "upload_bytes": 35681872,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 4202424,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 8404800,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 4031832,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 2,
+            "bytes": 8063808,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "tool_rugged",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1229.3000000715256,
+      "click_to_two_more_frames_ms": 1262.3000000715256,
+      "backend_payload_ms": 331.3436000607908,
+      "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+      "request_id": 2,
+      "expected_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "observed_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "upload_bytes": 33177984,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 4997256,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 9994560,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 2166600,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 4333200,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 17,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 418440,
+            "has_data": true
+          },
+          "index": {
+            "id": 20,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 836832,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 21,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 24,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 74136,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 25,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 28,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 2,
+            "bytes": 74136,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "pencil",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 811.3999999761581,
+      "click_to_two_more_frames_ms": 844.6999999284744,
+      "backend_payload_ms": 137.64710002578795,
+      "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+      "request_id": 2,
+      "expected_indices": [
+        1049802,
+        667464
+      ],
+      "observed_indices": [
+        1049802,
+        667464
+      ],
+      "upload_bytes": 14883084,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 2099628,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 4199208,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 1334952,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 2,
+            "bytes": 2669856,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "open_bin_handles",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 578.6000000238419,
+      "click_to_two_more_frames_ms": 611.5,
+      "backend_payload_ms": 166.02040000725538,
+      "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+      "request_id": 2,
+      "expected_indices": [
+        7752
+      ],
+      "observed_indices": [
+        7752
+      ],
+      "upload_bytes": 67128,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 2,
+            "bytes": 15480,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 2,
+            "bytes": 31008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "snap_latch_case",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 1197.3999999761581,
+      "click_to_two_more_frames_ms": 1231.1999999284744,
+      "backend_payload_ms": 722.724899998866,
+      "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+      "request_id": 2,
+      "expected_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "observed_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "upload_bytes": 258352,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 33336,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 66624,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 6744,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 13440,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 17,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 20,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 19536,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 21,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 24,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 2,
+            "bytes": 19536,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "stackable_parts_bin",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 429.60000002384186,
+      "click_to_two_more_frames_ms": 462.89999997615814,
+      "backend_payload_ms": 48.83049998898059,
+      "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+      "request_id": 2,
+      "expected_indices": [
+        2736
+      ],
+      "observed_indices": [
+        2736
+      ],
+      "upload_bytes": 23768,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 2,
+            "bytes": 5496,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 2,
+            "bytes": 10944,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "clamshell_pip_short",
+      "mode": "dock",
+      "phase": "cold_selection",
+      "click_to_gpu_complete_ms": 729.5,
+      "click_to_two_more_frames_ms": 762.6999999284744,
+      "backend_payload_ms": 292.6596000324935,
+      "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+      "request_id": 2,
+      "expected_indices": [
+        6624,
+        9432
+      ],
+      "observed_indices": [
+        6624,
+        9432
+      ],
+      "upload_bytes": 138816,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 9,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 13176,
+            "has_data": true
+          },
+          "index": {
+            "id": 12,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 26496,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 13,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 18792,
+            "has_data": true
+          },
+          "index": {
+            "id": 16,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 2,
+            "bytes": 37728,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "everyday",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 663.2999999523163,
+      "click_to_two_more_frames_ms": 696.6999999284744,
+      "backend_payload_ms": 183.1553999800235,
+      "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+      "request_id": 18,
+      "expected_indices": [
+        3456,
+        4752
+      ],
+      "observed_indices": [
+        3456,
+        4752
+      ],
+      "upload_bytes": 71248,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 153,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 6936,
+            "has_data": true
+          },
+          "index": {
+            "id": 156,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 13824,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 157,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 9528,
+            "has_data": true
+          },
+          "index": {
+            "id": 160,
+            "geometry_key": "cedcd589650403cd6171d8a63dde1c09ea4c352ea2646f80b1ff94668223a803",
+            "request_id": 18,
+            "bytes": 19008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "screw_corner_standard",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 1398,
+      "click_to_two_more_frames_ms": 1431.3999999761581,
+      "backend_payload_ms": 314.8675999836996,
+      "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+      "request_id": 19,
+      "expected_indices": [
+        2101200,
+        2015952
+      ],
+      "observed_indices": [
+        2101200,
+        2015952
+      ],
+      "upload_bytes": 35681872,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 161,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 4202424,
+            "has_data": true
+          },
+          "index": {
+            "id": 164,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 8404800,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 165,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 4031832,
+            "has_data": true
+          },
+          "index": {
+            "id": 168,
+            "geometry_key": "54840e837778abef977ff33d0c0978684e5214cdf932b988824556626387ee07",
+            "request_id": 19,
+            "bytes": 8063808,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "tool_rugged",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 1346,
+      "click_to_two_more_frames_ms": 1364,
+      "backend_payload_ms": 380.05759997759014,
+      "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+      "request_id": 20,
+      "expected_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "observed_indices": [
+        2498640,
+        1083300,
+        209208,
+        18534,
+        18534
+      ],
+      "upload_bytes": 33177984,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 169,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 4997256,
+            "has_data": true
+          },
+          "index": {
+            "id": 172,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 9994560,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 173,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 2166600,
+            "has_data": true
+          },
+          "index": {
+            "id": 176,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 4333200,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 177,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 418440,
+            "has_data": true
+          },
+          "index": {
+            "id": 180,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 836832,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 181,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 184,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 74136,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 185,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 37092,
+            "has_data": true
+          },
+          "index": {
+            "id": 188,
+            "geometry_key": "354f22d311915fe82defb0fcdabfc17dd0cb70bbe7bc3eac233737e9cc94b75f",
+            "request_id": 20,
+            "bytes": 74136,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "pencil",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 832.2999999523163,
+      "click_to_two_more_frames_ms": 864.1000000238419,
+      "backend_payload_ms": 136.09819998964667,
+      "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+      "request_id": 21,
+      "expected_indices": [
+        1049802,
+        667464
+      ],
+      "observed_indices": [
+        1049802,
+        667464
+      ],
+      "upload_bytes": 14883084,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 189,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 2099628,
+            "has_data": true
+          },
+          "index": {
+            "id": 192,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 4199208,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 193,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 1334952,
+            "has_data": true
+          },
+          "index": {
+            "id": 196,
+            "geometry_key": "20aee52e012a6b09e1e61f4b0d118d69e95c5ed39d8c51f43f49b0189f3aa924",
+            "request_id": 21,
+            "bytes": 2669856,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "open_bin_handles",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 597.1999999284744,
+      "click_to_two_more_frames_ms": 630.6000000238419,
+      "backend_payload_ms": 180.00699998810887,
+      "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+      "request_id": 22,
+      "expected_indices": [
+        7752
+      ],
+      "observed_indices": [
+        7752
+      ],
+      "upload_bytes": 67128,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 197,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 22,
+            "bytes": 15480,
+            "has_data": true
+          },
+          "index": {
+            "id": 200,
+            "geometry_key": "b974e312f185ac014f1cbe33dedad58f1b82dd213bf2f8eab7e1ccdbc615a4e0",
+            "request_id": 22,
+            "bytes": 31008,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "snap_latch_case",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 1096.5999999046326,
+      "click_to_two_more_frames_ms": 1129.5999999046326,
+      "backend_payload_ms": 609.9848999874666,
+      "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+      "request_id": 23,
+      "expected_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "observed_indices": [
+        16656,
+        3360,
+        4884,
+        4884
+      ],
+      "upload_bytes": 258352,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 201,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 33336,
+            "has_data": true
+          },
+          "index": {
+            "id": 204,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 66624,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 205,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 6744,
+            "has_data": true
+          },
+          "index": {
+            "id": 208,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 13440,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 209,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 212,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 19536,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 213,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 9792,
+            "has_data": true
+          },
+          "index": {
+            "id": 216,
+            "geometry_key": "f69ee90b82ade4e4b9bc2bf007b1c61bf5812ea9141639de6090423fecc17764",
+            "request_id": 23,
+            "bytes": 19536,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "stackable_parts_bin",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 512,
+      "click_to_two_more_frames_ms": 545.0999999046326,
+      "backend_payload_ms": 53.831800003536046,
+      "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+      "request_id": 24,
+      "expected_indices": [
+        2736
+      ],
+      "observed_indices": [
+        2736
+      ],
+      "upload_bytes": 23768,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 217,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 24,
+            "bytes": 5496,
+            "has_data": true
+          },
+          "index": {
+            "id": 220,
+            "geometry_key": "f6e39d20098a1805a505f8a1fccac6225d1635f0d5ebf79ac4f3784431db806f",
+            "request_id": 24,
+            "bytes": 10944,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    },
+    {
+      "preset_id": "clamshell_pip_short",
+      "mode": "dock",
+      "phase": "after_two_rounds",
+      "click_to_gpu_complete_ms": 813.7000000476837,
+      "click_to_two_more_frames_ms": 847,
+      "backend_payload_ms": 341.60089993383735,
+      "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+      "request_id": 25,
+      "expected_indices": [
+        6624,
+        9432
+      ],
+      "observed_indices": [
+        6624,
+        9432
+      ],
+      "upload_bytes": 138816,
+      "buffer_bindings": [
+        {
+          "position": {
+            "id": 221,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 13176,
+            "has_data": true
+          },
+          "index": {
+            "id": 224,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 26496,
+            "has_data": true
+          }
+        },
+        {
+          "position": {
+            "id": 225,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 18792,
+            "has_data": true
+          },
+          "index": {
+            "id": 228,
+            "geometry_key": "70996956b32a209193fafe927f68fe7f7197ab2d2f29fa493d7da48a2672bde8",
+            "request_id": 25,
+            "bytes": 37728,
+            "has_data": true
+          }
+        }
+      ],
+      "rejected_frames": []
+    }
+  ],
+  "worst_selection_ms": 1431.1000000238419,
+  "errors": 0,
+  "source_hashes": {
+    "src/box_studio/__init__.py": "0c8dbbbf75608eca0246b870d7456c46f62116f274879ea536d387e747139ccd",
+    "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+    "src/box_studio/linux_ipc.py": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+    "src/box_studio/mesh_generator.py": "1eae40fa067c40e357ca4cf6074d7d3f12c03c927fa7e4bf1ce4b3c3b2998236",
+    "src/box_studio/plugin_main.py": "60edabae90cc1440e752325df888a9509df23b25ba28d877e905e43ad370afbc",
+    "src/box_studio/preset_mesh_cache.py": "32aa3d4ee2463d138dda9c74d38b572f0ec786a81d86b46dc47d6323cbea665a",
+    "src/box_studio/preset_mesh_index.py": "cd210ee14b8862046f635f873f5dc2888094da7e6f30f7813e785fc6f7d39665",
+    "src/box_studio/presets_catalog.py": "7185f0d073e378dd45e424b70a0432cced012567b7a15ed454343fcce5641780",
+    "src/box_studio/schema.py": "be923b81fd9c2589be5415effcb9abc5ac376e221cd056db319ca53b2ccfb4bc",
+    "src/box_studio/studio_ui.py": "4a513121787c83d789bf16f7a3251d7439bc67530be289e509452c7f7317079c",
+    "scripts/ui_test_server.py": "28cda7e561977100e745ae13c5dcf2e36421a39d76a6b924ac6b0f415d0a85c7",
+    "scripts/verify_box_e2e_exports.py": "de5a641e151525d410378c6ad8929075e8cedcafa2abe9edb1f71aa4748c5ad0",
+    "scripts/check_box_performance.cjs": "ac408a7ed967e171e1d4fa203a2be0cf50dd03b04a1c7d7e2160e9e881780680"
+  },
+  "resource_index_sha256": "cd210ee14b8862046f635f873f5dc2888094da7e6f30f7813e785fc6f7d39665",
+  "prepared_assets": {
+    "pencil-base.npz": "0fb9267429f058dc9f4775e4bb614d6bc3163121e258ad3b95dc7b3936e44fd7",
+    "pencil-lid.npz": "b0fe863cb8a1664e33b642aef95b2bf52703fa2650ae1f193e01740cd9b36e18",
+    "screw_corner_standard-base.npz": "7860693cf524fec8356cfd03494d5c51610408f28d04393bfc60b16869562633",
+    "screw_corner_standard-lid.npz": "04c16f9f0dc22161f9cc6e8ca911f07faf1633ac5e80e908c87b17e716061886",
+    "tool_rugged-base.npz": "066a63722c62b394700375bffb8c61f0c05ed26f2a85f95a2918a64bf6a39b01",
+    "tool_rugged-clip_left.npz": "387acf27e2f704771fe4636537c9d7351eedbe0f02f87ac83576eaf9043b1637",
+    "tool_rugged-clip_right.npz": "b7f195147afc7bfc6df2c3cfbc9b194b7400e9f4d6e84fc6a57a0243762af41d",
+    "tool_rugged-lid.npz": "25d9e824245d92504dde618ffc6515938829246185d98eca476db681926e6a31",
+    "tool_rugged-pin.npz": "7c69ad2d8c7dd76d2facd445bd634c76eac990504cb2602a6b7cb14ca3b02ce9"
+  },
+  "startup_process_browser_and_ui_ms": {
+    "min": 2108.3383000000103,
+    "max": 2330.8310000000056
+  },
+  "runtime": {
+    "node": "v24.13.1",
+    "platform": "win32"
+  }
+}

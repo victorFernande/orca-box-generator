@@ -1,0 +1,229 @@
+{
+  "own_standalone_python_process_only": true,
+  "browser_gpu_rss_measured": false,
+  "before": {
+    "working_set_bytes": 47648768,
+    "private_bytes": 270307328,
+    "peak_working_set_bytes": 80130048
+  },
+  "rows": [
+    {
+      "round": 1,
+      "id": "everyday",
+      "mesh_bytes": 164256,
+      "encoded_bytes": 65728,
+      "working_set_bytes": 52183040,
+      "private_bytes": 273571840,
+      "peak_working_set_bytes": 80130048
+    },
+    {
+      "round": 1,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 82507200,
+      "encoded_bytes": 33002880,
+      "working_set_bytes": 126160896,
+      "private_bytes": 347516928,
+      "peak_working_set_bytes": 136912896
+    },
+    {
+      "round": 1,
+      "id": "tool_rugged",
+      "mesh_bytes": 117735888,
+      "encoded_bytes": 30625792,
+      "working_set_bytes": 162406400,
+      "private_bytes": 384049152,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 1,
+      "id": "pencil",
+      "mesh_bytes": 110909832,
+      "encoded_bytes": 44363984,
+      "working_set_bytes": 151797760,
+      "private_bytes": 373182464,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 1,
+      "id": "open_bin_handles",
+      "mesh_bytes": 111064824,
+      "encoded_bytes": 44425968,
+      "working_set_bytes": 152694784,
+      "private_bytes": 374116352,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 1,
+      "id": "snap_latch_case",
+      "mesh_bytes": 111660696,
+      "encoded_bytes": 44664368,
+      "working_set_bytes": 153341952,
+      "private_bytes": 374820864,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 1,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 111715464,
+      "encoded_bytes": 44686288,
+      "working_set_bytes": 153346048,
+      "private_bytes": 374820864,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 1,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 112036296,
+      "encoded_bytes": 44814544,
+      "working_set_bytes": 153997312,
+      "private_bytes": 375603200,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 2,
+      "id": "everyday",
+      "mesh_bytes": 112200552,
+      "encoded_bytes": 44880272,
+      "working_set_bytes": 153997312,
+      "private_bytes": 375603200,
+      "peak_working_set_bytes": 199364608
+    },
+    {
+      "round": 2,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 117979080,
+      "encoded_bytes": 47191632,
+      "working_set_bytes": 159178752,
+      "private_bytes": 380198912,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "tool_rugged",
+      "mesh_bytes": 117735888,
+      "encoded_bytes": 30625792,
+      "working_set_bytes": 163151872,
+      "private_bytes": 386412544,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "pencil",
+      "mesh_bytes": 110909832,
+      "encoded_bytes": 44363984,
+      "working_set_bytes": 152129536,
+      "private_bytes": 373096448,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "open_bin_handles",
+      "mesh_bytes": 111064824,
+      "encoded_bytes": 44425968,
+      "working_set_bytes": 153153536,
+      "private_bytes": 374136832,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "snap_latch_case",
+      "mesh_bytes": 111660696,
+      "encoded_bytes": 44664368,
+      "working_set_bytes": 153260032,
+      "private_bytes": 374857728,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 111715464,
+      "encoded_bytes": 44686288,
+      "working_set_bytes": 153260032,
+      "private_bytes": 374857728,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 2,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 112036296,
+      "encoded_bytes": 44814544,
+      "working_set_bytes": 154062848,
+      "private_bytes": 375517184,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 3,
+      "id": "everyday",
+      "mesh_bytes": 112200552,
+      "encoded_bytes": 44880272,
+      "working_set_bytes": 154198016,
+      "private_bytes": 375517184,
+      "peak_working_set_bytes": 219459584
+    },
+    {
+      "round": 3,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 117979080,
+      "encoded_bytes": 47191632,
+      "working_set_bytes": 159449088,
+      "private_bytes": 380813312,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "tool_rugged",
+      "mesh_bytes": 117735888,
+      "encoded_bytes": 30625792,
+      "working_set_bytes": 166686720,
+      "private_bytes": 388276224,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "pencil",
+      "mesh_bytes": 110909832,
+      "encoded_bytes": 44363984,
+      "working_set_bytes": 152260608,
+      "private_bytes": 373170176,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "open_bin_handles",
+      "mesh_bytes": 111064824,
+      "encoded_bytes": 44425968,
+      "working_set_bytes": 153280512,
+      "private_bytes": 374345728,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "snap_latch_case",
+      "mesh_bytes": 111660696,
+      "encoded_bytes": 44664368,
+      "working_set_bytes": 153452544,
+      "private_bytes": 374755328,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 111715464,
+      "encoded_bytes": 44686288,
+      "working_set_bytes": 153452544,
+      "private_bytes": 374755328,
+      "peak_working_set_bytes": 219533312
+    },
+    {
+      "round": 3,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 112036296,
+      "encoded_bytes": 44814544,
+      "working_set_bytes": 154202112,
+      "private_bytes": 375504896,
+      "peak_working_set_bytes": 219533312
+    }
+  ],
+  "prepared_compressed_bytes": 6488188,
+  "embedded_base64_characters": 8650928
+}
