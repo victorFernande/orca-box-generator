@@ -314,11 +314,13 @@ def _read_preset_resources() -> tuple[str, dict[str, bytes]]:
     for design in index.values():
         for entry in design["parts"].values():
             name = entry["file"]
-            if not re.fullmatch(r"[a-z0-9_]+-[a-z0-9_]+\.npz", name) or name in resources:
+            if not re.fullmatch(r"[a-z0-9_]+-[a-z0-9_]+\.npz", name):
                 raise RuntimeError("Invalid standard-mesh resource name.")
             blob = (SRC_PKG_DIR / "preset_meshes" / name).read_bytes()
             if len(blob) != entry["size_bytes"] or hashlib.sha256(blob).hexdigest() != entry["sha256"]:
                 raise RuntimeError(f"Standard mesh is corrupt: {name}")
+            if name in resources and resources[name] != blob:
+                raise RuntimeError(f"Conflicting shared standard-mesh resource: {name}")
             resources[name] = blob
     return actual, resources
 
@@ -541,6 +543,7 @@ def build_wheel() -> Path:
     ) as zf:
         for arc_path, data in entries:
             zi = zipfile.ZipInfo(arc_path, date_time=fixed_dt)
+            zi.create_system = 3  # Fixed Unix metadata also when built on Windows.
             zi.external_attr = 0o644 << 16
             zi.compress_type = zipfile.ZIP_DEFLATED
             zf.writestr(zi, data)

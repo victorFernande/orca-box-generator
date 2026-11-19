@@ -1,5 +1,23 @@
 # Implementation and verification notes — version 1.3.0
 
+## Final 1.3.0 resource and viewer memory revision
+
+Prepared resources use `xor-delta-shuffle12-v1`: the original XOR/delta uint32 words are arranged as `(4 byte lanes, 3 axes, row count)` uint8 before NPZ DEFLATE. The loader reconstructs contiguous little-endian words, then reverses the predictors and checks the approved final array hashes. Legacy `xor-delta-v1` is still decoded. Unknown codecs, wrong shapes/dtypes, invalid offsets and digest mismatches are cache misses.
+
+The right Rugged latch may reference the left blob only after the development builder proves exact float32 translation plus identical index/normal bytes. The runtime keeps its final independent vertex digest and may reuse immutable caller-owned source arrays only after matching their exact digest. Vertices remain separate; no second global decoded cache is introduced. Rebuild through `scripts/build_preset_meshes.py` after changing any geometry dependency; never revise the approved array fixtures merely to make packaging pass.
+
+The viewer retains decoded scene metadata instead of base64 strings. Only bit-identical normal/index arrays share GL buffers; positions and material roles remain individual. Sharing candidates live only during scene loading. A set owns deletion of shared buffers, and disabling wireframe releases edge buffers immediately. These changes preserve bound GL input bytes and draw order. See [memory/encoding evidence](performance/1.3.0-package-memory-optimization.json) and [measurement limits](PERFORMANCE.md).
+
+Wheel members have fixed timestamps, permissions and Unix producer metadata, including on Windows. A regression builds under Windows/Linux/macOS ZIP defaults and requires identical output bytes; release digests must not drift merely because of those host defaults.
+
+## Fractional-height rear mouth and explicit source binding
+
+A later full E2E run on the pre-optimization main revision exposed seed `1103020891`: a 152.2 × 92.9 mm Rugged base at H36.7, lid22 and clearance0.23. The schema accepted it, but cancellation in `sqrt(rm² - (x - sphere_x)²)` left a tiny nonzero radius at the analytically exact `x == mouth_tip`. Its two bottom coordinates rounded to adjacent float32 Z values, opening the rear socket seam. The endpoint now uses exactly zero; every non-endpoint sample keeps the original expression. This is not a proximity weld or a tolerance increase.
+
+The bank was regenerated with both local caches cleared and the canonical latch loader disabled. All 24 original V/T/N hashes are unchanged. The original oracle file and its historical source fingerprint remain untouched; [the explicit new source binding](validation/1.3.0-decimal-hinge.json) records the single changed geometry module, fresh reconstruction, original oracle SHA and unchanged array hashes. Tests require the new bank fingerprint to match this record while continuing to compare all surfaces with the original oracle.
+
+The E2E harness now surfaces a correlated terminal generation error immediately, records the real Surprise seed/parameters and restores the test design in `finally`. It still requires a successful real variation; rejection is not counted as a pass, and random seeds are not selected for favorable output. The earlier failed CI result is retained as a failure, separately from corrected-revision checks.
+
 ## Rugged replacement contract
 
 Schema 2 introduces `rugged_lid_height` for independent base/lid shell heights and `rugged_model` to identify legacy personal presets. The new Rugged has only `base`, `lid`, `clip_left`, `clip_right`: snap-assembled spherical rear joints and latches attached to the lid. It does not support the previous loose-pin or captive export mode. `clamshell_pip` remains independent. Production reconstruction modules never read the supplied reference meshes. Current checks are recorded in [RUGGED_SNAPLOCK.md](RUGGED_SNAPLOCK.md); historical Rugged results below are superseded for this shape.

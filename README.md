@@ -4,6 +4,8 @@
 
 Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.3.0 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
 
+A revisão final compacta o banco de malhas em **53,8%**, preservando todos os bits das malhas padrão aprovadas. A prévia libera o texto de transporte e compartilha buffers de índices/normais somente quando são idênticos; desligar a malha de arame também libera seus buffers. As medições isoladas mostram menor retenção de memória e menor custo de importação, sem prometer o mesmo tempo em qualquer máquina. Veja [método, resultados e limites](docs/PERFORMANCE.md).
+
 A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, galeria com filtros, cartões de parâmetros, sliders com valores numéricos, ferramentas flutuantes de inspeção e exportação fixa. Veja a [referência visual e sua origem](docs/UI_TEMPLATE.md).
 
 Os presets parafusado, reforçado e deslizante carregam suas malhas completas preparadas pelo próprio gerador. O pacote não inclui a malha do SnapLock de referência. Alterações nas medidas usam a geometria paramétrica; as duas travas iguais reutilizam o mesmo formato local e mudam de posição quando largura, profundidade ou altura da base variam. Veja as [medições e o teste de clique até desenho](docs/PERFORMANCE.md).
@@ -28,6 +30,8 @@ A galeria começa com caixas básicas, sem placas, portas, divisórias ou juntas
 ## Instalação e uso
 
 Use o arquivo `dist/orca_box_generator.py` ou o wheel em `dist/` em **Plugins → Instalar plugin local**. O ícone se materializa quando necessário. Habilite o plugin e a permissão de execução em segundo plano solicitada.
+
+O wheel universal contém os módulos e recursos separados e evita analisar grandes literais base64 na abertura. Esse formato é [suportado pelo OrcaSlicer](https://www.orcaslicer.com/wiki/developer_reference/plugin_development/plugin_development). Instale apenas uma variante. Se já usa uma instalação local e passar a assinar pelo OrcaCloud, desative a cópia local anterior: a assinatura é uma instalação separada.
 
 Para desenvolver ou reconstruir, na raiz deste repositório:
 

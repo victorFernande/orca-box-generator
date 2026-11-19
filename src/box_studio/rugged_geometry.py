@@ -614,7 +614,13 @@ def _append_rear_socket(
             (np.full(n + 1, x), cy + r * np.cos(angles), cz + r * np.sin(angles))
         )
         if x >= mouth_tip - 1e-8:
-            yh = math.sqrt(max(0, rm * rm - (x - sphere_x) ** 2))
+            # The authored cylinder endpoint is a single pole. Re-evaluating
+            # its zero radicand can leave two different float32 Z coordinates.
+            yh = (
+                0.0
+                if x == mouth_tip
+                else math.sqrt(max(0, rm * rm - (x - sphere_x) ** 2))
+            )
             ring[0] = [x, cy + yh, join_z]
             ring[-1] = [x, cy - yh, join_z]
             left.append((x, cy - yh))

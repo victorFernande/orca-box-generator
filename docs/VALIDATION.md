@@ -1,6 +1,18 @@
 # Validation status
 
-## Rugged SnapLock — 1.3.0
+## Final 1.3.0 package/memory and fractional-height revision
+
+The final local suite passed **246 tests in 780.201 seconds**, with `-B -W error`, isolated Chromium enabled and **no skips, failures or errors**. This includes the lossless resource codec, sharing/deletion lifecycle, cross-platform ZIP producer-default regression and three fractional-height hinge checks. Earlier full-suite counts below identify their own snapshots and are not added to this total.
+
+The eight standard pieces retain all **24 original approved V/T/N hashes**. A fresh rebuild after the exact rear-mouth endpoint repair produced the same arrays, bounds, volumes, topology and error budgets. The original oracle file is unchanged; [the explicit new source binding](validation/1.3.0-decimal-hinge.json) records original fingerprint `a468c6f1…`, current fingerprint `f35120b6…` and the one changed geometry module. The endpoint branch uses exact equality to the authored cylinder tip, without a proximity weld or relaxed validation. Ten fractional bases and sixteen socket placements passed independent edge/link, normal, degeneracy and volume checks; a separate read-only sweep passed 128 additional socket cases.
+
+The historical main CI run [44593004976](https://github.com/victorFernande/orca-box-generator/actions/runs/44593004976) failed after Surprise seed `1103020891` produced a schema-valid but open H36.7 base. The harness then ignored the terminal error and skipped restoration, causing cascading failures. That result remains a failure. The same historically failing seed now passed through real UI controls with four accepted parts, **four actual STL files and one actual 3MF**, strict independently reopened source/bed/config checks, successful restoration and no console errors. This is a focused regression, not a relabeled full E2E run. The harness records real seeds, fails immediately on correlated terminal errors and restores state in `finally`; ten fast waiter/cleanup regressions passed. [Methods and sanitized proof](performance/1.3.0-package-memory-optimization.json).
+
+The final hardware-backed selection run passed **32/32 measured clicks and 32/32 declared warm-ups below two seconds**, worst measured **1881.7 ms**. It identifies every current source/resource and all three installation artifacts. Import/startup, browser heap, CPU arrays and requested GL buffer bytes have separate measurements and limits; see [final measurements](PERFORMANCE.md) and [complete selection evidence](performance/1.3.0-optimized-standard-selection.json). These tests do not establish native startup, sustained FPS, physical GPU memory or performance on every computer.
+
+The [optimized distribution audit](validation/1.3.0-optimized-distribution-audit.json) verifies both identical bundles, the 27-member wheel/RECORD/MIT/metadata, seven embedded resources and public-file hygiene. It preserves the earlier distribution audit as historical evidence. Current platform jobs and full UI E2E runs for published revisions are available in the [CI history](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml); an integration result belongs to its tested source revision. Native Windows observations below concern the original approved geometry. No new native Orca session, physical printing, fit/force/fatigue test or native macOS/Linux validation was performed during this optimization.
+
+## Pre-optimization Rugged SnapLock snapshot — 1.3.0
 
 Version 1.3.0 replaces the old Rugged pin/captive mechanism with a four-part snap-assembled hinge and lid-mounted latches. Earlier Rugged evidence below is historical and does not approve this geometry. The other seven styles keep their own recorded evidence. See [dimensions, assembly and current verification status](RUGGED_SNAPLOCK.md).
 

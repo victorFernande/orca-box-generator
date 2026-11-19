@@ -233,7 +233,7 @@ proto.uniformMatrix4fv=function(location,transpose,matrix){if(location&&names.ge
 window.orca={onMessage:callback=>window.__hostCallback=callback,postMessage:payload=>{
 const body=JSON.stringify(payload);window.__sentMessages.push(JSON.parse(body));return fetch('/message?mode=MODE',{method:'POST',headers:{'Content-Type':'application/json'},body});}};
 setInterval(async()=>{try{const response=await fetch('/messages?mode=MODE');for(const m of await response.json()){
-window.__hostMessages.push({type:m.type,warning:m.warning,ok:m.ok,meshes:m.meshes?.length,parts:m.meshes?.map(mesh=>mesh.part),request_id:m.request_id,message:m.message,params:m.params,hinge:m.hinge,latch_motion:m.latch_motion,geometry_key:m.geometry_key,action:m.action,paths:m.paths,transport_only:m.transport_only,export_manifest_id:m.export_manifest_id,export_manifest_url:m.export_manifest_url,export_manifest:m.export_manifest});
+window.__hostMessages.push({type:m.type,warning:m.warning,ok:m.ok,meshes:m.meshes?.length,parts:m.meshes?.map(mesh=>mesh.part),request_id:m.request_id,seed:m.seed,candidate_params:m.candidate_params,message:m.message,params:m.params,hinge:m.hinge,latch_motion:m.latch_motion,geometry_key:m.geometry_key,action:m.action,paths:m.paths,transport_only:m.transport_only,export_manifest_id:m.export_manifest_id,export_manifest_url:m.export_manifest_url,export_manifest:m.export_manifest});
 if(window.__hostCallback)window.__hostCallback(m);else if(window.handleHostMessage)window.handleHostMessage(m);else window.dispatchEvent(new MessageEvent('message',{data:m}));
 }}catch(error){console.error(error);}},150);
 </script>""".replace("MODE", mode)
