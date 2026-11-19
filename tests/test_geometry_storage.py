@@ -80,7 +80,7 @@ class StorageGeometryTests(unittest.TestCase):
                 )
             if mesh.part.startswith("clip"):
                 self.assertAlmostEqual(
-                    oriented.bounds_mm["size"][2], p["latch_width"], places=5
+                    oriented.bounds_mm["size"][2], mesh.bounds_mm["size"][2], places=5
                 )
 
     def test_factory_receives_actual_targets_and_calibration_is_explicit(self):

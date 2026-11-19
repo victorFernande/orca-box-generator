@@ -218,7 +218,17 @@ def _corner_centers(p: dict[str, Any]) -> list[tuple[float, float]]:
     ]
 
 
-def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
+def hinge_geometry(p: dict[str, Any]) -> dict[str, Any]:
+    if p.get("style") == "clamshell_pip":
+        radius = p["hinge_pin_diameter"] / 2
+        return {
+            "y": p["depth_y"] / 2 + p["hinge_separation"],
+            "z": p["height_z"] + p["fit_clearance"] / 2,
+            "radius": radius,
+            "outer_radius": radius + p["pip_clearance"] + 1.4,
+            "knuckle_length": max(4.0, min(6.0, p["width_x"] * 0.06)),
+            "centers": [-p["width_x"] * 0.26, p["width_x"] * 0.26],
+        }
     return {
         "y": p["depth_y"] / 2 + 5.0,
         "z": p["height_z"] - 4.0,
@@ -227,6 +237,48 @@ def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
         "span": p["width_x"] * 0.64,
         "knuckle_length": max(5.0, min(12.0, p["width_x"] * 0.13)),
     }
+
+
+def clamshell_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], angle: float = 180.0
+) -> np.ndarray:
+    """Rotate the canonical closed lid about the actual hinge, without mutation."""
+    p = normalize_params(raw)
+    if p["style"] != "clamshell_pip" or not math.isfinite(float(angle)):
+        raise ValueError(
+            "Use um estojo articulado e ângulo finito / use an articulated case and finite angle."
+        )
+    hg = hinge_geometry(p)
+    theta = -math.radians(float(angle))
+    cosine, sine = math.cos(theta), math.sin(theta)
+    v = np.asarray(vertices, dtype=np.float64).copy()
+    dy, dz = v[:, 1] - hg["y"], v[:, 2] - hg["z"]
+    v[:, 1] = hg["y"] + dy * cosine - dz * sine
+    v[:, 2] = hg["z"] + dy * sine + dz * cosine
+    v[np.abs(v) < 1e-10] = 0.0
+    if math.isclose(float(angle), 180.0, rel_tol=0, abs_tol=1e-10):
+        # Canonical meshes are float32. Snap only the analytically zero floor
+        # plane, avoiding a few microns of negative round-off on the print bed.
+        v[np.abs(v[:, 2]) < 3e-5, 2] = 0.0
+    return v
+
+
+def clamshell_print_bounds(raw: dict[str, Any]) -> dict[str, list[float]]:
+    """Analytic bounds of the open, captive assembly; no tessellation required."""
+    p = normalize_params(raw)
+    errors = validate_params(p)
+    if p["style"] != "clamshell_pip" or errors:
+        raise ValueError(
+            "Estojo inválido / invalid articulated case. " + "; ".join(errors)
+        )
+    hg = hinge_geometry(p)
+    low = [-p["width_x"] / 2, -p["depth_y"] / 2, 0.0]
+    high = [
+        p["width_x"] / 2,
+        3 * p["depth_y"] / 2 + 2 * p["hinge_separation"],
+        hg["z"] + hg["outer_radius"],
+    ]
+    return {"min": low, "max": high, "size": [b - a for a, b in zip(low, high)]}
 
 
 def stacking_pose_z(
@@ -273,6 +325,104 @@ def _stack_front_top(p, x):
     )
 
 
+def _clamshell_spans(p, part):
+    return [(a, b) for a, b, _ in _clamshell_knuckles(p, part)]
+
+
+def _clamshell_knuckles(p, part):
+    hg = hinge_geometry(p)
+    k = hg["knuckle_length"]
+    pc = p["pip_clearance"]
+    if part == "base":
+        return [
+            (
+                cx + side * (k + pc) - k / 2,
+                cx + side * (k + pc) + k / 2,
+                hg["outer_radius"],
+            )
+            for cx in hg["centers"]
+            for side in (-1, 1)
+        ]
+    end = 1.5 * k + 2 * pc
+    capr = hg["radius"] + pc + 0.8
+    return [
+        profile
+        for cx in hg["centers"]
+        for profile in (
+            (cx - end - 1.2, cx - end, capr),
+            (cx - k / 2, cx + k / 2, hg["outer_radius"]),
+            (cx + end, cx + end + 1.2, capr),
+        )
+    ]
+
+
+def _build_clamshell_field(p, part):
+    if part not in ("base", "lid"):
+        _GEOMETRY_HINTS.set(None)
+        raise ValueError(
+            "Estojo articulado usa apenas duas metades cativas / articulated case has only two captive halves."
+        )
+    hg = hinge_geometry(p)
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    zlo, zhi = 0.0, cz - 0.1 * R
+    solid = _difference(
+        _rect(w, d, 0, h, r), _rect(w - 2 * t, d - 2 * t, f, h + 1, max(0.15, r - t))
+    )
+    additions = []
+    for a, b, rr in _clamshell_knuckles(p, part):
+        additions.extend(
+            (
+                _cylinder_x(a, b, cy, cz, rr),
+                _box(a, b, d / 2 - 0.1, cy, 0.0, cz - 0.1 * rr),
+            )
+        )
+    solid = _union(solid, *additions)
+    if part == "base":
+        for a, b in _clamshell_spans(p, part):
+            solid = _difference(solid, _cylinder_x(a - 0.1, b + 0.1, cy, cz, pr + pc))
+    else:
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            solid = _union(
+                solid,
+                _cylinder_x(cx - end - 1.2, cx + end + 1.2, cy, cz, pr),
+            )
+    registry = _GEOMETRY_HINTS.get() or {
+        "planes": [[], [], []],
+        "circles": [],
+        "rectangles": [],
+    }
+    _GEOMETRY_HINTS.set(None)
+    if part == "lid":
+        upright = solid
+
+        def mirrored(v):
+            query = v.copy()
+            query[:, 2] = 2 * h + p["fit_clearance"] - v[:, 2]
+            return upright(query)
+
+        solid = mirrored
+    lowz = 0 if part == "base" else min(h + p["fit_clearance"], cz - R)
+    highz = max(h, cz + R) if part == "base" else 2 * h + p["fit_clearance"]
+    bounds = (-w / 2 - 1, w / 2 + 1, -d / 2 - 1, cy + R + 1, lowz - 1, highz + 1)
+    hints = {**registry, "levels": [0, f, h, zlo, zhi, cz - R, cz + R], "params": p}
+    return solid, bounds, hints
+
+
 def build_part_field(
     raw: dict[str, Any], part: str = "base"
 ) -> tuple[Field, tuple[float, ...], dict[str, Any]]:
@@ -297,6 +447,10 @@ def build_part_field(
         )
     )
     style = p["style"]
+    if style == "snap_latch" and part in ("base", "lid", "clip_left", "clip_right"):
+        return _build_snap_latch_field(p, part)
+    if style == "clamshell_pip":
+        return _build_clamshell_field(p, part)
     if style in ("open_bin", "stackable_bin") and part != "base":
         raise ValueError(
             "Caixa aberta tem apenas base / open bin has no lid or fit kit."
@@ -1370,6 +1524,25 @@ def _rectangle_loop(w, d, r, z, n, edge_stops=None):
 
 def _analytic_profile_mesh(p, part):
     """Exact planar/profile patches with curved chords below the interface budget."""
+    if p["style"] == "snap_latch":
+        if part in ("clip_left", "clip_right"):
+            return _analytic_snap_lever(p, part)
+        if part == "lid":
+            return _analytic_snap_lid(p)
+        if part == "base" and not any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            return _analytic_snap_base(p)
+        return None
+    if p["style"] == "clamshell_pip":
+        return _analytic_clamshell_mesh(p, part)
     if p["style"] == "stackable_bin" and part == "base":
         if any(
             p[k]
@@ -1514,6 +1687,170 @@ def _analytic_stackable_mesh(p):
     return b.mesh("base", tol)
 
 
+def _clamshell_angles(p):
+    hg = hinge_geometry(p)
+    R = hg["outer_radius"]
+    tol = min(p["fit_clearance"] / 4, p["pip_clearance"] / 4, 0.04) * 0.45
+    segments = 4 * math.ceil((2 * math.pi / (2 * math.acos(1 - tol / R))) / 4)
+    hi = math.atan2(-0.1, -math.sqrt(1 - 0.1**2)) % (2 * math.pi)
+    lo = 3 * math.pi / 2
+    angles = np.unique(np.r_[np.arange(segments) * 2 * math.pi / segments, hi, lo])
+    return angles, hi, lo, tol
+
+
+def _hinge_circle(angles, x, cy, cz, radius):
+    return np.column_stack(
+        (
+            np.full(len(angles), x),
+            cy + radius * np.cos(angles),
+            cz + radius * np.sin(angles),
+        )
+    )
+
+
+def _append_captive_knuckle(
+    builder, p, a, b, inner_radius, bored, outer_radius, attachment_levels
+):
+    """A barrel fused to its wall aperture, with a bore or an integral shaft.
+
+    The circular cap annulus and the connector cap meet along one shared arc.
+    Internal circle/rectangle union surfaces and the wall attachment are omitted.
+    """
+    hg = hinge_geometry(p)
+    cy, cz = (hg[k] for k in ("y", "z"))
+    R = outer_radius
+    angles, hi, lo, _ = _clamshell_angles(p)
+    outer0 = _hinge_circle(angles, a, cy, cz, R)
+    outer1 = _hinge_circle(angles, b, cy, cz, R)
+    inner0 = _hinge_circle(angles, a, cy, cz, inner_radius)
+    inner1 = _hinge_circle(angles, b, cy, cz, inner_radius)
+    builder.join(outer0, inner0, True)
+    builder.join(outer1, inner1)
+    if bored:
+        builder.join(inner0, inner1, True)
+    for i, theta in enumerate(angles):
+        j = (i + 1) % len(angles)
+        end = angles[j] + (2 * math.pi if j == 0 else 0)
+        if hi < (theta + end) / 2 < lo:
+            continue
+        builder.quad(outer0[i], outer0[j], outer1[j], outer1[i])
+    zlo, zhi = 0.0, cz - 0.1 * R
+    arc = angles[(angles >= hi - 1e-10) & (angles <= lo + 1e-10)][::-1]
+    poly = np.r_[
+        np.array([[p["depth_y"] / 2, zlo], [cy, 0.0]]),
+        np.column_stack((cy + R * np.cos(arc), cz + R * np.sin(arc))),
+        np.array([[p["depth_y"] / 2, zhi]]),
+        np.array(
+            [[p["depth_y"] / 2, z] for z in reversed(attachment_levels) if 0 < z < zhi]
+        ).reshape(-1, 2),
+    ]
+
+    def internal(u, v):
+        # The circular seam belongs to the disc boundary, not an exterior wall.
+        return (
+            abs(np.linalg.norm(u - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(v - [cy, cz]) - R) < 1e-7
+        )
+
+    _append_polygon_extrusion(builder, poly, a, b, p["depth_y"] / 2, internal)
+
+
+def _analytic_clamshell_mesh(p, part):
+    if part not in ("base", "lid"):
+        raise ValueError(
+            "Estojo articulado usa duas metades / articulated case has two halves."
+        )
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    hg = hinge_geometry(p)
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    knuckles = _clamshell_knuckles(p, part)
+    spans = _clamshell_spans(p, part)
+    angles, _, _, tol = _clamshell_angles(p)
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted([v for span in spans for v in span], reverse=True)
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {2: [(extent - v) / (2 * extent) for v in [extent, *xs, -extent]]}
+
+    outer_stops = stops(w, r)
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    inner_stops = stops(iw, ir)
+    levels = sorted(set([0.0, f, h] + [cz - 0.1 * rr for _, _, rr in knuckles]))
+    outer = [_rectangle_loop(w, d, r, z, n, outer_stops) for z in levels]
+    inner = [_rectangle_loop(iw, id_, ir, z, n, inner_stops) for z in levels if z >= f]
+    builder = _SurfaceBuilder()
+    builder.disk(outer[0], True)
+    builder.disk(inner[0])
+    builder.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            midx = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] - d / 2) < 1e-8
+                and abs(lower[j, 1] - d / 2) < 1e-8
+                and any(
+                    a < midx < b and 0 < midz < cz - 0.1 * rr for a, b, rr in knuckles
+                )
+            ):
+                continue
+            builder.quad(lower[i], lower[j], upper[j], upper[i])
+    for lower, upper in zip(inner, inner[1:]):
+        builder.join(lower, upper, True)
+    for a, b, rr in knuckles:
+        _append_captive_knuckle(
+            builder,
+            p,
+            a,
+            b,
+            pr + pc if part == "base" else pr,
+            part == "base",
+            rr,
+            levels,
+        )
+    if part == "lid":
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            left = [(cx - end, pr), (cx - k / 2, pr)]
+            right = [(cx + k / 2, pr), (cx + end, pr)]
+            for profile in (left, right):
+                loops = [_hinge_circle(angles, x, cy, cz, rr) for x, rr in profile]
+                for aa, bb in zip(loops, loops[1:]):
+                    builder.join(aa, bb)
+            builder.disk(_hinge_circle(angles, cx - end - 1.2, cy, cz, pr), True)
+            builder.disk(_hinge_circle(angles, cx + end + 1.2, cy, cz, pr))
+    mesh = builder.mesh(part, tol)
+    if part == "lid":
+        verts = mesh.vertices.copy()
+        verts[:, 2] = 2 * h + p["fit_clearance"] - verts[:, 2]
+        reflected = MeshData(
+            verts,
+            mesh.triangles[:, [0, 2, 1]].copy(),
+            mesh.face_normals.copy(),
+            {},
+            mesh.volume_cm3,
+            part,
+            tol,
+        )
+        return _reframe(reflected, verts)
+    return mesh
+
+
 def _storage_clip_profile(p):
     """Closed-pose C clip. Hooks have positive vertical clearance and entry bevels."""
     front = -p["depth_y"] / 2
@@ -1548,7 +1885,10 @@ def _storage_clip_profile(p):
     )
 
 
-def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
+_CAP_TRIANGLES: dict[bytes, tuple[tuple[int, int, int], ...]] = {}
+
+
+def _append_polygon_extrusion(b, poly, x0, x1, attachment=None, skip_edge=None):
     """Ear-clip a simple planar contour and stitch its extrusion, sharing edges."""
     area = float(
         np.sum(
@@ -1561,29 +1901,36 @@ def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
     def cross(a, bb, c):
         return (bb[0] - a[0]) * (c[1] - a[1]) - (bb[1] - a[1]) * (c[0] - a[0])
 
-    indices = list(range(len(poly)))
-    faces = []
-    while len(indices) > 3:
-        found = False
-        for j in range(len(indices)):
-            a, bb, c = (indices[(j + k) % len(indices)] for k in (-1, 0, 1))
-            if cross(poly[a], poly[bb], poly[c]) <= 1e-10:
-                continue
-            others = [i for i in indices if i not in (a, bb, c)]
-            if any(
-                cross(poly[a], poly[bb], poly[i]) >= -1e-10
-                and cross(poly[bb], poly[c], poly[i]) >= -1e-10
-                and cross(poly[c], poly[a], poly[i]) >= -1e-10
-                for i in others
-            ):
-                continue
-            faces.append((a, bb, c))
-            indices.pop(j)
-            found = True
-            break
-        if not found:
-            raise ValueError("Invalid latch contour / contorno de trava inválido.")
-    faces.append(tuple(indices))
+    key = np.ascontiguousarray(poly, dtype=np.float64).tobytes()
+    faces = _CAP_TRIANGLES.get(key)
+    if faces is None:
+        indices = list(range(len(poly)))
+        result = []
+        while len(indices) > 3:
+            found = False
+            for j in range(len(indices)):
+                a, bb, c = (indices[(j + k) % len(indices)] for k in (-1, 0, 1))
+                if cross(poly[a], poly[bb], poly[c]) <= 1e-10:
+                    continue
+                others = [i for i in indices if i not in (a, bb, c)]
+                if any(
+                    cross(poly[a], poly[bb], poly[i]) >= -1e-10
+                    and cross(poly[bb], poly[c], poly[i]) >= -1e-10
+                    and cross(poly[c], poly[a], poly[i]) >= -1e-10
+                    for i in others
+                ):
+                    continue
+                result.append((a, bb, c))
+                indices.pop(j)
+                found = True
+                break
+            if not found:
+                raise ValueError("Invalid latch contour / contorno de trava inválido.")
+        result.append(tuple(indices))
+        faces = tuple(result)
+        if len(_CAP_TRIANGLES) >= 64:
+            _CAP_TRIANGLES.pop(next(iter(_CAP_TRIANGLES)))
+        _CAP_TRIANGLES[key] = faces
     lo = np.column_stack((np.full(len(poly), x0), poly))
     hi = np.column_stack((np.full(len(poly), x1), poly))
     for a, bb, c in faces:
@@ -1591,6 +1938,8 @@ def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
         b.triangle(hi[a], hi[bb], hi[c])
     for i in range(len(poly)):
         j = (i + 1) % len(poly)
+        if skip_edge is not None and skip_edge(poly[i], poly[j]):
+            continue
         if (
             attachment is not None
             and abs(poly[i, 0] - attachment) < 1e-8
@@ -1859,13 +2208,12 @@ def orient_mesh_for_print(mesh: MeshData, raw: dict[str, Any], part: str) -> Mes
     p = normalize_params(raw)
     verts = mesh.vertices.copy()
     triangles = mesh.triangles.copy()
-    if part == "lid" and p["style"] != "sliding_lid":
+    if part == "lid" and p["style"] == "clamshell_pip":
+        verts = clamshell_open_transform(verts, p, 180.0)
+    elif part == "lid" and p["style"] != "sliding_lid":
         verts[:, 2] *= -1
         triangles = triangles[:, [0, 2, 1]]
     if part == "pin":
-        verts = verts[:, [1, 2, 0]]
-    if part.startswith("clip") and p["style"] == "snap_latch":
-        # The broad side of the spring profile lies flat on the bed.
         verts = verts[:, [1, 2, 0]]
     verts[:, 2] -= verts[:, 2].min()
     copy = MeshData(
@@ -1901,7 +2249,7 @@ def generate_fit_test_kit(
     raw: dict[str, Any] | None = None,
 ) -> list[tuple[str, MeshData]]:
     p = normalize_params(raw)
-    if p["style"] in ("open_bin", "snap_latch", "stackable_bin"):
+    if p["style"] in ("open_bin", "snap_latch", "stackable_bin", "clamshell_pip"):
         raise ValueError(
             "Kit de encaixe indisponível para este mecanismo; exporte base/tampa/travas / fit kit unavailable for this mechanism; export the actual parts."
         )
@@ -2003,6 +2351,25 @@ def collect_target_meshes(
     p = normalize_params(raw)
     generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
+    if p["style"] == "clamshell_pip":
+        if target not in ("base_and_lid", "full_suite"):
+            raise ValueError(
+                "Estojo cativo requer o conjunto aberto completo / captive case requires the complete open assembly."
+            )
+        names = ("Base", "Tampa" if lang == "pt" else "Lid")
+        if assembled:
+            return [
+                (name, generate(p, part, False))
+                for name, part in zip(names, ("base", "lid"))
+            ]
+        base = generate(p, "base", False)
+        lid = generate(p, "lid", True)
+        return [
+            (
+                "Estojo aberto articulado / Open articulated case",
+                combine_meshes([base, lid], "clamshell_pip_assembly"),
+            )
+        ]
     if p["style"] in ("open_bin", "stackable_bin") and target in (
         "lid_only",
         "gasket",
@@ -2090,3 +2457,563 @@ def topology_report(mesh: MeshData) -> dict[str, Any]:
         "volume_cm3": mesh.volume_cm3,
         "interface_error_mm": mesh.interface_error_mm,
     }
+
+
+def latch_geometry(raw: dict[str, Any], part: str = "clip_left") -> dict[str, Any]:
+    """Articulated latch contract. Positive X rotation releases the front hook."""
+    p = normalize_params(raw)
+    if p["style"] != "snap_latch" or part not in ("clip_left", "clip_right"):
+        raise ValueError("Use uma trava articulada / use an articulated latch.")
+    c = p["fit_clearance"]
+    pr = p["latch_pivot_diameter"] / 2
+    front = -p["depth_y"] / 2
+    cy = front - pr - c - 0.4
+    cz = p["height_z"] - 7.5
+    radius = pr + 2 * c + 0.15 + 1.2
+    ear = max(1.6, p["latch_thickness"])
+    stub = c + 0.6 * ear
+    mouth = pr - min(0.225, pr * 0.15)
+    cx = (-1 if part == "clip_left" else 1) * p["width_x"] * 0.24
+    hook = p["height_z"] + c + p["lid_height"] + max(0.25, c)
+    return {
+        "pivot": {"x": cx, "y": cy, "z": cz},
+        "release_angle": 90.0,
+        "release_fraction": 0.35,
+        "lid_lift_mm": 50.0,
+        "hook_gap": max(0.25, c),
+        "cam_interval": [4.0, 22.0],
+        "pin_radius": pr,
+        "bore_radius": pr + c,
+        "outer_radius": radius,
+        "mouth_half_height": mouth,
+        "socket_snap": pr - mouth,
+        "ear_thickness": ear,
+        "stub_length": stub,
+        "axial_engagement": stub - c,
+        "hook_y": cy - 1.0,
+        "hook_bottom_z": hook,
+        "catch_outer_y": cy - 1 - p["latch_retention"],
+        "catch_top_z": p["height_z"] + c + p["lid_height"],
+        "hub_radius": pr + c + 0.25,
+        "flat_z": cz - pr + 0.2,
+        "grip_inner_y": cy - 1 - p["latch_retention"] - c,
+        "grip_outer_y": cy - 1 - p["latch_retention"] - c - p["latch_thickness"],
+    }
+
+
+def latch_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], part: str, angle: float = 90.0
+) -> np.ndarray:
+    g = latch_geometry(raw, part)
+    pivot = g["pivot"]
+    if not math.isfinite(float(angle)):
+        raise ValueError("Ângulo finito necessário / finite angle required.")
+    v = np.asarray(vertices, dtype=float).copy()
+    a = math.radians(float(angle))
+    dy, dz = v[:, 1] - pivot["y"], v[:, 2] - pivot["z"]
+    v[:, 1] = pivot["y"] + dy * math.cos(a) - dz * math.sin(a)
+    v[:, 2] = pivot["z"] + dy * math.sin(a) + dz * math.cos(a)
+    return v
+
+
+def _snap_profiles(p):
+    g = latch_geometry(p)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    pr, R, c = g["pin_radius"], g["outer_radius"], p["fit_clearance"]
+    seat = pr + 2 * c + 0.15
+    br = pr + c
+    mouth = g["mouth_half_height"]
+    front = -p["depth_y"] / 2
+    outer_delta = math.asin((pr + 0.2) / R)
+    upper_inner = math.pi - math.asin(mouth / seat)
+    lower_inner = -math.pi + math.asin(mouth / br)
+    root = cz - R - (front - cy)
+    top = cz + math.sqrt(R * R - (front - cy) ** 2)
+
+    def samples(a, b, critical=()):
+        return np.unique(
+            np.r_[
+                np.linspace(a, b, max(2, int(abs(b - a) / 0.05) + 1)),
+                [v for v in critical if a < v < b],
+            ]
+        )
+
+    lower = samples(math.pi + outer_delta, 1.5 * math.pi)
+    upper = samples(math.acos((front - cy) / R), math.pi - outer_delta)
+    theta = samples(
+        lower_inner,
+        upper_inner,
+        np.deg2rad([78, 80, 86, 90, 94, 98, 100, 104, 106, 110]),
+    )[::-1]
+    degrees = np.rad2deg(theta)
+    relief = np.minimum(
+        np.clip((degrees - 78) / 2, 0, 1),
+        np.maximum(
+            np.clip((100 - degrees) / 2, 0, 1), np.clip((degrees - 104) / 2, 0, 1)
+        ),
+    )
+    inner = br + relief * (seat - br)
+    socket = np.r_[
+        np.column_stack((cy + R * np.cos(lower), cz + R * np.sin(lower))),
+        [[front, root], [front, top]],
+        np.column_stack((cy + R * np.cos(upper), cz + R * np.sin(upper))),
+        np.column_stack((cy + inner * np.cos(theta), cz + inner * np.sin(theta))),
+    ]
+    hub = g["hub_radius"]
+    flat = pr - 0.2
+    critical = np.deg2rad(
+        [0, 78, 80, 86, 90, 94, 98, 100, 104, 106, 110, 135, 180, 270]
+    )
+    grip_offset = 1 + p["latch_retention"] + c
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= hub / math.sqrt(2)
+        else math.acos(-grip_offset / hub)
+    )
+    critical = np.r_[critical, join_angle]
+    for radius in (pr, hub):
+        a = math.asin(flat / radius)
+        critical = np.r_[critical, math.pi + a, 2 * math.pi - a]
+    angles = samples(0, 2 * math.pi, critical)[:-1]
+    cam = np.maximum(0, 1 - np.abs(np.rad2deg(angles) - 90) / 4) * (c + 0.15)
+    pin_radius = pr + cam
+    sine = np.sin(angles)
+    limit = np.where(sine < -0.00001, flat / np.maximum(-sine, 0.00001), np.inf)
+    pin_radius = np.minimum(pin_radius, limit)
+    hub_radius = np.minimum(np.full(len(angles), hub), limit)
+    pin = np.column_stack(
+        (cy + pin_radius * np.cos(angles), cz + pin_radius * np.sin(angles))
+    )
+    hub_profile = np.column_stack(
+        (cy + hub_radius * np.cos(angles), cz + hub_radius * np.sin(angles))
+    )
+    a = 1 + p["latch_retention"] + c
+    th = p["latch_thickness"]
+    hook = g["hook_bottom_z"]
+    arc = angles[(angles >= join_angle - 1e-9) & (angles <= math.pi + 1e-9)]
+    grip = np.r_[
+        [
+            [cy - hub, cz],
+            [cy - a - th, cz + max(0.3, a + th - hub)],
+            [cy - a - th, hook + th],
+            [cy - 1, hook + th],
+            [cy - 1, hook],
+            [cy - a, hook],
+            [cy - a, cz + max(a, math.sqrt(max(0, hub * hub - a * a)))],
+        ],
+        np.column_stack((cy + hub * np.cos(arc), cz + hub * np.sin(arc))),
+    ]
+    stop_y = cy - a + c
+    stop_top = cz + 6.5
+    clearance_radius = g["hub_radius"] + c
+    arc_y = cy + clearance_radius * np.cos(np.linspace(0, math.pi, 65))
+    ys = np.sort(np.r_[front, stop_y, arc_y[(arc_y > stop_y) & (arc_y < front)]])[::-1]
+    lower = stop_top - 1 + stop_y - ys
+    rel = ys - cy
+    relief = np.where(
+        np.abs(rel) < clearance_radius,
+        cz + np.sqrt(np.maximum(0, clearance_radius**2 - rel**2)),
+        -np.inf,
+    )
+    stop = np.r_[
+        np.column_stack((ys, np.maximum(lower, relief))),
+        [[stop_y, stop_top], [front, stop_top]],
+    ]
+    return g, socket, pin, hub_profile, grip, stop, angles
+
+
+def _polygon_prism_field(poly, x0, x1):
+    low, high = poly.min(axis=0), poly.max(axis=0)
+
+    def field(v):
+        # Far from the prism a positive box bound preserves its zero set.
+        # Exact polygon distances are evaluated throughout a 0.5 mm surface band.
+        yz_all = v[:, [1, 2]]
+        slab = _slab(v[:, 0], x0, x1)
+        box = np.maximum(np.max(low - yz_all, axis=1), np.max(yz_all - high, axis=1))
+        result = np.maximum(slab, box)
+        near = (slab <= 0.5) & (box <= 0.5)
+        yz = yz_all[near]
+        inside = np.zeros(len(yz), dtype=bool)
+        distance = np.full(len(yz), np.inf)
+        for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+            edge = b - a
+            length = float(edge @ edge)
+            if length < 1e-18:
+                continue
+            u = np.clip(((yz - a) * edge).sum(axis=1) / length, 0, 1)
+            distance = np.minimum(
+                distance, np.linalg.norm(yz - a - u[:, None] * edge, axis=1)
+            )
+            inside ^= ((a[1] > yz[:, 1]) != (b[1] > yz[:, 1])) & (
+                yz[:, 0]
+                < (b[0] - a[0]) * (yz[:, 1] - a[1]) / (b[1] - a[1] + 1e-30) + a[0]
+            )
+        result[near] = np.maximum(np.where(inside, -distance, distance), slab[near])
+        return result
+
+    return field
+
+
+def _clean_profile(poly):
+    p = np.asarray(poly, dtype=float)
+    p = p[np.r_[True, np.linalg.norm(np.diff(p, axis=0), axis=1) > 1e-9]]
+    return p[:-1] if len(p) > 1 and np.linalg.norm(p[0] - p[-1]) < 1e-9 else p
+
+
+def _attachment_splits(poly, front, levels):
+    result = []
+    for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+        result.append(a)
+        if abs(a[0] - front) < 1e-7 and abs(b[0] - front) < 1e-7:
+            zs = sorted(
+                z for z in levels if min(a[1], b[1]) + 1e-8 < z < max(a[1], b[1]) - 1e-8
+            )
+            if b[1] < a[1]:
+                zs = zs[::-1]
+            result.extend([[front, z] for z in zs])
+    return _clean_profile(result)
+
+
+def _analytic_snap_base(p):
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    parts = [(a, b, _clean_profile(poly)) for a, b, poly in _snap_base_parts(p)]
+    tol = min(p["fit_clearance"] / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted(set(v for a, b, _ in parts for v in (a, b)))
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]}
+
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    levels = sorted(
+        set(
+            [0.0, f, h]
+            + [
+                float(q[1])
+                for _, _, poly in parts
+                for q in poly
+                if abs(q[0] + d / 2) < 1e-7
+            ]
+        )
+    )
+    outer = [_rectangle_loop(w, d, r, z, n, stops(w, r)) for z in levels]
+    inner = [
+        _rectangle_loop(iw, id_, ir, z, n, stops(iw, ir)) for z in levels if z >= f
+    ]
+    build = _SurfaceBuilder()
+    build.disk(outer[0], True)
+    build.disk(inner[0])
+    build.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            x = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] + d / 2) < 1e-7
+                and abs(lower[j, 1] + d / 2) < 1e-7
+                and any(
+                    a < x < b
+                    and poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].min()
+                    < midz
+                    < poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].max()
+                    for a, b, poly in parts
+                )
+            ):
+                continue
+            build.quad(lower[i], lower[j], upper[j], upper[i])
+    for a, b in zip(inner, inner[1:]):
+        build.join(a, b, True)
+    for a, b, poly in parts:
+        _append_polygon_extrusion(
+            build, _attachment_splits(poly, -d / 2, levels), a, b, -d / 2
+        )
+    return build.mesh("base", tol)
+
+
+def _analytic_snap_lever(p, part):
+    g, _, pin, hub, grip, _, angles = _snap_profiles(p)
+    g = latch_geometry(p, part)
+    pin, hub, grip = (_clean_profile(v) for v in (pin, hub, grip))
+    cx = g["pivot"]["x"]
+    L = p["latch_width"]
+    stub = g["stub_length"]
+    build = _SurfaceBuilder()
+
+    def loop(poly, x):
+        return np.column_stack((np.full(len(poly), x), poly))
+
+    p0, p1, p2, p3 = [
+        loop(pin, x)
+        for x in (cx - L / 2 - stub, cx - L / 2, cx + L / 2, cx + L / 2 + stub)
+    ]
+    h1, h2 = [loop(hub, x) for x in (cx - L / 2, cx + L / 2)]
+    build.join(p0, p1)
+    build.join(p2, p3)
+    build.join(h1, p1, True)
+    build.join(h2, p2)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    R = g["hub_radius"]
+    grip_offset = 1 + p["latch_retention"] + p["fit_clearance"]
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= R / math.sqrt(2)
+        else math.acos(-grip_offset / R)
+    )
+
+    def seam(a, b):
+        return (
+            abs(np.linalg.norm(a - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(b - [cy, cz]) - R) < 1e-7
+            and join_angle - 1e-7 <= math.atan2(a[1] - cz, a[0] - cy) <= math.pi + 1e-7
+            and join_angle - 1e-7 <= math.atan2(b[1] - cz, b[0] - cy) <= math.pi + 1e-7
+        )
+
+    for i in range(len(hub)):
+        j = (i + 1) % len(hub)
+        if not seam(hub[i], hub[j]):
+            build.quad(h1[i], h1[j], h2[j], h2[i])
+    _append_polygon_extrusion(
+        build, pin, cx - L / 2 - stub, cx + L / 2 + stub, skip_edge=lambda a, b: True
+    )
+    _append_polygon_extrusion(build, grip, cx - L / 2, cx + L / 2, skip_edge=seam)
+    return build.mesh(part, min(p["fit_clearance"] / 4, 0.04) * 0.3)
+
+
+def _analytic_snap_lid(p):
+    w, d, h, t, c, r, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "fit_clearance",
+            "corner_radius",
+            "lid_height",
+        )
+    )
+    g = latch_geometry(p)
+    tol = min(c / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    spans = [
+        (cx - p["latch_width"] / 2 + c, cx + p["latch_width"] / 2 - c)
+        for cx in (-w * 0.24, w * 0.24)
+    ]
+    xs = sorted(v for a, b in spans for v in (a, b))
+
+    def loop(pw, pd, pr, z):
+        extent = pw / 2 - pr
+        return _rectangle_loop(
+            pw,
+            pd,
+            pr,
+            z,
+            n,
+            {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]},
+        )
+
+    sw, sd, sr = w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)
+    outer = [
+        loop(pw, pd, pr, z)
+        for z, pw, pd, pr in (
+            (h - p["lid_wall_height"], sw, sd, sr),
+            (h + c, sw, sd, sr),
+            (h + c, w, d, r),
+            (h + c + lh, w, d, r),
+        )
+    ]
+    inner = [
+        loop(sw - 2.4, sd - 2.4, max(0.15, sr - 1.2), z)
+        for z in (h - p["lid_wall_height"], h + c)
+    ]
+    b = _SurfaceBuilder()
+    b.join(inner[0], outer[0])
+    b.join(inner[0], inner[1], True)
+    b.disk(inner[1], True)
+    b.disk(outer[-1])
+    b.join(outer[0], outer[1])
+    b.join(outer[1], outer[2])
+    low, high = outer[-2], outer[-1]
+    for i in range(len(low)):
+        j = (i + 1) % len(low)
+        x = (low[i, 0] + low[j, 0]) / 2
+        if (
+            abs(low[i, 1] + d / 2) < 1e-7
+            and abs(low[j, 1] + d / 2) < 1e-7
+            and any(a < x < bb for a, bb in spans)
+        ):
+            continue
+        b.quad(low[i], low[j], high[j], high[i])
+    for x0, x1 in spans:
+        y0, y1 = g["catch_outer_y"], -d / 2
+        z0, z1 = h + c, h + c + lh
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0), True)
+        b.quad((x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1))
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y0, z1), (x0, y0, z1))
+        b.quad((x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1))
+        b.quad((x0, y1, z0), (x0, y0, z0), (x0, y0, z1), (x0, y1, z1))
+    return b.mesh("lid", tol)
+
+
+def _snap_base_parts(p):
+    g, socket, _, _, _, stop, _ = _snap_profiles(p)
+    L = p["latch_width"]
+    c = p["fit_clearance"]
+    ear = g["ear_thickness"]
+    return [
+        (
+            cx + side * (L / 2 + c + ear / 2) - ear / 2,
+            cx + side * (L / 2 + c + ear / 2) + ear / 2,
+            socket,
+        )
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+        for side in (-1, 1)
+    ] + [
+        (cx - L * 0.25, cx + L * 0.25, stop)
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+    ]
+
+
+def _build_snap_latch_field(p, part):
+    g, socket, pin, hub, grip, stop, _ = _snap_profiles(p)
+    w, d, h, t, f, r, c, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+            "fit_clearance",
+            "lid_height",
+        )
+    )
+    if part.startswith("clip"):
+        g = latch_geometry(p, part)
+        cx = g["pivot"]["x"]
+        L = p["latch_width"]
+        stub = g["stub_length"]
+        field = _union(
+            _polygon_prism_field(pin, cx - L / 2 - stub, cx + L / 2 + stub),
+            _polygon_prism_field(hub, cx - L / 2, cx + L / 2),
+            _polygon_prism_field(grip, cx - L / 2, cx + L / 2),
+        )
+        points = np.r_[pin, hub, grip]
+        bounds = (
+            cx - L / 2 - stub - 1,
+            cx + L / 2 + stub + 1,
+            points[:, 0].min() - 1,
+            points[:, 0].max() + 1,
+            points[:, 1].min() - 1,
+            points[:, 1].max() + 1,
+        )
+        return field, bounds, {"params": p}
+    # Reuse the validated shell/features without the previous latch geometry.
+    shell = copy_params(p)
+    shell["style"] = "open_bin" if part == "base" else "screw_corner"
+    shell["handles_enabled"] = False
+    if part == "base":
+        use_gasket = shell["gasket_enabled"]
+        shell["gasket_enabled"] = False
+        field, bounds, hints = build_part_field(shell, "base")
+        for a, b, poly in _snap_base_parts(p):
+            outline = []
+            for u, v in zip(poly, np.roll(poly, -1, axis=0)):
+                outline.append(u)
+                if abs(u[0] + d / 2) < 1e-7 and abs(v[0] + d / 2) < 1e-7:
+                    outline.extend([[-d / 2 + 0.1, u[1]], [-d / 2 + 0.1, v[1]]])
+            overlap = np.asarray(outline)
+            field = _union(field, _polygon_prism_field(overlap, a, b))
+        if use_gasket:
+            gw, gd = p["gasket_width"], p["gasket_depth"]
+            field = _difference(
+                field,
+                _ring(
+                    w - t + gw,
+                    d - t + gw,
+                    h - gd,
+                    h + 1,
+                    gw,
+                    max(0.2, r - t / 2 + gw / 2),
+                ),
+            )
+            hints["rectangles"].extend(
+                [
+                    (w - t + gw, d - t + gw, max(0.2, r - t / 2 + gw / 2)),
+                    (w - t - gw, d - t - gw, max(0.15, r - t / 2 - gw / 2)),
+                ]
+            )
+            hints["levels"].append(h - gd)
+        polygons = [poly for _, _, poly in _snap_base_parts(p)]
+        bounds = (
+            *bounds[:2],
+            min(float(poly[:, 0].min()) for poly in polygons) - 1,
+            bounds[3],
+            bounds[4],
+            bounds[5],
+        )
+        hints["params"] = p
+        for a, b, poly in _snap_base_parts(p):
+            hints["planes"][0].extend((a, b))
+            boundary = poly[np.abs(poly[:, 0] + d / 2) < 1e-7]
+            hints["planes"][2].extend(boundary[:, 1].tolist())
+        hints["circles"].extend(
+            [
+                (1, 2, g["pivot"]["y"], g["pivot"]["z"], rr)
+                for rr in (
+                    g["outer_radius"],
+                    g["bore_radius"],
+                    g["pin_radius"] + 2 * c + 0.15,
+                )
+            ]
+        )
+    elif part == "lid":
+        field = _union(
+            _rect(w, d, h + c, h + c + lh, r),
+            _ring(
+                w - 2 * t - 2 * c,
+                d - 2 * t - 2 * c,
+                h - p["lid_wall_height"],
+                h + c + 0.1,
+                1.2,
+                max(0.2, r - t - c),
+            ),
+        )
+        for cx in (-w * 0.24, w * 0.24):
+            field = _union(
+                field,
+                _box(
+                    cx - p["latch_width"] / 2 + c,
+                    cx + p["latch_width"] / 2 - c,
+                    g["catch_outer_y"],
+                    -d / 2 + 0.1,
+                    h + c,
+                    h + c + lh,
+                ),
+            )
+        bounds = (
+            -w / 2 - 1,
+            w / 2 + 1,
+            g["catch_outer_y"] - 1,
+            d / 2 + 1,
+            h - p["lid_wall_height"] - 1,
+            h + c + lh + 1,
+        )
+        hints = {"params": p}
+    else:
+        raise ValueError("Unknown latch part: " + part)
+    return field, bounds, hints

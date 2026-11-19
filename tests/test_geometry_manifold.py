@@ -45,8 +45,8 @@ class GeometryTests(unittest.TestCase):
                 with self.subTest(style=style, part=part):
                     self.assertSolid(generate_box_mesh({"style": style}, part))
 
-    def test_02_all_fifteen_presets(self):
-        self.assertEqual(len(BUILTIN_PRESETS), 15)
+    def test_02_all_seventeen_presets(self):
+        self.assertEqual(len(BUILTIN_PRESETS), 17)
         for preset in BUILTIN_PRESETS:
             self.assertEqual(validate_params(preset["params"]), [], preset["id"])
             for part in (

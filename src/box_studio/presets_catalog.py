@@ -1,4 +1,4 @@
-"""Fifteen editable starting designs and atomic user-preset persistence."""
+"""Seventeen editable starting designs and atomic user-preset persistence."""
 
 from __future__ import annotations
 import copy, json, os, re, tempfile
@@ -160,8 +160,8 @@ BUILTIN_PRESETS = [
     ),
     _preset(
         "snap_latch_case",
-        "Tampa removível · duas travas",
-        "Removable lid · two latches",
+        "Tampa removível · fechos articulados",
+        "Removable lid · pivoting latches",
         style="snap_latch",
         width_x=110,
         depth_y=80,
@@ -170,6 +170,7 @@ BUILTIN_PRESETS = [
         latch_width=18,
         latch_thickness=2,
         latch_retention=0.6,
+        latch_pivot_diameter=3,
     ),
     _preset(
         "stackable_parts_bin",
@@ -183,6 +184,30 @@ BUILTIN_PRESETS = [
         stack_clearance=0.25,
         front_access_width=90,
         front_access_drop=30,
+    ),
+    _preset(
+        "clamshell_pip_short",
+        "Estojo articulado · baixo",
+        "PIP clamshell · shallow",
+        style="clamshell_pip",
+        width_x=120,
+        depth_y=65,
+        height_z=14,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
+    ),
+    _preset(
+        "clamshell_pip_deep",
+        "Estojo articulado · profundo",
+        "PIP clamshell · deep",
+        style="clamshell_pip",
+        width_x=90,
+        depth_y=65,
+        height_z=25,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
     ),
 ]
 
@@ -280,6 +305,7 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
     )
     host = limits or {}
     stacking_family = original["style"] == "stackable_bin"
+    clamshell = original["style"] == "clamshell_pip"
     maxima = {
         "width_x": min(350.0, float(host.get("bed_x", 358)) - 8),
         "depth_y": min(
@@ -297,12 +323,31 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
             ),
         ),
     }
+    if clamshell:
+        # Sampling bounds accelerate rejection; the exact analytic open envelope
+        # below is authoritative, including the hinge's height above each floor.
+        maxima["depth_y"] = min(
+            maxima["depth_y"],
+            (float(host.get("bed_y", 372)) - 2 * original["hinge_separation"]) / 2,
+        )
     dimensions_to_vary = ("height_z",) if stacking_family else tuple(maxima)
 
     def fits(candidate):
-        return not validate_params(candidate) and all(
+        if validate_params(candidate) or not all(
             candidate[k] <= limit for k, limit in maxima.items()
-        )
+        ):
+            return False
+        if clamshell:
+            from .mesh_generator import clamshell_print_bounds
+
+            size = clamshell_print_bounds(candidate)["size"]
+            return all(
+                value <= float(host.get(key, default))
+                for value, key, default in zip(
+                    size, ("bed_x", "bed_y", "max_z"), (358, 372, 265)
+                )
+            )
+        return True
 
     for _ in range(64):
         candidate = copy.deepcopy(original)

@@ -70,6 +70,65 @@ async function clickAction(page,name) {
   const aliases={send:'#send',stl:'#stl',three:'#three, #mf','3mf':'#three, #mf',folder:'#folder'};
   await page.locator(aliases[name]||'#'+name).first().click();
 }
+async function waitSuccessfulAction(page,before){
+  await page.waitForFunction(before=>window.__hostMessages.slice(before).some(message=>message.type==='action_result'),before,{timeout:180000});
+  const result=await page.evaluate(before=>window.__hostMessages.slice(before).find(message=>message.type==='action_result'),before);
+  if(result.ok!==true)throw Error('Export failed: '+result.message);
+}
+function assertLatchSnapshot(snapshot) {
+  const p=snapshot.params,motion=snapshot.latch_motion;
+  for(const [part,sign] of [['clip_left',-1],['clip_right',1]]){
+    const actual=motion?.[part],expected=[sign*p.width_x*.24,-p.depth_y/2-(p.latch_pivot_diameter/2+p.fit_clearance+.4),p.height_z-7.5];
+    if(!actual||['x','y','z'].some((key,k)=>!Number.isFinite(actual.pivot?.[key])||Math.abs(actual.pivot[key]-expected[k])>1e-6)||actual.release_fraction!==.35||actual.release_angle!==90||actual.lid_lift_mm!==50)throw Error('Pivot metadata does not match its mesh snapshot: '+part);
+  }
+}
+async function renderedLatchPose(page,value){
+  await page.locator('#open').evaluate((input,value)=>{input.value=String(value);input.dispatchEvent(new Event('input',{bubbles:true}));},value);
+  await page.waitForFunction(value=>Number(document.querySelector('#open').value)===value&&window.__glModelFrame?.models.length===4,value);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  return page.evaluate(()=>{
+    const snapshot=window.__hostMessages.filter(message=>message.type==='preview_result'&&message.ok).at(-1);
+    const gl=document.querySelector('#gl-canvas').getContext('webgl2');
+    return {models:Object.fromEntries(snapshot.parts.map((part,index)=>[part,window.__glModelFrame.models[index]])),error:gl.getError()};
+  });
+}
+function assertRenderedLatchPose(pose,snapshot,percent){
+  if(pose.error!==0)throw Error('WebGL rejected a pivot-latch pose: '+pose.error);
+  const near=(actual,expected,label,tolerance=1e-5)=>{if(!Number.isFinite(actual)||Math.abs(actual-expected)>tolerance)throw Error(`${label}: ${actual} != ${expected}`);};
+  const phase=percent/100,releaseFraction=Math.max(...Object.values(snapshot.latch_motion).map(info=>info.release_fraction));
+  const lid=pose.models.lid,base=pose.models.base;
+  for(const [part,matrix]of [['base',base],['lid',lid]]){
+    if(!matrix||matrix.length!==16)throw Error('Missing rendered matrix: '+part);
+    for(const index of [0,5,10,15])near(matrix[index],1,part+' orientation');
+    for(const index of [1,2,3,4,6,7,8,9,11,12,13])near(matrix[index],0,part+' unexpected motion');
+  }
+  near(base[14],0,'base stays stationary');
+  near(lid[14],Math.max(0,(phase-releaseFraction)/(1-releaseFraction))*snapshot.latch_motion.clip_left.lid_lift_mm,'lid lift waits for both releases');
+  for(const part of ['clip_left','clip_right']){
+    const matrix=pose.models[part],info=snapshot.latch_motion[part],v=info.pivot;
+    if(!matrix||matrix.length!==16)throw Error('Missing latch model matrix: '+part);
+    const angle=Math.atan2(matrix[6],matrix[5])*180/Math.PI;
+    near(angle,Math.min(phase/info.release_fraction,1)*info.release_angle,part+' actual GL rotation',1e-4);
+    const pivot=[matrix[0]*v.x+matrix[4]*v.y+matrix[8]*v.z+matrix[12],matrix[1]*v.x+matrix[5]*v.y+matrix[9]*v.z+matrix[13],matrix[2]*v.x+matrix[6]*v.y+matrix[10]*v.z+matrix[14]];
+    for(const [index,key]of ['x','y','z'].entries())near(pivot[index],v[key],part+' remains on its base pivot');
+  }
+}
+async function pivotLatchChecks(page,snapshot,passed){
+  if(Number(await page.locator('#open').inputValue())!==0)throw Error('Pivot-latch preview must start closed');
+  assertLatchSnapshot(snapshot);
+  assertRenderedLatchPose(await renderedLatchPose(page,0),snapshot,0);
+  passed.push('Pivot latches start engaged with both pivots matching the mesh snapshot');
+  await page.screenshot({path:path.join(output,'box-pivot-latch-closed.png')});
+  assertRenderedLatchPose(await renderedLatchPose(page,20),snapshot,20);
+  passed.push('Actual WebGL levers rotate while the lid stays closed');
+  assertRenderedLatchPose(await renderedLatchPose(page,35),snapshot,35);
+  passed.push('Both base-mounted levers release to 90 degrees before lid motion');
+  await page.screenshot({path:path.join(output,'box-pivot-latch-released.png')});
+  for(const value of [70,100])assertRenderedLatchPose(await renderedLatchPose(page,value),snapshot,value);
+  passed.push('The lid lifts only after both levers are released');
+  await page.screenshot({path:path.join(output,'box-pivot-latch-open.png')});
+  await renderedLatchPose(page,0);
+}
 async function smoke(page,slug,url,passed) {
   await page.goto(url+'/?theme=dark');await waitGeometry(page);passed.push('Python mesh preview');
   let n=await geometryCount(page);await page.locator('#language, #lang, #btn-lang').first().click();
@@ -145,14 +204,24 @@ async function featureChecks(page,slug,url,passed){
     if(selected.meshes!==4||[...selected.parts].sort().join(',')!=='base,clip_left,clip_right,lid')throw Error('Snap-latch case must contain base, lid and two independent clips');
     if(!await page.locator('input[type="number"][data-p="lid_height"]').isVisible())throw Error('Lid thickness remains hidden after leaving open-bin mode');
     passed.push('Removable lid and two separate latch meshes');
+    await pivotLatchChecks(page,selected,passed);
     n=await geometryCount(page);await page.locator('input[type="number"][data-p="lid_wall_height"]').fill('10');await page.locator('input[type="number"][data-p="lid_wall_height"]').press('Tab');await waitGeometry(page,n,{lid_wall_height:10});
     n=await geometryCount(page);await page.locator('input[type="number"][data-p="latch_retention"]').fill('0.7');await page.locator('input[type="number"][data-p="latch_retention"]').press('Tab');await waitGeometry(page,n,{latch_retention:0.7});passed.push('Lid depth and latch retention update real geometry');
     for(const [key,value]of [['width_x',160],['depth_y',95],['height_z',35]]){
       n=await geometryCount(page);const control=page.locator(`input[type="number"][data-p="${key}"]`);await control.fill(String(value));await control.press('Tab');await waitGeometry(page,n,{[key]:value});
     }
     passed.push('Latching case resizes to 160×95×35 mm');
+    selected=await page.evaluate(()=>window.__hostMessages.filter(m=>m.type==='preview_result'&&m.ok).at(-1));
+    assertLatchSnapshot(selected);
+    assertRenderedLatchPose(await renderedLatchPose(page,0),selected,0);
+    passed.push('Resized pivot metadata and rendered levers follow the matching design');
+    // The new pivot bodies are wider than the former spring clips. Keep the
+    // 160×95 resize check above, then use a four-piece layout that fits the
+    // same generic 220×220 bed with the exporter's existing spacing/margins.
+    n=await geometryCount(page);const exportDepth=page.locator('input[type="number"][data-p="depth_y"]');
+    await exportDepth.fill('90');await exportDepth.press('Tab');await waitGeometry(page,n,{depth_y:90});
     const exportBefore=await page.evaluate(()=>window.__hostMessages.length);await clickAction(page,'3mf');
-    await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='action_result'&&m.ok===true),exportBefore,{timeout:180000});passed.push('Four-piece snap-latch case exports to real 3MF');
+    await waitSuccessfulAction(page,exportBefore);passed.push('Four-piece snap-latch case exports to real 3MF');
     await page.locator('[data-cam="fit"]').click();await page.screenshot({path:path.join(output,'box-snap-latch-fit.png')});
     n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="stackable_parts_bin"]').click();await waitGeometry(page,n,{style:'stackable_bin'});
     selected=await page.evaluate(()=>window.__hostMessages.filter(m=>m.type==='preview_result'&&m.ok).at(-1));
@@ -169,6 +238,30 @@ async function featureChecks(page,slug,url,passed){
     n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="snap_latch_case"]').click();await waitGeometry(page,n,{style:'snap_latch'});
     if(!await page.locator('input[type="number"][data-p="lid_height"]').isVisible())throw Error('Lid controls did not return after the stacking preset');
     passed.push('Returning from a stackable container restores removable-lid controls');
+    n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="clamshell_pip_short"]').click();await waitGeometry(page,n,{style:'clamshell_pip'});
+    selected=await page.evaluate(()=>window.__hostMessages.filter(m=>m.type==='preview_result'&&m.ok).at(-1));
+    if(selected.meshes!==2||[...selected.parts].sort().join(',')!=='base,lid')throw Error('PIP preview must retain its two real moving halves');
+    if(Number(await page.locator('#open').getAttribute('max'))!==180||Number(await page.locator('#open').inputValue())!==180)throw Error('New PIP case must open at 180 degrees');
+    if(Math.abs(selected.hinge.y-(selected.params.depth_y/2+selected.params.hinge_separation))>1e-5||Math.abs(selected.hinge.z-(selected.params.height_z+selected.params.fit_clearance/2))>1e-5)throw Error('UI hinge disagrees with the equal-half geometry');
+    const invalidTargets=await page.locator('#target option').evaluateAll(options=>options.filter(option=>!option.disabled).map(option=>option.value));
+    if(invalidTargets.some(target=>!['base_and_lid','full_suite'].includes(target)))throw Error('PIP UI exposes an export that separates its hinge');
+    passed.push('Equal-height PIP preset starts fully open with two moving meshes');
+    await page.locator('#open').press('Home');await page.waitForFunction(()=>Number(document.querySelector('#open').value)===0);
+    await page.locator('[data-cam="fit"]').click();await page.screenshot({path:path.join(output,'box-clamshell-pip-closed.png')});
+    await page.locator('#open').press('End');await page.waitForFunction(()=>Number(document.querySelector('#open').value)===180);
+    passed.push('PIP hinge closes to zero and opens to 180 degrees');
+    for(const[key,value]of [['height_z',18],['pip_clearance',0.35],['hinge_separation',6]]){
+      n=await geometryCount(page);const control=page.locator(`input[type="number"][data-p="${key}"]`);await control.fill(String(value));await control.press('Tab');await waitGeometry(page,n,{[key]:value});
+    }
+    passed.push('Half height and PIP hinge controls regenerate the actual model');
+    const pipExportBefore=await page.evaluate(()=>window.__hostMessages.length);await clickAction(page,'3mf');
+    await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='action_result'&&m.ok===true),pipExportBefore,{timeout:180000});passed.push('PIP case exports as a preserved open assembly');
+    await page.locator('[data-cam="fit"]').click();await page.screenshot({path:path.join(output,'box-clamshell-pip-open.png')});
+    n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="clamshell_pip_deep"]').click();await waitGeometry(page,n,{style:'clamshell_pip',height_z:25});
+    passed.push('Deep PIP preset keeps equal halves');
+    n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="everyday"]').click();await waitGeometry(page,n,{style:'lip_snap'});
+    if(Number(await page.locator('#open').getAttribute('max'))!==100||!await page.locator('input[type="number"][data-p="lid_height"]').isVisible())throw Error('Normal lid controls did not return after PIP mode');
+    passed.push('Leaving PIP mode restores standard lid and percentage controls');
   }
 }
 async function nativeStyleChecks(page,slug,url,passed){

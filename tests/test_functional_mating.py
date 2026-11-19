@@ -165,76 +165,32 @@ class FunctionalMatingTests(unittest.TestCase):
                                                 f"Closed latch permanently intersects {other}")
 
     def test_snap_latch_clips_actually_retain_vertical_lid_motion(self):
+        import test_snap_lever_mating as lever
         for clearance in (0.1, 0.4):
             for retention in (0.2, 1.2):
                 with self.subTest(clearance=clearance, retention=retention):
                     p = normalize_params({"style": "snap_latch", "fit_clearance": clearance,
                                           "latch_retention": retention})
-                    lid, _, _ = build_part_field(p, "lid")
-                    top = p["height_z"] + clearance + p["lid_height"]
-                    for part, sign in (("clip_left", -1), ("clip_right", 1)):
-                        clip, _, _ = build_part_field(p, part)
-                        point = np.array([[sign * p["width_x"] * 0.24,
-                                           -p["depth_y"] / 2 + retention / 2, top - 0.001]])
-                        self.assertLess(float(lid(point)[0]), 0, "Witness must be real lid material")
-                        self.assertGreater(float(clip(point)[0]), 0, "Closed lid needs neutral clearance")
-                        moved = point + np.column_stack((np.zeros(161), np.zeros(161),
-                                                         np.linspace(0, 4, 161)))
-                        self.assertLess(float(clip(moved).min()), -0.02,
-                                        "A separately exported clip must actually stop the lid lifting")
+                    lever.assert_locked_retention(self, p)
 
     def test_snap_latch_detent_has_progressive_entry_ramp(self):
+        import test_snap_lever_mating as lever
         p = normalize_params({"style": "snap_latch"})
-        clip, _, _ = build_part_field(p, "clip_left")
-        front = -p["depth_y"] / 2
-        bottom = p["height_z"] - 7.2
-        lower = bottom - p["fit_clearance"]
-        ys = np.linspace(front - 2, front - 0.4, 161)
-        zs = np.linspace(lower - 0.01, bottom + p["latch_retention"] + 0.01, 165)
-        yy, zz = np.meshgrid(ys, zs, indexing="xy")
-        points = np.column_stack((np.full(yy.size, -p["width_x"] * 0.24),
-                                  yy.ravel(), zz.ravel()))
-        solid = (clip(points) < -1e-7).reshape(yy.shape)
-        profile = np.where(solid, zz, -np.inf).max(axis=0) - lower
-        height = p["latch_retention"] + p["fit_clearance"]
-        self.assertGreater(float(profile.max()), height * 0.9)
-        intermediate = profile[(profile > height * 0.2) & (profile < height * 0.8)]
-        self.assertGreaterEqual(len(np.unique(np.round(intermediate, 3))), 3,
-                                "Clip entry must progressively deflect across a ramp, not a square edge")
+        lever.assert_detent_ramp(self, p)
 
-    def test_snap_latch_clip_withdrawal_has_a_real_detent_barrier(self):
+    def test_snap_latch_rotates_with_only_the_intended_transient_cam_interference(self):
+        import test_snap_lever_mating as lever
         for clearance in (0.1, 0.4):
             with self.subTest(clearance=clearance):
                 p = normalize_params({"style": "snap_latch", "fit_clearance": clearance})
-                base, _, _ = build_part_field(p, "base")
-                lid, _, _ = build_part_field(p, "lid")
-                clip, bounds, _ = build_part_field(p, "clip_left")
-                points = solid_grid(clip, bounds, spacing=0.3)
-                self.assertGreater(len(points), 0)
-                def overlap_at(travel):
-                    moved = points - np.array([0, travel, 0])
-                    return min(float(base(moved).min()), float(lid(moved).min()))
-                self.assertGreaterEqual(overlap_at(0), -1e-5,
-                                        "Retention must not require permanent closed overlap")
-                # This is geometric evidence that release needs temporary flexure,
-                # not an estimate of release force or permissible material strain.
-                minimum = min(overlap_at(travel) for travel in np.linspace(0.05, 6, 80))
-                self.assertLess(minimum, -0.01,
-                                "Latch slides off freely instead of snapping across a detent")
-                self.assertGreater(overlap_at(12), 0.1,
-                                   "Latch must become separated after withdrawal")
+                lever.assert_operating_motion(self, p)
 
-    def test_snap_latch_lid_detaches_vertically_after_clips_removed(self):
+    def test_snap_latch_lid_detaches_while_open_levers_remain_attached(self):
+        import test_snap_lever_mating as lever
         for clearance in (0.1, 0.4):
             with self.subTest(clearance=clearance):
                 p = normalize_params({"style": "snap_latch", "fit_clearance": clearance})
-                base, _, _ = build_part_field(p, "base")
-                mesh = generate_box_mesh(p, "lid")
-                points = np.concatenate((mesh.vertices.astype(float),
-                                         mesh.vertices[mesh.triangles].astype(float).mean(axis=1)))
-                for travel in np.linspace(0, p["height_z"] + p["lid_wall_height"] + 5, 45):
-                    self.assertGreaterEqual(float(base(points + np.array([0, 0, travel])).min()), -1e-5,
-                                            "Removing the clips must permit the lid to lift")
+                lever.assert_open_lid_lift(self, p)
 
     def test_rugged_clips_have_no_permanent_closed_overlap(self):
         for clearance in (0.1, 0.2, 0.4):

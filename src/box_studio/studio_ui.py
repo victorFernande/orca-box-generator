@@ -1597,6 +1597,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                 ><button class="filter-chip" data-cat="open_bin" data-i18n="openBin">Caixa aberta</button
                 ><button class="filter-chip" data-cat="snap_latch" data-i18n="snapLatch">Travas</button
                 ><button class="filter-chip" data-cat="stackable_bin" data-i18n="stackableBin">Empilhável</button
+                ><button class="filter-chip" data-cat="clamshell_pip" data-i18n="clamshellPip">Articulado PIP</button
                 ><button
                   class="filter-chip"
                   data-cat="user"
@@ -1623,6 +1624,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                   <option value="open_bin" data-i18n="openBin">Caixa aberta</option>
                   <option value="snap_latch" data-i18n="snapLatch">Tampa com travas</option>
                   <option value="stackable_bin" data-i18n="stackableBin">Caixa empilhável</option>
+                  <option value="clamshell_pip" data-i18n="clamshellPip">Estojo articulado PIP</option>
                 </select></label
               >
               <div data-slider="width_x" class="ctrl-row">
@@ -1768,8 +1770,8 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
               <label class="ctrl-row"
                 ><span class="ctrl-label" data-i18n="quality">quality</span
                 ><select id="quality" class="vp-select box-select">
-                  <option value="standard">Standard</option>
-                  <option value="fine">Fine</option>
+                  <option value="standard" data-i18n="qualityStandard">Standard</option>
+                  <option value="fine" data-i18n="qualityFine">Fine</option>
                 </select></label
               >
               <p id="surface" class="helper-note"></p>
@@ -2191,6 +2193,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     <option value="print_in_place">Print-in-place</option>
                   </select></label
                 >
+              </div>
                 <div data-slider="hinge_pin_diameter" class="ctrl-row">
                   <label class="ctrl-top"
                     ><span
@@ -2217,7 +2220,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     step="0.2"
                   />
                 </div>
-              </div>
+
               <div class="screw">
                 <label class="ctrl-row"
                   ><span class="ctrl-label" data-i18n="screw">screw</span
@@ -2379,9 +2382,9 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
     <label class="ctrl-top"
       ><span
         class="ctrl-label"
-        data-pt="Espessura flexível"
-        data-en="Flexible arm thickness"
-        >Espessura flexível</span
+        data-pt="Espessura do fecho"
+        data-en="Latch body thickness"
+        >Espessura do fecho</span
       ><span class="ctrl-val-wrap"
         ><input
           class="ctrl-num"
@@ -2405,9 +2408,9 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
     <label class="ctrl-top"
       ><span
         class="ctrl-label"
-        data-pt="Retenção do gancho"
-        data-en="Hook retention"
-        >Retenção do gancho</span
+        data-pt="Engate do gancho"
+        data-en="Hook engagement"
+        >Engate do gancho</span
       ><span class="ctrl-val-wrap"
         ><input
           class="ctrl-num"
@@ -2427,9 +2430,37 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
       step="0.05"
     />
   </div>
+  <div data-slider="latch_pivot_diameter" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Diâmetro do pivô do fecho"
+        data-en="Latch pivot diameter"
+        >Diâmetro do pivô do fecho</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_pivot_diameter"
+          type="number"
+          min="2.4"
+          max="4"
+          step="0.1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_pivot_diameter"
+      type="range"
+      min="2.4"
+      max="4"
+      step="0.1"
+    />
+  </div>
   <p class="helper-note" data-i18n="twoLatches">
-    Tampa removível e duas travas separadas.
+    Duas travas articuladas na base, com pega e gancho. Solte as travas antes de
+    retirar a tampa.
   </p>
+  <p id="latch-motion-phase" class="helper-note" aria-live="polite" hidden></p>
 </div>
 <div data-slider="snap_retention" class="ctrl-row">
   <label class="ctrl-top"
@@ -2565,6 +2596,69 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
   <p class="helper-note" data-i18n="stackingFamily">
     A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as
     dimensões X/Y, cantos, paredes e encaixes iguais.
+  </p>
+</div>
+<div id="clamshell-pip-options" class="ctrl-row box-style-controls" hidden>
+  <div data-slider="pip_clearance" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Folga da dobradiça PIP"
+        data-en="PIP hinge clearance"
+        >Folga da dobradiça PIP</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="pip_clearance"
+          type="number"
+          min="0.2"
+          max="0.6"
+          step="0.05"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="pip_clearance"
+      type="range"
+      min="0.2"
+      max="0.6"
+      step="0.05"
+    />
+  </div>
+  <div data-slider="hinge_separation" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Afastamento da articulação"
+        data-en="Hinge separation"
+        >Afastamento da articulação</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="hinge_separation"
+          type="number"
+          min="4"
+          max="12"
+          step="0.5"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="hinge_separation"
+      type="range"
+      min="4"
+      max="12"
+      step="0.5"
+    />
+  </div>
+  <p id="clamshell-closed-height" class="helper-note"></p>
+  <p
+    id="clamshell-feature-warning"
+    class="helper-note warn"
+    data-i18n="clamshellFeatures"
+    hidden
+  >
+    Remova acessórios incompatíveis.
   </p>
 </div>
 <p id="pipNote" class="helper-note warn"></p>
@@ -2743,6 +2837,9 @@ const INITIAL = __BOX_CONTEXT__;
     localDirty = false,
     meshParams = clone(INITIAL.params),
     meshRevisionKey = null,
+    openingStyle = null,
+    lastInterfaceError = null,
+    statusTranslationKey = null,
     timer = null,
     playing = false,
     angle = 25,
@@ -2838,6 +2935,13 @@ const INITIAL = __BOX_CONTEXT__;
       openBin: "Caixa aberta",
       snapLatch: "Tampa com travas",
       stackableBin: "Caixa empilhável",
+      clamshellPip: "Estojo articulado PIP",
+      hingedAssembly: "Conjunto articulado",
+      equalHalfNote:
+        "Metades iguais · altura fechada: {height} mm. O conjunto é impresso aberto a 180°.",
+      clamshellPrintBounds: "Na mesa, aberto: {size} mm.",
+      clamshellFeatures:
+        "Remova torres, recortes, divisórias e TPU existentes para usar este estilo.",
       stackingFamily:
         "A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as dimensões X/Y, cantos, paredes e encaixes iguais.",
       connections: "Encaixes & alças",
@@ -2845,7 +2949,15 @@ const INITIAL = __BOX_CONTEXT__;
       handleFaces: "Par de faces",
       leftRight: "Esquerda / direita",
       frontBack: "Frente / trás",
-      twoLatches: "Tampa removível e duas travas separadas.",
+      twoLatches:
+        "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
+      releaseAndOpen: "Soltar fechos e abrir",
+      latchesEngaged: "Fechos presos · tampa fechada",
+      releasingLatches: "Soltando os fechos · tampa parada",
+      liftingLid: "Fechos abertos · afastando a tampa",
+      lidRemoved: "Fechos abertos · tampa afastada",
+      latchMotionUnavailable:
+        "Movimento dos fechos indisponível. Gere a prévia novamente.",
       width: "Largura X",
       depth: "Profundidade Y",
       height: "Altura da base Z",
@@ -2854,11 +2966,14 @@ const INITIAL = __BOX_CONTEXT__;
       floor: "Fundo",
       lid: "Espessura tampa",
       clearance: "Folga por lado",
+      hingeClearance: "Folga da dobradiça",
       lip: "Profundidade de encaixe",
       hinge: "Dobradiça",
       pin: "Diâmetro do pino",
       screw: "Parafuso de canto",
       quality: "Resolução da superfície",
+      qualityStandard: "Padrão",
+      qualityFine: "Fina",
       sealing: "Vedação TPU",
       enableGasket: "Canal perimetral e junta",
       gasketWidth: "Largura do canal",
@@ -2899,12 +3014,14 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Abrir pasta de exportação",
       printHelp:
         "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+      printHelpClamshell:
+        "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
       printHelpOpen:
         "Base com fundo na mesa e abertura para cima. Confira as paredes e as pontes das alças, quando ativadas, na prévia do fatiador.",
       printHelpStack:
         "Imprima com o pé apoiado na mesa e a frente aberta. A altura total inclui o pé. Teste o encaixe entre peças da mesma família antes de empilhar.",
       printHelpLatch:
-        "Conjunto: base, tampa e duas travas. Base com fundo na mesa; tampa invertida e travas apoiadas pela face larga. Teste o encaixe das peças impressas antes do uso.",
+        "Conjunto: base, tampa e duas travas. Imprima base e tampa pelas faces externas, e as travas em pé. Monte as travas nos pivôs da base; solte os ganchos antes de retirar a tampa. Teste o encaixe das peças impressas.",
       gesture: "Arraste para orbitar · roda para zoom",
       generating: "Gerando malha… você pode continuar editando.",
       ready: "Malha atualizada · pronta para inspecionar.",
@@ -2934,6 +3051,13 @@ const INITIAL = __BOX_CONTEXT__;
       openBin: "Open bin",
       snapLatch: "Latch lid",
       stackableBin: "Stackable bin",
+      clamshellPip: "PIP clamshell",
+      hingedAssembly: "Hinged assembly",
+      equalHalfNote:
+        "Equal halves · closed height: {height} mm. The assembly prints open at 180°.",
+      clamshellPrintBounds: "Open footprint on the bed: {size} mm.",
+      clamshellFeatures:
+        "Remove existing standoffs, cutouts, dividers and TPU features to use this style.",
       stackingFamily:
         "Total height includes the foot. To stack different heights, keep X/Y dimensions, corners, walls and mating features identical.",
       connections: "Connections & grips",
@@ -2941,7 +3065,15 @@ const INITIAL = __BOX_CONTEXT__;
       handleFaces: "Pair of faces",
       leftRight: "Left / right",
       frontBack: "Front / back",
-      twoLatches: "Removable lid and two separate latches.",
+      twoLatches:
+        "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
+      releaseAndOpen: "Release latches & open",
+      latchesEngaged: "Latches engaged · lid closed",
+      releasingLatches: "Releasing latches · lid stationary",
+      liftingLid: "Latches open · lifting the lid",
+      lidRemoved: "Latches open · lid removed",
+      latchMotionUnavailable:
+        "Latch motion unavailable. Regenerate the preview.",
       width: "Width X",
       depth: "Depth Y",
       height: "Base height Z",
@@ -2950,11 +3082,14 @@ const INITIAL = __BOX_CONTEXT__;
       floor: "Floor",
       lid: "Lid thickness",
       clearance: "Clearance per side",
+      hingeClearance: "Hinge clearance",
       lip: "Locating skirt depth",
       hinge: "Hinge",
       pin: "Pin diameter",
       screw: "Corner screw",
       quality: "Surface resolution",
+      qualityStandard: "Standard",
+      qualityFine: "Fine",
       sealing: "TPU gasket",
       enableGasket: "Perimeter channel and gasket",
       gasketWidth: "Channel width",
@@ -2995,12 +3130,14 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Open export folder",
       printHelp:
         "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
+      printHelpClamshell:
+        "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
       printHelpOpen:
         "Base floor down, opening upwards. Check the walls and the bridges above hand grips, when enabled, in the slicer preview.",
       printHelpStack:
         "Print with the foot on the bed and the front open. Total height includes the foot. Test the fit between bins of the same family before stacking.",
       printHelpLatch:
-        "Set: base, lid and two latches. Base floor down; lid inverted and latches on their broad side. Check the fit of the printed parts before use.",
+        "Set: base, lid and two latches. Print the shells on their outer faces and the latches upright. Fit the latches onto the base pivots; release the hooks before lifting the lid. Check the fit of the printed parts.",
       gesture: "Drag to orbit · wheel to zoom",
       generating: "Generating mesh… you can keep editing.",
       ready: "Mesh updated · ready to inspect.",
@@ -3034,7 +3171,8 @@ const INITIAL = __BOX_CONTEXT__;
     }
     return false;
   }
-  function status(s, error = false) {
+  function status(s, error = false, translationKey = null) {
+    statusTranslationKey = translationKey;
     $("status").textContent = s;
     $("status").classList.toggle("warn", error);
     const banner = $("toast-banner");
@@ -3065,12 +3203,67 @@ const INITIAL = __BOX_CONTEXT__;
       }),
   );
   function updatePrintHelp() {
-    const key = {
-      open_bin: "printHelpOpen",
-      stackable_bin: "printHelpStack",
-      snap_latch: "printHelpLatch",
-    }[p.style] || "printHelp";
+    const key =
+      {
+        open_bin: "printHelpOpen",
+        stackable_bin: "printHelpStack",
+        snap_latch: "printHelpLatch",
+        clamshell_pip: "printHelpClamshell",
+      }[p.style] || "printHelp";
     document.querySelector('[data-i18n="printHelp"]').textContent = tr(key);
+  }
+  function updateClamshellNote() {
+    let note = tr("equalHalfNote").replace(
+      "{height}",
+      (2 * Number(p.height_z) + Number(p.fit_clearance)).toFixed(2),
+    );
+    if (
+      !localDirty &&
+      meshParams.style === "clamshell_pip" &&
+      INITIAL.print_bounds?.size
+    ) {
+      note +=
+        " " +
+        tr("clamshellPrintBounds").replace(
+          "{size}",
+          INITIAL.print_bounds.size
+            .map((value) => Number(value).toFixed(1))
+            .join("×"),
+        );
+    }
+    $("clamshell-closed-height").textContent = note;
+  }
+  function updateClearanceLabels() {
+    const clamshell = p.style === "clamshell_pip";
+    const label = document.querySelector(
+      '[data-slider="fit_clearance"] .ctrl-label',
+    );
+    label.dataset.pt = clamshell ? "Folga entre metades Z" : "Folga por lado";
+    label.dataset.en = clamshell
+      ? "Gap between halves Z"
+      : "Clearance per side";
+    label.textContent = label.dataset[lang];
+    document.querySelector('[data-i18n="hud_mouth_hole"]').textContent = tr(
+      clamshell ? "hingeClearance" : "clearance",
+    );
+    $("hud-clearance").textContent =
+      Number(clamshell ? p.pip_clearance : p.fit_clearance).toFixed(2) + " mm";
+  }
+  function updateOpeningCaption() {
+    document.querySelector('[data-i18n="open"]').textContent = tr(
+      p.style === "snap_latch" ? "releaseAndOpen" : "open",
+    );
+  }
+  function updatePreviewText() {
+    if (Number.isFinite(lastInterfaceError)) {
+      $("surface").textContent =
+        (lang === "pt" ? "Alvo de erro nas interfaces curvas ≤ " : "Curved interface chord-error target ≤ ") +
+        lastInterfaceError.toFixed(3) + " mm";
+    }
+    if (statusTranslationKey === "ready") {
+      $("status").textContent = tr("ready");
+      $("toast-banner").textContent = tr("ready");
+    }
   }
   function translate() {
     p.theme = theme;
@@ -3085,7 +3278,11 @@ const INITIAL = __BOX_CONTEXT__;
     document
       .querySelectorAll("[data-pt]")
       .forEach((e) => (e.textContent = e.dataset[lang]));
+    updatePreviewText();
+    updateClearanceLabels();
+    updateOpeningCaption();
     updatePrintHelp();
+    updateClamshellNote();
     const names = {
       base_and_lid: tr("both"),
       base_only: tr("baseOnly"),
@@ -3119,42 +3316,91 @@ const INITIAL = __BOX_CONTEXT__;
     requestPreview();
   }
   function sync() {
+    updateClearanceLabels();
+    updateOpeningCaption();
     updatePrintHelp();
     const openBin = p.style === "open_bin";
     const lidless = openBin || p.style === "stackable_bin";
-    const heightLabel = document.querySelector('[data-slider="height_z"] .ctrl-label');
-    heightLabel.dataset.pt = p.style === "stackable_bin" ? "Altura total Z" : "Altura Z";
-    heightLabel.dataset.en = p.style === "stackable_bin" ? "Total height Z" : "Height Z";
+    const heightLabel = document.querySelector(
+      '[data-slider="height_z"] .ctrl-label',
+    );
+    heightLabel.dataset.pt =
+      p.style === "clamshell_pip"
+        ? "Altura de cada metade Z"
+        : p.style === "stackable_bin"
+          ? "Altura total Z"
+          : "Altura Z";
+    heightLabel.dataset.en =
+      p.style === "clamshell_pip"
+        ? "Height of each half Z"
+        : p.style === "stackable_bin"
+          ? "Total height Z"
+          : "Height Z";
     heightLabel.textContent = heightLabel.dataset[lang];
     document.querySelector('[data-slider="snap_retention"]').style.display =
       p.style === "lip_snap" ? "grid" : "none";
     $("open-bin-handles").hidden = !openBin;
     $("snap-latch-options").hidden = p.style !== "snap_latch";
     $("stackable-bin-options").hidden = p.style !== "stackable_bin";
-    $("open").disabled = lidless;
-    $("play").disabled = lidless;
+    const clamshell = p.style === "clamshell_pip";
+    $("clamshell-pip-options").hidden = !clamshell;
+    updateClamshellNote();
+    $("clamshell-feature-warning").hidden =
+      !clamshell ||
+      !(
+        ["standoffs", "cutouts", "dividers_x", "dividers_y"].some(
+          (key) => p[key]?.length,
+        ) || p.gasket_enabled
+      );
+    $("addPost").disabled = clamshell;
+    $("addPort").disabled = clamshell;
+    const diameterRow = document.querySelector(
+      '[data-slider="hinge_pin_diameter"]',
+    );
+    diameterRow.style.display = ["rugged_box", "clamshell_pip"].includes(
+      p.style,
+    )
+      ? "grid"
+      : "none";
+    const diameterLabel = diameterRow.querySelector(".ctrl-label");
+    diameterLabel.dataset.pt = clamshell
+      ? "Diâmetro do eixo integral"
+      : "Diâmetro do pino";
+    diameterLabel.dataset.en = clamshell
+      ? "Integral axle diameter"
+      : "Pin diameter";
+    diameterLabel.textContent = diameterLabel.dataset[lang];
+    $("open").disabled = lidless || INITIAL.preview_mode === "calibration";
+    $("play").disabled = lidless || INITIAL.preview_mode === "calibration";
     for (const key of ["lid_height", "lip_depth", "fit_clearance"]) {
       const row = document.querySelector('[data-slider="' + key + '"]');
       row.style.display =
         lidless ||
         (p.style === "sliding_lid" && key !== "fit_clearance") ||
-        (p.style === "snap_latch" && key === "lip_depth")
+        (p.style === "snap_latch" && key === "lip_depth") ||
+        (p.style === "clamshell_pip" && key !== "fit_clearance")
           ? "none"
           : "grid";
     }
-    $("gasket_enabled").closest(".switch-row").style.display = lidless
-      ? "none"
-      : "flex";
+    $("gasket_enabled").closest(".switch-row").style.display =
+      lidless || (clamshell && !p.gasket_enabled) ? "none" : "flex";
     for (const key of ["gasket_width", "gasket_depth"])
       document.querySelector('[data-slider="' + key + '"]').style.display =
-        lidless ? "none" : "grid";
+        lidless || p.style === "clamshell_pip" ? "none" : "grid";
     for (const option of $("target").options) {
       option.disabled =
         (lidless &&
           ["lid_only", "gasket", "fit_test_kit"].includes(option.value)) ||
-        (p.style === "snap_latch" && option.value === "fit_test_kit");
+        (p.style === "snap_latch" && option.value === "fit_test_kit") ||
+        (p.style === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(option.value));
       if (option.value === "base_and_lid")
-        option.textContent = lidless ? tr("baseOnly") : tr("both");
+        option.textContent =
+          p.style === "clamshell_pip"
+            ? tr("hingedAssembly")
+            : lidless
+              ? tr("baseOnly")
+              : tr("both");
     }
     $("name").value = p.name;
     document
@@ -3221,7 +3467,9 @@ const INITIAL = __BOX_CONTEXT__;
       key === "style" &&
       ((["open_bin", "stackable_bin"].includes(value) &&
         ["lid_only", "gasket", "fit_test_kit"].includes(p.export_target)) ||
-        (value === "snap_latch" && p.export_target === "fit_test_kit"))
+        (value === "snap_latch" && p.export_target === "fit_test_kit") ||
+        (value === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(p.export_target)))
     )
       p.export_target = "base_and_lid";
     sync();
@@ -3728,12 +3976,30 @@ const INITIAL = __BOX_CONTEXT__;
         status(m.message, true);
         return;
       }
+      if (
+        m.params?.style === "snap_latch" &&
+        (!m.latch_motion?.clip_left || !m.latch_motion?.clip_right)
+      ) {
+        status(tr("latchMotionUnavailable"), true);
+        return;
+      }
+      if (m.params?.style === "snap_latch") {
+        try {
+          for (const part of ["clip_left", "clip_right", "lid"])
+            snapLatchTransform(part, 0, m.latch_motion);
+        } catch (_) {
+          status(tr("latchMotionUnavailable"), true);
+          return;
+        }
+      }
       localDirty = false;
       p = clone(m.params);
       p.lang = lang;
       p.theme = theme;
       meshParams = clone(m.params);
       INITIAL.hinge = m.hinge;
+      INITIAL.print_bounds = m.print_bounds || null;
+      INITIAL.latch_motion = m.latch_motion || null;
       INITIAL.preview_mode = m.preview_mode || "assembly";
       if (!m.geometry_key || m.geometry_key !== meshRevisionKey) {
         loadMeshes(m.meshes);
@@ -3743,14 +4009,9 @@ const INITIAL = __BOX_CONTEXT__;
       $("triangles").textContent =
         (m.meshes.reduce((s, x) => s + x.triangle_count, 0) / 1000).toFixed(0) +
         "k";
-      const err = Math.max(...m.meshes.map((x) => x.interface_error_mm));
-      $("surface").textContent =
-        (lang === "pt"
-          ? "Alvo de erro nas interfaces curvas ≤ "
-          : "Curved interface chord-error target ≤ ") +
-        err.toFixed(3) +
-        " mm";
-      status(tr("ready"));
+      lastInterfaceError = Math.max(...m.meshes.map((x) => x.interface_error_mm));
+      updatePreviewText();
+      status(tr("ready"), false, "ready");
       sync();
       return;
     }
@@ -4164,17 +4425,94 @@ const INITIAL = __BOX_CONTEXT__;
   function dot(a, b) {
     return a.reduce((s, x, i) => s + x * b[i], 0);
   }
-  function partTransform(
-    part,
-    opening = Number($("open").value) / 100,
-    offset = null,
-  ) {
+  function openingFraction(value = Number($("open").value)) {
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    return value / (shape.style === "clamshell_pip" ? 180 : 100);
+  }
+  function openingLabel() {
+    const suffix = meshParams.style === "clamshell_pip" ? "°" : "%";
+    $("openValue").textContent = Math.round(Number($("open").value)) + suffix;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+  }
+  function configureOpening() {
+    const nextStyle = meshParams.style;
+    const isClamshell = nextStyle === "clamshell_pip";
+    $("open").max = isClamshell ? "180" : "100";
+    if (isClamshell && openingStyle !== nextStyle) $("open").value = "180";
+    else if (nextStyle === "snap_latch" && openingStyle !== nextStyle)
+      $("open").value = "0";
+    else if (
+      !isClamshell &&
+      nextStyle !== "snap_latch" &&
+      ["clamshell_pip", "snap_latch"].includes(openingStyle)
+    )
+      $("open").value = "25";
+    openingStyle = nextStyle;
+    openingLabel();
+  }
+  function snapLatchTransform(part, opening, motion) {
+    if (part !== "lid" && !part.startsWith("clip")) return I();
+    const left = motion?.clip_left;
+    const right = motion?.clip_right;
+    if (!left || !right) throw Error("Missing latch motion metadata");
+    for (const info of [left, right]) {
+      if (!info.pivot || ![info.pivot.x, info.pivot.y, info.pivot.z, info.release_fraction, info.release_angle, info.lid_lift_mm].every(Number.isFinite) || info.release_fraction <= 0 || info.release_fraction >= 1 || info.release_angle <= 0 || info.lid_lift_mm <= 0)
+        throw Error("Invalid latch motion metadata");
+    }
+    const phase = Math.max(0, Math.min(1, opening));
+    const releaseFraction = Math.max(
+      left.release_fraction,
+      right.release_fraction,
+    );
+    if (part === "lid") {
+      const liftPhase = Math.max(
+        0,
+        Math.min(1, (phase - releaseFraction) / (1 - releaseFraction)),
+      );
+      return translateM(0, 0, liftPhase * left.lid_lift_mm);
+    }
+    const info = motion[part];
+    if (!info) throw Error("Unknown latch part: " + part);
+    const angle =
+      (Math.min(1, phase / info.release_fraction) *
+        info.release_angle *
+        Math.PI) /
+      180;
+    const pivot = info.pivot;
+    return mult(
+      translateM(pivot.x, pivot.y, pivot.z),
+      mult(rotateX(angle), translateM(-pivot.x, -pivot.y, -pivot.z)),
+    );
+  }
+  function updateLatchMotionStatus() {
+    const label = $("latch-motion-phase");
+    const info = INITIAL.latch_motion?.clip_left;
+    label.hidden = !info;
+    if (!info) return;
+    const phase = openingFraction();
+    const key =
+      phase <= 0
+        ? "latchesEngaged"
+        : phase < info.release_fraction
+          ? "releasingLatches"
+          : phase < 1
+            ? "liftingLid"
+            : "lidRemoved";
+    const message = tr(key);
+    if (label.textContent !== message) label.textContent = message;
+  }
+  function partTransform(part, opening = openingFraction(), offset = null) {
     const shape = typeof meshParams === "undefined" ? p : meshParams;
     const frame = translateM(...(offset || [0, 0, 0]));
     if (INITIAL.preview_mode === "calibration") return frame;
+    if (shape.style === "snap_latch")
+      return mult(
+        frame,
+        snapLatchTransform(part, opening, INITIAL.latch_motion),
+      );
     let model = I();
     if (part === "lid") {
-      if (shape.style === "rugged_box") {
+      if (shape.style === "rugged_box" || shape.style === "clamshell_pip") {
         const h = INITIAL.hinge || {
           y: shape.depth_y / 2 + 5,
           z: shape.height_z - 4,
@@ -4187,7 +4525,7 @@ const INITIAL = __BOX_CONTEXT__;
         model = translateM(0, -opening * (shape.depth_y + 10), 0);
       else model = translateM(0, 0, opening * 50);
     }
-    if (part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
+    if (shape.style === "rugged_box" && part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
     return mult(frame, model);
   }
   function transformPoint(m, x, y, z) {
@@ -4197,7 +4535,7 @@ const INITIAL = __BOX_CONTEXT__;
       m[2] * x + m[6] * y + m[10] * z + m[14],
     ];
   }
-  function sceneBounds(opening = Number($("open").value) / 100) {
+  function sceneBounds(opening = openingFraction()) {
     if (!meshes.length) return null;
     const lo = [Infinity, Infinity, Infinity],
       hi = [-Infinity, -Infinity, -Infinity];
@@ -4295,6 +4633,7 @@ const INITIAL = __BOX_CONTEXT__;
     return new ctor(a.buffer);
   }
   function loadMeshes(items) {
+    configureOpening();
     const calibration = INITIAL.preview_mode === "calibration";
     $("open").disabled =
       calibration || ["open_bin", "stackable_bin"].includes(meshParams.style);
@@ -4412,13 +4751,23 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updateHud(b) {
     if (!b) return;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
     const h = currentPrinter(),
+      printSize =
+        meshParams.style === "clamshell_pip" && INITIAL.print_bounds?.size
+          ? INITIAL.print_bounds.size
+          : b.size,
       fits =
-        b.size[0] <= h.bed_x && b.size[1] <= h.bed_y && b.size[2] <= h.max_z;
+        printSize[0] <= h.bed_x &&
+        printSize[1] <= h.bed_y &&
+        printSize[2] <= h.max_z;
     $("hud-dims").textContent = b.size.map((x) => x.toFixed(1)).join("×");
     $("hud-wall-floor").textContent =
       `${p.wall_thickness.toFixed(1)} / ${p.floor_thickness.toFixed(1)} mm`;
-    $("hud-clearance").textContent = p.fit_clearance.toFixed(2) + " mm";
+    $("hud-clearance").textContent =
+      Number(
+        p.style === "clamshell_pip" ? p.pip_clearance : p.fit_clearance,
+      ).toFixed(2) + " mm";
     $("hud-overhang").textContent =
       Math.max(0, ...meshes.map((m) => m.maxOverhang)).toFixed(1) + "°";
     $("hud-status-pill").textContent = fits ? "OK" : "⚠";
@@ -4466,11 +4815,7 @@ const INITIAL = __BOX_CONTEXT__;
       MATERIAL_PRESETS[$("xray").checked ? "xray" : material] ||
       MATERIAL_PRESETS.emerald_silk;
     for (const m of meshes) {
-      const model = partTransform(
-        m.part,
-        Number($("open").value) / 100,
-        m.preview_offset,
-      );
+      const model = partTransform(m.part, openingFraction(), m.preview_offset);
       gl.useProgram(program);
       gl.uniformMatrix4fv(
         gl.getUniformLocation(program, "u_mvp"),
@@ -4743,7 +5088,7 @@ const INITIAL = __BOX_CONTEXT__;
     render();
   };
   $("open").oninput = () => {
-    $("openValue").textContent = $("open").value + "%";
+    openingLabel();
     render();
   };
   $("xray").onchange = render;
@@ -4755,8 +5100,9 @@ const INITIAL = __BOX_CONTEXT__;
   };
   function tick(t) {
     if (!playing) return;
-    $("open").value = 50 - 50 * Math.cos(t * 0.0007);
-    $("openValue").textContent = Math.round($("open").value) + "%";
+    const extent = Number($("open").max) || 100;
+    $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+    openingLabel();
     render();
     requestAnimationFrame(tick);
   }
@@ -4873,6 +5219,12 @@ const INITIAL = __BOX_CONTEXT__;
     presets();
   }
   function presetThumb(params) {
+    if (params.style === "clamshell_pip") {
+      const shell = (x, y) =>
+        `<path d="M${x} ${y}l16 -8h44l-16 8Z" fill="#00a896" fill-opacity=".55" stroke="#80ffea"/><path d="M${x} ${y}v14h44v-14M${x + 44} ${y}l16 -8v14l-16 8" fill="#00796b" fill-opacity=".45" stroke="#55cfbb"/>`;
+      return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true">${shell(43, 24)}<path d="M37 44l17 -8M65 44l17 -8" stroke="#ffcf77" stroke-width="3"/>${shell(12, 51)}</svg>`;
+    }
+
     const w = params.width_x || 90,
       d = params.depth_y || 65,
       h = params.height_z || 35,
@@ -4885,23 +5237,29 @@ const INITIAL = __BOX_CONTEXT__;
     const lid = ["open_bin", "stackable_bin"].includes(params.style)
       ? ""
       : `<path d="M${ox} ${oy - 8}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#26363e" stroke="#ffcf77"/>`;
-    const accessWidth = Math.min(ww * .85, (params.front_access_width || w * .6) * sx);
-    const accessDrop = Math.min(hh * .8, (params.front_access_drop || h * .35) * sx);
+    const accessWidth = Math.min(
+      ww * 0.85,
+      (params.front_access_width || w * 0.6) * sx,
+    );
+    const accessDrop = Math.min(
+      hh * 0.8,
+      (params.front_access_drop || h * 0.35) * sx,
+    );
     const details =
       params.style === "stackable_bin"
         ? `<path d="M${ox + (ww - accessWidth) / 2} ${oy - 1}v${accessDrop}h${accessWidth}v${-accessDrop}Z" fill="#172126" stroke="#80ffea"/><path d="M${ox + 2} ${oy + hh - 2}h${ww - 4}" stroke="#80ffea"/>`
         : params.style === "open_bin" && params.handles_enabled
-        ? params.handle_faces === "front_back"
-          ? `<rect x="${ox + ww * 0.28}" y="${oy + hh * 0.3}" width="${ww * 0.44}" height="5" rx="2.5" fill="#172126" stroke="#80ffea"/>`
-          : `<path d="M${ox + ww + dd * 0.2} ${oy + hh * 0.25 - dd * 0.1}l${dd * 0.6} ${-dd * 0.3}v5l${-dd * 0.6} ${dd * 0.3}Z" fill="#172126" stroke="#80ffea"/>`
-        : params.style === "snap_latch"
-          ? [0.2, 0.7]
-              .map(
-                (x) =>
-                  `<rect x="${ox + ww * x}" y="${oy - 5}" width="${ww * 0.1}" height="12" rx="1" fill="#ffb74d" stroke="#ffe0a3"/>`,
-              )
-              .join("")
-          : "";
+          ? params.handle_faces === "front_back"
+            ? `<rect x="${ox + ww * 0.28}" y="${oy + hh * 0.3}" width="${ww * 0.44}" height="5" rx="2.5" fill="#172126" stroke="#80ffea"/>`
+            : `<path d="M${ox + ww + dd * 0.2} ${oy + hh * 0.25 - dd * 0.1}l${dd * 0.6} ${-dd * 0.3}v5l${-dd * 0.6} ${dd * 0.3}Z" fill="#172126" stroke="#80ffea"/>`
+          : params.style === "snap_latch"
+            ? [0.2, 0.7]
+                .map(
+                  (x) =>
+                    `<rect x="${ox + ww * x}" y="${oy - 5}" width="${ww * 0.1}" height="12" rx="1" fill="#ffb74d" stroke="#ffe0a3"/>`,
+                )
+                .join("")
+            : "";
     return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true"><path d="M${ox} ${oy}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#00a896" fill-opacity=".6" stroke="#80ffea"/><path d="M${ox} ${oy}v${hh}h${ww}v${-hh}M${ox + ww} ${oy}l${dd} ${-dd * 0.5}v${hh}l${-dd} ${dd * 0.5}" fill="#00796b" fill-opacity=".4" stroke="#55cfbb"/>${lid}${details}</svg>`;
   }
   function presets() {
@@ -5162,8 +5520,9 @@ const INITIAL = __BOX_CONTEXT__;
     const dt = lastAnimationTime ? Math.min(t - lastAnimationTime, 50) : 16;
     lastAnimationTime = t;
     if (playing) {
-      $("open").value = 50 - 50 * Math.cos(t * 0.0007);
-      $("openValue").textContent = Math.round($("open").value) + "%";
+      const extent = Number($("open").max) || 100;
+      $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+      openingLabel();
     }
     if (spin) yaw += dt * 0.00025;
     render();
@@ -5210,6 +5569,7 @@ const INITIAL = __BOX_CONTEXT__;
     const injectedTheme = detectInjectedOrcaTheme();
     if (injectedTheme) theme = injectedTheme;
   }
+  configureOpening();
   try {
     initializeGL();
   } catch (e) {

@@ -135,8 +135,10 @@ class CanonicalCacheTests(unittest.TestCase):
         self.assertIs(controller._cached_geometry("retry", lambda: mesh), mesh)
         self.assertFalse(controller._inflight_geometry)
 
-    def test_fifteen_presets_keep_the_originals_and_add_three_storage_styles(self):
-        self.assertEqual(len(BUILTIN_PRESETS), 15)
+    def test_seventeen_presets_keep_the_originals_and_add_storage_and_clamshell_styles(
+        self,
+    ):
+        self.assertEqual(len(BUILTIN_PRESETS), 17)
         self.assertEqual(
             [item["id"] for item in BUILTIN_PRESETS[:12]],
             [
@@ -155,14 +157,24 @@ class CanonicalCacheTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            [item["params"]["style"] for item in BUILTIN_PRESETS[-3:]],
-            ["open_bin", "snap_latch", "stackable_bin"],
+            [item["params"]["style"] for item in BUILTIN_PRESETS[12:]],
+            [
+                "open_bin",
+                "snap_latch",
+                "stackable_bin",
+                "clamshell_pip",
+                "clamshell_pip",
+            ],
         )
-        for item in BUILTIN_PRESETS[-3:]:
+        for item in BUILTIN_PRESETS[12:]:
             self.assertEqual(validate_params(item["params"]), [])
 
     def test_stackable_surprise_preserves_the_mating_family(self):
-        original = BUILTIN_PRESETS[-1]["params"]
+        original = next(
+            item["params"]
+            for item in BUILTIN_PRESETS
+            if item["id"] == "stackable_parts_bin"
+        )
         self.assertEqual(original["style"], "stackable_bin")
         family = (
             "width_x",
@@ -188,7 +200,11 @@ class CanonicalCacheTests(unittest.TestCase):
             self.assertEqual(candidate[key], original[key], key)
 
     def test_stackable_preview_and_print_share_one_real_base(self):
-        params = BUILTIN_PRESETS[-1]["params"]
+        params = next(
+            item["params"]
+            for item in BUILTIN_PRESETS
+            if item["id"] == "stackable_parts_bin"
+        )
         controller = bridge.BoxStudioController()
         with (
             patch.object(
@@ -228,11 +244,12 @@ class LocalEditTests(unittest.TestCase):
         setup = "let lang='pt',p={style:'open_bin'};const label={};const document={querySelector:()=>label};"
         checks = """
         for(lang of ['pt','en']) {
-          for(p.style of ['open_bin','stackable_bin','snap_latch']) {
+          for(p.style of ['open_bin','stackable_bin','snap_latch','clamshell_pip']) {
             updatePrintHelp();
             if(/kit/i.test(label.textContent))throw Error('unavailable kit advice: '+p.style);
             if(p.style==='stackable_bin'&&!/pé|foot/.test(label.textContent))throw Error('stacking foot omitted');
             if(p.style==='snap_latch'&&!/duas travas|two latches/.test(label.textContent))throw Error('latches omitted');
+            if(p.style==='clamshell_pip'&&(!/180°/.test(label.textContent)||/kit/i.test(label.textContent)))throw Error('clamshell open assembly advice missing');
           }
           p.style='lip_snap';updatePrintHelp();
           if(!/kit/i.test(label.textContent))throw Error('original fit kit advice missing');
@@ -278,7 +295,8 @@ class LocalEditTests(unittest.TestCase):
         setup = """
         const p={style:'rugged_box',height_z:90,depth_y:120};
         const meshParams={style:'snap_latch',height_z:40,depth_y:80};
-        const INITIAL={preview_mode:'assembly',hinge:{y:65,z:86}};
+        const latch={pivot:{x:0,y:-45,z:20},release_angle:90,release_fraction:.35,lid_lift_mm:50};
+        const INITIAL={preview_mode:'assembly',hinge:{y:65,z:86},latch_motion:{clip_left:latch,clip_right:latch}};
         const $=()=>({value:'100'}),meshes=[];let zoom=1,yaw=0,pitch=.5;
         """
         check = """
@@ -300,9 +318,10 @@ class LocalEditTests(unittest.TestCase):
         setup = """
         let p={style:'open_bin',name:'Box',dividers_x:[],dividers_y:[]},lang='pt';
         const rows={},nodes={target:{options:['base_and_lid','base_only','lid_only','gasket','fit_test_kit','full_suite'].map(value=>({value}))}};
-        const $=id=>nodes[id]||(nodes[id]={style:{},options:[],closest:()=>({style:{}})});
-        const document={querySelector:selector=>rows[selector]||(rows[selector]={style:{},dataset:{}}),querySelectorAll:()=>[]};
+        const $=id=>nodes[id]||(nodes[id]={style:{},options:[],closest(){return this.container||(this.container={style:{}})}});
+        const document={querySelector:selector=>rows[selector]||(rows[selector]={style:{},dataset:{},querySelector(){return this.label||(this.label={dataset:{}})}}),querySelectorAll:()=>[]};
         const tr=x=>x;function syncPresetSelection(){}function features(){}
+        const INITIAL={},meshParams={style:'open_bin'},localDirty=false;
         function drawPlan(){}function buttons(){}function render(){}
         """
         checks = """
@@ -322,9 +341,20 @@ class LocalEditTests(unittest.TestCase):
         if($('stackable-bin-options').hidden||!$('open-bin-handles').hidden||!$('snap-latch-options').hidden)throw Error('incorrect stacking controls');
         if(row('lid_height')!=='none'||row('lip_depth')!=='none'||row('fit_clearance')!=='none'||!$('open').disabled||!$('play').disabled)throw Error('stackable bin offers lid controls');
         for(const option of $('target').options)if(['lid_only','gasket','fit_test_kit'].includes(option.value)&&!option.disabled)throw Error('unsupported stackable target enabled');
+        p.style='clamshell_pip';p.height_z=14;p.fit_clearance=.2;sync();
+        if($('clamshell-pip-options').hidden||row('lid_height')!=='none'||row('lip_depth')!=='none'||row('fit_clearance')!=='grid')throw Error('clamshell controls incorrect');
+        if(rows['[data-slider="height_z"] .ctrl-label'].textContent!=='Height of each half Z')throw Error('clamshell half-height not explained');
+        if(!$('addPost').disabled||!$('addPort').disabled)throw Error('unsupported features enabled');
+        for(const option of $('target').options)if(!['base_and_lid','full_suite'].includes(option.value)&&!option.disabled)throw Error('clamshell can export detached halves');
+        p.gasket_enabled=true;p.standoffs=[{}];sync();
+        if($('gasket_enabled').closest().style.display!=='flex'||$('clamshell-feature-warning').hidden)throw Error('incompatible resources cannot be removed');
+        p.gasket_enabled=false;p.standoffs=[];sync();
+        if($('gasket_enabled').closest().style.display!=='none'||!$('clamshell-feature-warning').hidden)throw Error('unsupported resource controls remain');
         p.style='lip_snap';sync();if(row('lid_height')!=='grid'||row('snap_retention')!=='grid')throw Error('lip controls not restored');
         if(rows['[data-i18n="printHelp"]'].textContent!=='printHelp')throw Error('original print help not restored');
         if($('open').disabled||$('play').disabled||$('target').options.some(option=>option.disabled))throw Error('lid controls not restored');
+        INITIAL.preview_mode='calibration';sync();
+        if(!$('open').disabled||!$('play').disabled)throw Error('sync reenabled kit opening animation');
         """
         self.run_js(setup + help_script + sync + checks)
 

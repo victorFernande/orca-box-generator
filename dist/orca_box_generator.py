@@ -60,6 +60,7 @@ VALID_STYLES = (
     "open_bin",
     "snap_latch",
     "stackable_bin",
+    "clamshell_pip",
 )
 VALID_EXPORT_TARGETS = (
     "base_and_lid",
@@ -91,11 +92,14 @@ DEFAULT_PARAMS: dict[str, Any] = {
     "latch_width": 18.0,
     "latch_thickness": 2.0,
     "latch_retention": 0.6,
+    "latch_pivot_diameter": 3.0,
     "lid_wall_height": 8.0,
     "stack_foot_height": 2.0,
     "stack_clearance": 0.25,
     "front_access_width": 60.0,
     "front_access_drop": 14.0,
+    "pip_clearance": 0.30,
+    "hinge_separation": 5.0,
     "hinge_mode": "pin",
     "hinge_pin_diameter": 3.0,
     "screw_size": "M3",
@@ -159,11 +163,14 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
         ("latch_width", 8, 30),
         ("latch_thickness", 1.2, 4),
         ("latch_retention", 0.2, 1.2),
+        ("latch_pivot_diameter", 2.4, 4.0),
         ("lid_wall_height", 3, 25),
         ("stack_foot_height", 1, 5),
         ("stack_clearance", 0.1, 0.8),
         ("front_access_width", 12, 300),
         ("front_access_drop", 4, 150),
+        ("pip_clearance", 0.20, 0.60),
+        ("hinge_separation", 4, 12),
         ("hinge_pin_diameter", 2, 6),
         ("screw_diameter", 2, 3),
         ("gasket_width", 0.6, 2),
@@ -263,6 +270,37 @@ def validate_params(p: dict[str, Any]) -> list[str]:
         for k in ("width_x", "depth_y", "height_z", "wall_thickness", "floor_thickness")
     )
     keepout = t + p["corner_radius"] + 1
+    if p["style"] == "clamshell_pip":
+        outer_radius = p["hinge_pin_diameter"] / 2 + p["pip_clearance"] + 1.4
+        knuckle = max(4.0, min(6.0, w * 0.06))
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.26 + 1.5 * knuckle + 2 * p["pip_clearance"] + 1.2 > tangent - 1.2:
+            errors.append(
+                "Dobradiças: aumente a largura ou reduza o raio dos cantos / increase width or reduce corner radius for both hinges."
+            )
+        if p["hinge_separation"] < outer_radius + 0.8:
+            errors.append(
+                "Dobradiças: aumente a separação para preservar a rotação / increase hinge separation for the barrel radius."
+            )
+        if h + p["fit_clearance"] / 2 - 0.7 * outer_radius < f + 1.2:
+            errors.append(
+                "Dobradiças: aumente a altura de cada metade / increase the height of each half."
+            )
+        if any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            errors.append(
+                "Estojo articulado: torres, recortes, divisórias e TPU ainda não são compatíveis / articulated case does not yet support posts, ports, dividers or TPU."
+            )
     if p["style"] == "stackable_bin":
         f += p["stack_foot_height"]
         if p["front_access_width"] > w - 2 * (p["corner_radius"] + 2 * t):
@@ -298,13 +336,26 @@ def validate_params(p: dict[str, Any]) -> list[str]:
                 "Alças: preserve a espessura da borda superior / preserve the top rim thickness."
             )
     if p["style"] == "snap_latch":
-        if p["latch_width"] + 2 * (p["corner_radius"] + 1.2) > w * 0.52:
+        c = p["fit_clearance"]
+        pr = p["latch_pivot_diameter"] / 2
+        outer = pr + 2 * c + 0.15 + 1.2
+        offset = pr + c + 0.4
+        ear = max(1.6, p["latch_thickness"])
+        frame = p["latch_width"] / 2 + c + ear
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.24 + frame > tangent - 1.2 or w * 0.48 < 2 * frame + 1.2:
             errors.append(
-                "Travas: reduza a largura ou aumente a caixa / reduce latch width or enlarge the box."
+                "Travas: preserve espaço para as orelhas dos pivôs / increase box width or reduce latch width for the pivot ears."
             )
-        if h < 16 or t < 1.2:
+        if h - 7.5 - outer - offset < f + 1.2:
             errors.append(
-                "Travas: altura mínima 16 mm / snap latches require at least 16 mm height."
+                "Travas: aumente a altura para apoiar os pivôs / increase height to support the latch pivots."
+            )
+        if t < outer - offset + 0.8:
+            errors.append(
+                "Travas: aumente a parede atrás dos pivôs / increase wall thickness behind the latch sockets."
             )
         if p["lid_wall_height"] > h - f - 1.2:
             errors.append(
@@ -364,6 +415,8 @@ def validate_params(p: dict[str, Any]) -> list[str]:
             - (
                 p["stack_foot_height"]
                 if p["style"] == "stackable_bin"
+                else p["lid_wall_height"]
+                if p["style"] == "snap_latch"
                 else p["lip_depth"]
             )
             - 2
@@ -384,15 +437,21 @@ def validate_params(p: dict[str, Any]) -> list[str]:
             half = (
                 3
                 if p["style"] == "rugged_box"
-                else p["latch_width"] / 2 - p["fit_clearance"]
+                else p["latch_width"] / 2
+                + p["fit_clearance"]
+                + max(1.6, p["latch_thickness"])
             )
-            top = (
-                h - 5.5
+            top = h - 5.5 if p["style"] == "rugged_box" else h
+            root = (
+                h - 7.2
                 if p["style"] == "rugged_box"
-                else h - 7.2 + p["latch_retention"] + p["fit_clearance"] + 1.2
+                else h
+                - 7.5
+                - (p["latch_pivot_diameter"] / 2 + 2 * p["fit_clearance"] + 0.15 + 1.2)
+                - (p["latch_pivot_diameter"] / 2 + p["fit_clearance"] + 0.4)
             )
             if (
-                c["z"] + c["height"] / 2 > h - 7.2 - 1.2
+                c["z"] + c["height"] / 2 > root - 1.2
                 and c["z"] - c["height"] / 2 < top + 1.2
                 and any(
                     abs(c["u"] - cx) < c["width"] / 2 + half + 1.2
@@ -668,7 +727,17 @@ def _corner_centers(p: dict[str, Any]) -> list[tuple[float, float]]:
     ]
 
 
-def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
+def hinge_geometry(p: dict[str, Any]) -> dict[str, Any]:
+    if p.get("style") == "clamshell_pip":
+        radius = p["hinge_pin_diameter"] / 2
+        return {
+            "y": p["depth_y"] / 2 + p["hinge_separation"],
+            "z": p["height_z"] + p["fit_clearance"] / 2,
+            "radius": radius,
+            "outer_radius": radius + p["pip_clearance"] + 1.4,
+            "knuckle_length": max(4.0, min(6.0, p["width_x"] * 0.06)),
+            "centers": [-p["width_x"] * 0.26, p["width_x"] * 0.26],
+        }
     return {
         "y": p["depth_y"] / 2 + 5.0,
         "z": p["height_z"] - 4.0,
@@ -677,6 +746,48 @@ def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
         "span": p["width_x"] * 0.64,
         "knuckle_length": max(5.0, min(12.0, p["width_x"] * 0.13)),
     }
+
+
+def clamshell_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], angle: float = 180.0
+) -> np.ndarray:
+    """Rotate the canonical closed lid about the actual hinge, without mutation."""
+    p = normalize_params(raw)
+    if p["style"] != "clamshell_pip" or not math.isfinite(float(angle)):
+        raise ValueError(
+            "Use um estojo articulado e ângulo finito / use an articulated case and finite angle."
+        )
+    hg = hinge_geometry(p)
+    theta = -math.radians(float(angle))
+    cosine, sine = math.cos(theta), math.sin(theta)
+    v = np.asarray(vertices, dtype=np.float64).copy()
+    dy, dz = v[:, 1] - hg["y"], v[:, 2] - hg["z"]
+    v[:, 1] = hg["y"] + dy * cosine - dz * sine
+    v[:, 2] = hg["z"] + dy * sine + dz * cosine
+    v[np.abs(v) < 1e-10] = 0.0
+    if math.isclose(float(angle), 180.0, rel_tol=0, abs_tol=1e-10):
+        # Canonical meshes are float32. Snap only the analytically zero floor
+        # plane, avoiding a few microns of negative round-off on the print bed.
+        v[np.abs(v[:, 2]) < 3e-5, 2] = 0.0
+    return v
+
+
+def clamshell_print_bounds(raw: dict[str, Any]) -> dict[str, list[float]]:
+    """Analytic bounds of the open, captive assembly; no tessellation required."""
+    p = normalize_params(raw)
+    errors = validate_params(p)
+    if p["style"] != "clamshell_pip" or errors:
+        raise ValueError(
+            "Estojo inválido / invalid articulated case. " + "; ".join(errors)
+        )
+    hg = hinge_geometry(p)
+    low = [-p["width_x"] / 2, -p["depth_y"] / 2, 0.0]
+    high = [
+        p["width_x"] / 2,
+        3 * p["depth_y"] / 2 + 2 * p["hinge_separation"],
+        hg["z"] + hg["outer_radius"],
+    ]
+    return {"min": low, "max": high, "size": [b - a for a, b in zip(low, high)]}
 
 
 def stacking_pose_z(
@@ -723,6 +834,104 @@ def _stack_front_top(p, x):
     )
 
 
+def _clamshell_spans(p, part):
+    return [(a, b) for a, b, _ in _clamshell_knuckles(p, part)]
+
+
+def _clamshell_knuckles(p, part):
+    hg = hinge_geometry(p)
+    k = hg["knuckle_length"]
+    pc = p["pip_clearance"]
+    if part == "base":
+        return [
+            (
+                cx + side * (k + pc) - k / 2,
+                cx + side * (k + pc) + k / 2,
+                hg["outer_radius"],
+            )
+            for cx in hg["centers"]
+            for side in (-1, 1)
+        ]
+    end = 1.5 * k + 2 * pc
+    capr = hg["radius"] + pc + 0.8
+    return [
+        profile
+        for cx in hg["centers"]
+        for profile in (
+            (cx - end - 1.2, cx - end, capr),
+            (cx - k / 2, cx + k / 2, hg["outer_radius"]),
+            (cx + end, cx + end + 1.2, capr),
+        )
+    ]
+
+
+def _build_clamshell_field(p, part):
+    if part not in ("base", "lid"):
+        _GEOMETRY_HINTS.set(None)
+        raise ValueError(
+            "Estojo articulado usa apenas duas metades cativas / articulated case has only two captive halves."
+        )
+    hg = hinge_geometry(p)
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    zlo, zhi = 0.0, cz - 0.1 * R
+    solid = _difference(
+        _rect(w, d, 0, h, r), _rect(w - 2 * t, d - 2 * t, f, h + 1, max(0.15, r - t))
+    )
+    additions = []
+    for a, b, rr in _clamshell_knuckles(p, part):
+        additions.extend(
+            (
+                _cylinder_x(a, b, cy, cz, rr),
+                _box(a, b, d / 2 - 0.1, cy, 0.0, cz - 0.1 * rr),
+            )
+        )
+    solid = _union(solid, *additions)
+    if part == "base":
+        for a, b in _clamshell_spans(p, part):
+            solid = _difference(solid, _cylinder_x(a - 0.1, b + 0.1, cy, cz, pr + pc))
+    else:
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            solid = _union(
+                solid,
+                _cylinder_x(cx - end - 1.2, cx + end + 1.2, cy, cz, pr),
+            )
+    registry = _GEOMETRY_HINTS.get() or {
+        "planes": [[], [], []],
+        "circles": [],
+        "rectangles": [],
+    }
+    _GEOMETRY_HINTS.set(None)
+    if part == "lid":
+        upright = solid
+
+        def mirrored(v):
+            query = v.copy()
+            query[:, 2] = 2 * h + p["fit_clearance"] - v[:, 2]
+            return upright(query)
+
+        solid = mirrored
+    lowz = 0 if part == "base" else min(h + p["fit_clearance"], cz - R)
+    highz = max(h, cz + R) if part == "base" else 2 * h + p["fit_clearance"]
+    bounds = (-w / 2 - 1, w / 2 + 1, -d / 2 - 1, cy + R + 1, lowz - 1, highz + 1)
+    hints = {**registry, "levels": [0, f, h, zlo, zhi, cz - R, cz + R], "params": p}
+    return solid, bounds, hints
+
+
 def build_part_field(
     raw: dict[str, Any], part: str = "base"
 ) -> tuple[Field, tuple[float, ...], dict[str, Any]]:
@@ -747,6 +956,10 @@ def build_part_field(
         )
     )
     style = p["style"]
+    if style == "snap_latch" and part in ("base", "lid", "clip_left", "clip_right"):
+        return _build_snap_latch_field(p, part)
+    if style == "clamshell_pip":
+        return _build_clamshell_field(p, part)
     if style in ("open_bin", "stackable_bin") and part != "base":
         raise ValueError(
             "Caixa aberta tem apenas base / open bin has no lid or fit kit."
@@ -1820,6 +2033,25 @@ def _rectangle_loop(w, d, r, z, n, edge_stops=None):
 
 def _analytic_profile_mesh(p, part):
     """Exact planar/profile patches with curved chords below the interface budget."""
+    if p["style"] == "snap_latch":
+        if part in ("clip_left", "clip_right"):
+            return _analytic_snap_lever(p, part)
+        if part == "lid":
+            return _analytic_snap_lid(p)
+        if part == "base" and not any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            return _analytic_snap_base(p)
+        return None
+    if p["style"] == "clamshell_pip":
+        return _analytic_clamshell_mesh(p, part)
     if p["style"] == "stackable_bin" and part == "base":
         if any(
             p[k]
@@ -1964,6 +2196,170 @@ def _analytic_stackable_mesh(p):
     return b.mesh("base", tol)
 
 
+def _clamshell_angles(p):
+    hg = hinge_geometry(p)
+    R = hg["outer_radius"]
+    tol = min(p["fit_clearance"] / 4, p["pip_clearance"] / 4, 0.04) * 0.45
+    segments = 4 * math.ceil((2 * math.pi / (2 * math.acos(1 - tol / R))) / 4)
+    hi = math.atan2(-0.1, -math.sqrt(1 - 0.1**2)) % (2 * math.pi)
+    lo = 3 * math.pi / 2
+    angles = np.unique(np.r_[np.arange(segments) * 2 * math.pi / segments, hi, lo])
+    return angles, hi, lo, tol
+
+
+def _hinge_circle(angles, x, cy, cz, radius):
+    return np.column_stack(
+        (
+            np.full(len(angles), x),
+            cy + radius * np.cos(angles),
+            cz + radius * np.sin(angles),
+        )
+    )
+
+
+def _append_captive_knuckle(
+    builder, p, a, b, inner_radius, bored, outer_radius, attachment_levels
+):
+    """A barrel fused to its wall aperture, with a bore or an integral shaft.
+
+    The circular cap annulus and the connector cap meet along one shared arc.
+    Internal circle/rectangle union surfaces and the wall attachment are omitted.
+    """
+    hg = hinge_geometry(p)
+    cy, cz = (hg[k] for k in ("y", "z"))
+    R = outer_radius
+    angles, hi, lo, _ = _clamshell_angles(p)
+    outer0 = _hinge_circle(angles, a, cy, cz, R)
+    outer1 = _hinge_circle(angles, b, cy, cz, R)
+    inner0 = _hinge_circle(angles, a, cy, cz, inner_radius)
+    inner1 = _hinge_circle(angles, b, cy, cz, inner_radius)
+    builder.join(outer0, inner0, True)
+    builder.join(outer1, inner1)
+    if bored:
+        builder.join(inner0, inner1, True)
+    for i, theta in enumerate(angles):
+        j = (i + 1) % len(angles)
+        end = angles[j] + (2 * math.pi if j == 0 else 0)
+        if hi < (theta + end) / 2 < lo:
+            continue
+        builder.quad(outer0[i], outer0[j], outer1[j], outer1[i])
+    zlo, zhi = 0.0, cz - 0.1 * R
+    arc = angles[(angles >= hi - 1e-10) & (angles <= lo + 1e-10)][::-1]
+    poly = np.r_[
+        np.array([[p["depth_y"] / 2, zlo], [cy, 0.0]]),
+        np.column_stack((cy + R * np.cos(arc), cz + R * np.sin(arc))),
+        np.array([[p["depth_y"] / 2, zhi]]),
+        np.array(
+            [[p["depth_y"] / 2, z] for z in reversed(attachment_levels) if 0 < z < zhi]
+        ).reshape(-1, 2),
+    ]
+
+    def internal(u, v):
+        # The circular seam belongs to the disc boundary, not an exterior wall.
+        return (
+            abs(np.linalg.norm(u - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(v - [cy, cz]) - R) < 1e-7
+        )
+
+    _append_polygon_extrusion(builder, poly, a, b, p["depth_y"] / 2, internal)
+
+
+def _analytic_clamshell_mesh(p, part):
+    if part not in ("base", "lid"):
+        raise ValueError(
+            "Estojo articulado usa duas metades / articulated case has two halves."
+        )
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    hg = hinge_geometry(p)
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    knuckles = _clamshell_knuckles(p, part)
+    spans = _clamshell_spans(p, part)
+    angles, _, _, tol = _clamshell_angles(p)
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted([v for span in spans for v in span], reverse=True)
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {2: [(extent - v) / (2 * extent) for v in [extent, *xs, -extent]]}
+
+    outer_stops = stops(w, r)
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    inner_stops = stops(iw, ir)
+    levels = sorted(set([0.0, f, h] + [cz - 0.1 * rr for _, _, rr in knuckles]))
+    outer = [_rectangle_loop(w, d, r, z, n, outer_stops) for z in levels]
+    inner = [_rectangle_loop(iw, id_, ir, z, n, inner_stops) for z in levels if z >= f]
+    builder = _SurfaceBuilder()
+    builder.disk(outer[0], True)
+    builder.disk(inner[0])
+    builder.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            midx = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] - d / 2) < 1e-8
+                and abs(lower[j, 1] - d / 2) < 1e-8
+                and any(
+                    a < midx < b and 0 < midz < cz - 0.1 * rr for a, b, rr in knuckles
+                )
+            ):
+                continue
+            builder.quad(lower[i], lower[j], upper[j], upper[i])
+    for lower, upper in zip(inner, inner[1:]):
+        builder.join(lower, upper, True)
+    for a, b, rr in knuckles:
+        _append_captive_knuckle(
+            builder,
+            p,
+            a,
+            b,
+            pr + pc if part == "base" else pr,
+            part == "base",
+            rr,
+            levels,
+        )
+    if part == "lid":
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            left = [(cx - end, pr), (cx - k / 2, pr)]
+            right = [(cx + k / 2, pr), (cx + end, pr)]
+            for profile in (left, right):
+                loops = [_hinge_circle(angles, x, cy, cz, rr) for x, rr in profile]
+                for aa, bb in zip(loops, loops[1:]):
+                    builder.join(aa, bb)
+            builder.disk(_hinge_circle(angles, cx - end - 1.2, cy, cz, pr), True)
+            builder.disk(_hinge_circle(angles, cx + end + 1.2, cy, cz, pr))
+    mesh = builder.mesh(part, tol)
+    if part == "lid":
+        verts = mesh.vertices.copy()
+        verts[:, 2] = 2 * h + p["fit_clearance"] - verts[:, 2]
+        reflected = MeshData(
+            verts,
+            mesh.triangles[:, [0, 2, 1]].copy(),
+            mesh.face_normals.copy(),
+            {},
+            mesh.volume_cm3,
+            part,
+            tol,
+        )
+        return _reframe(reflected, verts)
+    return mesh
+
+
 def _storage_clip_profile(p):
     """Closed-pose C clip. Hooks have positive vertical clearance and entry bevels."""
     front = -p["depth_y"] / 2
@@ -1998,7 +2394,10 @@ def _storage_clip_profile(p):
     )
 
 
-def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
+_CAP_TRIANGLES: dict[bytes, tuple[tuple[int, int, int], ...]] = {}
+
+
+def _append_polygon_extrusion(b, poly, x0, x1, attachment=None, skip_edge=None):
     """Ear-clip a simple planar contour and stitch its extrusion, sharing edges."""
     area = float(
         np.sum(
@@ -2011,29 +2410,36 @@ def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
     def cross(a, bb, c):
         return (bb[0] - a[0]) * (c[1] - a[1]) - (bb[1] - a[1]) * (c[0] - a[0])
 
-    indices = list(range(len(poly)))
-    faces = []
-    while len(indices) > 3:
-        found = False
-        for j in range(len(indices)):
-            a, bb, c = (indices[(j + k) % len(indices)] for k in (-1, 0, 1))
-            if cross(poly[a], poly[bb], poly[c]) <= 1e-10:
-                continue
-            others = [i for i in indices if i not in (a, bb, c)]
-            if any(
-                cross(poly[a], poly[bb], poly[i]) >= -1e-10
-                and cross(poly[bb], poly[c], poly[i]) >= -1e-10
-                and cross(poly[c], poly[a], poly[i]) >= -1e-10
-                for i in others
-            ):
-                continue
-            faces.append((a, bb, c))
-            indices.pop(j)
-            found = True
-            break
-        if not found:
-            raise ValueError("Invalid latch contour / contorno de trava inválido.")
-    faces.append(tuple(indices))
+    key = np.ascontiguousarray(poly, dtype=np.float64).tobytes()
+    faces = _CAP_TRIANGLES.get(key)
+    if faces is None:
+        indices = list(range(len(poly)))
+        result = []
+        while len(indices) > 3:
+            found = False
+            for j in range(len(indices)):
+                a, bb, c = (indices[(j + k) % len(indices)] for k in (-1, 0, 1))
+                if cross(poly[a], poly[bb], poly[c]) <= 1e-10:
+                    continue
+                others = [i for i in indices if i not in (a, bb, c)]
+                if any(
+                    cross(poly[a], poly[bb], poly[i]) >= -1e-10
+                    and cross(poly[bb], poly[c], poly[i]) >= -1e-10
+                    and cross(poly[c], poly[a], poly[i]) >= -1e-10
+                    for i in others
+                ):
+                    continue
+                result.append((a, bb, c))
+                indices.pop(j)
+                found = True
+                break
+            if not found:
+                raise ValueError("Invalid latch contour / contorno de trava inválido.")
+        result.append(tuple(indices))
+        faces = tuple(result)
+        if len(_CAP_TRIANGLES) >= 64:
+            _CAP_TRIANGLES.pop(next(iter(_CAP_TRIANGLES)))
+        _CAP_TRIANGLES[key] = faces
     lo = np.column_stack((np.full(len(poly), x0), poly))
     hi = np.column_stack((np.full(len(poly), x1), poly))
     for a, bb, c in faces:
@@ -2041,6 +2447,8 @@ def _append_polygon_extrusion(b, poly, x0, x1, attachment=None):
         b.triangle(hi[a], hi[bb], hi[c])
     for i in range(len(poly)):
         j = (i + 1) % len(poly)
+        if skip_edge is not None and skip_edge(poly[i], poly[j]):
+            continue
         if (
             attachment is not None
             and abs(poly[i, 0] - attachment) < 1e-8
@@ -2309,13 +2717,12 @@ def orient_mesh_for_print(mesh: MeshData, raw: dict[str, Any], part: str) -> Mes
     p = normalize_params(raw)
     verts = mesh.vertices.copy()
     triangles = mesh.triangles.copy()
-    if part == "lid" and p["style"] != "sliding_lid":
+    if part == "lid" and p["style"] == "clamshell_pip":
+        verts = clamshell_open_transform(verts, p, 180.0)
+    elif part == "lid" and p["style"] != "sliding_lid":
         verts[:, 2] *= -1
         triangles = triangles[:, [0, 2, 1]]
     if part == "pin":
-        verts = verts[:, [1, 2, 0]]
-    if part.startswith("clip") and p["style"] == "snap_latch":
-        # The broad side of the spring profile lies flat on the bed.
         verts = verts[:, [1, 2, 0]]
     verts[:, 2] -= verts[:, 2].min()
     copy = MeshData(
@@ -2351,7 +2758,7 @@ def generate_fit_test_kit(
     raw: dict[str, Any] | None = None,
 ) -> list[tuple[str, MeshData]]:
     p = normalize_params(raw)
-    if p["style"] in ("open_bin", "snap_latch", "stackable_bin"):
+    if p["style"] in ("open_bin", "snap_latch", "stackable_bin", "clamshell_pip"):
         raise ValueError(
             "Kit de encaixe indisponível para este mecanismo; exporte base/tampa/travas / fit kit unavailable for this mechanism; export the actual parts."
         )
@@ -2453,6 +2860,25 @@ def collect_target_meshes(
     p = normalize_params(raw)
     generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
+    if p["style"] == "clamshell_pip":
+        if target not in ("base_and_lid", "full_suite"):
+            raise ValueError(
+                "Estojo cativo requer o conjunto aberto completo / captive case requires the complete open assembly."
+            )
+        names = ("Base", "Tampa" if lang == "pt" else "Lid")
+        if assembled:
+            return [
+                (name, generate(p, part, False))
+                for name, part in zip(names, ("base", "lid"))
+            ]
+        base = generate(p, "base", False)
+        lid = generate(p, "lid", True)
+        return [
+            (
+                "Estojo aberto articulado / Open articulated case",
+                combine_meshes([base, lid], "clamshell_pip_assembly"),
+            )
+        ]
     if p["style"] in ("open_bin", "stackable_bin") and target in (
         "lid_only",
         "gasket",
@@ -2540,6 +2966,566 @@ def topology_report(mesh: MeshData) -> dict[str, Any]:
         "volume_cm3": mesh.volume_cm3,
         "interface_error_mm": mesh.interface_error_mm,
     }
+
+
+def latch_geometry(raw: dict[str, Any], part: str = "clip_left") -> dict[str, Any]:
+    """Articulated latch contract. Positive X rotation releases the front hook."""
+    p = normalize_params(raw)
+    if p["style"] != "snap_latch" or part not in ("clip_left", "clip_right"):
+        raise ValueError("Use uma trava articulada / use an articulated latch.")
+    c = p["fit_clearance"]
+    pr = p["latch_pivot_diameter"] / 2
+    front = -p["depth_y"] / 2
+    cy = front - pr - c - 0.4
+    cz = p["height_z"] - 7.5
+    radius = pr + 2 * c + 0.15 + 1.2
+    ear = max(1.6, p["latch_thickness"])
+    stub = c + 0.6 * ear
+    mouth = pr - min(0.225, pr * 0.15)
+    cx = (-1 if part == "clip_left" else 1) * p["width_x"] * 0.24
+    hook = p["height_z"] + c + p["lid_height"] + max(0.25, c)
+    return {
+        "pivot": {"x": cx, "y": cy, "z": cz},
+        "release_angle": 90.0,
+        "release_fraction": 0.35,
+        "lid_lift_mm": 50.0,
+        "hook_gap": max(0.25, c),
+        "cam_interval": [4.0, 22.0],
+        "pin_radius": pr,
+        "bore_radius": pr + c,
+        "outer_radius": radius,
+        "mouth_half_height": mouth,
+        "socket_snap": pr - mouth,
+        "ear_thickness": ear,
+        "stub_length": stub,
+        "axial_engagement": stub - c,
+        "hook_y": cy - 1.0,
+        "hook_bottom_z": hook,
+        "catch_outer_y": cy - 1 - p["latch_retention"],
+        "catch_top_z": p["height_z"] + c + p["lid_height"],
+        "hub_radius": pr + c + 0.25,
+        "flat_z": cz - pr + 0.2,
+        "grip_inner_y": cy - 1 - p["latch_retention"] - c,
+        "grip_outer_y": cy - 1 - p["latch_retention"] - c - p["latch_thickness"],
+    }
+
+
+def latch_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], part: str, angle: float = 90.0
+) -> np.ndarray:
+    g = latch_geometry(raw, part)
+    pivot = g["pivot"]
+    if not math.isfinite(float(angle)):
+        raise ValueError("Ângulo finito necessário / finite angle required.")
+    v = np.asarray(vertices, dtype=float).copy()
+    a = math.radians(float(angle))
+    dy, dz = v[:, 1] - pivot["y"], v[:, 2] - pivot["z"]
+    v[:, 1] = pivot["y"] + dy * math.cos(a) - dz * math.sin(a)
+    v[:, 2] = pivot["z"] + dy * math.sin(a) + dz * math.cos(a)
+    return v
+
+
+def _snap_profiles(p):
+    g = latch_geometry(p)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    pr, R, c = g["pin_radius"], g["outer_radius"], p["fit_clearance"]
+    seat = pr + 2 * c + 0.15
+    br = pr + c
+    mouth = g["mouth_half_height"]
+    front = -p["depth_y"] / 2
+    outer_delta = math.asin((pr + 0.2) / R)
+    upper_inner = math.pi - math.asin(mouth / seat)
+    lower_inner = -math.pi + math.asin(mouth / br)
+    root = cz - R - (front - cy)
+    top = cz + math.sqrt(R * R - (front - cy) ** 2)
+
+    def samples(a, b, critical=()):
+        return np.unique(
+            np.r_[
+                np.linspace(a, b, max(2, int(abs(b - a) / 0.05) + 1)),
+                [v for v in critical if a < v < b],
+            ]
+        )
+
+    lower = samples(math.pi + outer_delta, 1.5 * math.pi)
+    upper = samples(math.acos((front - cy) / R), math.pi - outer_delta)
+    theta = samples(
+        lower_inner,
+        upper_inner,
+        np.deg2rad([78, 80, 86, 90, 94, 98, 100, 104, 106, 110]),
+    )[::-1]
+    degrees = np.rad2deg(theta)
+    relief = np.minimum(
+        np.clip((degrees - 78) / 2, 0, 1),
+        np.maximum(
+            np.clip((100 - degrees) / 2, 0, 1), np.clip((degrees - 104) / 2, 0, 1)
+        ),
+    )
+    inner = br + relief * (seat - br)
+    socket = np.r_[
+        np.column_stack((cy + R * np.cos(lower), cz + R * np.sin(lower))),
+        [[front, root], [front, top]],
+        np.column_stack((cy + R * np.cos(upper), cz + R * np.sin(upper))),
+        np.column_stack((cy + inner * np.cos(theta), cz + inner * np.sin(theta))),
+    ]
+    hub = g["hub_radius"]
+    flat = pr - 0.2
+    critical = np.deg2rad(
+        [0, 78, 80, 86, 90, 94, 98, 100, 104, 106, 110, 135, 180, 270]
+    )
+    grip_offset = 1 + p["latch_retention"] + c
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= hub / math.sqrt(2)
+        else math.acos(-grip_offset / hub)
+    )
+    critical = np.r_[critical, join_angle]
+    for radius in (pr, hub):
+        a = math.asin(flat / radius)
+        critical = np.r_[critical, math.pi + a, 2 * math.pi - a]
+    angles = samples(0, 2 * math.pi, critical)[:-1]
+    cam = np.maximum(0, 1 - np.abs(np.rad2deg(angles) - 90) / 4) * (c + 0.15)
+    pin_radius = pr + cam
+    sine = np.sin(angles)
+    limit = np.where(sine < -0.00001, flat / np.maximum(-sine, 0.00001), np.inf)
+    pin_radius = np.minimum(pin_radius, limit)
+    hub_radius = np.minimum(np.full(len(angles), hub), limit)
+    pin = np.column_stack(
+        (cy + pin_radius * np.cos(angles), cz + pin_radius * np.sin(angles))
+    )
+    hub_profile = np.column_stack(
+        (cy + hub_radius * np.cos(angles), cz + hub_radius * np.sin(angles))
+    )
+    a = 1 + p["latch_retention"] + c
+    th = p["latch_thickness"]
+    hook = g["hook_bottom_z"]
+    arc = angles[(angles >= join_angle - 1e-9) & (angles <= math.pi + 1e-9)]
+    grip = np.r_[
+        [
+            [cy - hub, cz],
+            [cy - a - th, cz + max(0.3, a + th - hub)],
+            [cy - a - th, hook + th],
+            [cy - 1, hook + th],
+            [cy - 1, hook],
+            [cy - a, hook],
+            [cy - a, cz + max(a, math.sqrt(max(0, hub * hub - a * a)))],
+        ],
+        np.column_stack((cy + hub * np.cos(arc), cz + hub * np.sin(arc))),
+    ]
+    stop_y = cy - a + c
+    stop_top = cz + 6.5
+    clearance_radius = g["hub_radius"] + c
+    arc_y = cy + clearance_radius * np.cos(np.linspace(0, math.pi, 65))
+    ys = np.sort(np.r_[front, stop_y, arc_y[(arc_y > stop_y) & (arc_y < front)]])[::-1]
+    lower = stop_top - 1 + stop_y - ys
+    rel = ys - cy
+    relief = np.where(
+        np.abs(rel) < clearance_radius,
+        cz + np.sqrt(np.maximum(0, clearance_radius**2 - rel**2)),
+        -np.inf,
+    )
+    stop = np.r_[
+        np.column_stack((ys, np.maximum(lower, relief))),
+        [[stop_y, stop_top], [front, stop_top]],
+    ]
+    return g, socket, pin, hub_profile, grip, stop, angles
+
+
+def _polygon_prism_field(poly, x0, x1):
+    low, high = poly.min(axis=0), poly.max(axis=0)
+
+    def field(v):
+        # Far from the prism a positive box bound preserves its zero set.
+        # Exact polygon distances are evaluated throughout a 0.5 mm surface band.
+        yz_all = v[:, [1, 2]]
+        slab = _slab(v[:, 0], x0, x1)
+        box = np.maximum(np.max(low - yz_all, axis=1), np.max(yz_all - high, axis=1))
+        result = np.maximum(slab, box)
+        near = (slab <= 0.5) & (box <= 0.5)
+        yz = yz_all[near]
+        inside = np.zeros(len(yz), dtype=bool)
+        distance = np.full(len(yz), np.inf)
+        for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+            edge = b - a
+            length = float(edge @ edge)
+            if length < 1e-18:
+                continue
+            u = np.clip(((yz - a) * edge).sum(axis=1) / length, 0, 1)
+            distance = np.minimum(
+                distance, np.linalg.norm(yz - a - u[:, None] * edge, axis=1)
+            )
+            inside ^= ((a[1] > yz[:, 1]) != (b[1] > yz[:, 1])) & (
+                yz[:, 0]
+                < (b[0] - a[0]) * (yz[:, 1] - a[1]) / (b[1] - a[1] + 1e-30) + a[0]
+            )
+        result[near] = np.maximum(np.where(inside, -distance, distance), slab[near])
+        return result
+
+    return field
+
+
+def _clean_profile(poly):
+    p = np.asarray(poly, dtype=float)
+    p = p[np.r_[True, np.linalg.norm(np.diff(p, axis=0), axis=1) > 1e-9]]
+    return p[:-1] if len(p) > 1 and np.linalg.norm(p[0] - p[-1]) < 1e-9 else p
+
+
+def _attachment_splits(poly, front, levels):
+    result = []
+    for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+        result.append(a)
+        if abs(a[0] - front) < 1e-7 and abs(b[0] - front) < 1e-7:
+            zs = sorted(
+                z for z in levels if min(a[1], b[1]) + 1e-8 < z < max(a[1], b[1]) - 1e-8
+            )
+            if b[1] < a[1]:
+                zs = zs[::-1]
+            result.extend([[front, z] for z in zs])
+    return _clean_profile(result)
+
+
+def _analytic_snap_base(p):
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    parts = [(a, b, _clean_profile(poly)) for a, b, poly in _snap_base_parts(p)]
+    tol = min(p["fit_clearance"] / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted(set(v for a, b, _ in parts for v in (a, b)))
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]}
+
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    levels = sorted(
+        set(
+            [0.0, f, h]
+            + [
+                float(q[1])
+                for _, _, poly in parts
+                for q in poly
+                if abs(q[0] + d / 2) < 1e-7
+            ]
+        )
+    )
+    outer = [_rectangle_loop(w, d, r, z, n, stops(w, r)) for z in levels]
+    inner = [
+        _rectangle_loop(iw, id_, ir, z, n, stops(iw, ir)) for z in levels if z >= f
+    ]
+    build = _SurfaceBuilder()
+    build.disk(outer[0], True)
+    build.disk(inner[0])
+    build.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            x = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] + d / 2) < 1e-7
+                and abs(lower[j, 1] + d / 2) < 1e-7
+                and any(
+                    a < x < b
+                    and poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].min()
+                    < midz
+                    < poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].max()
+                    for a, b, poly in parts
+                )
+            ):
+                continue
+            build.quad(lower[i], lower[j], upper[j], upper[i])
+    for a, b in zip(inner, inner[1:]):
+        build.join(a, b, True)
+    for a, b, poly in parts:
+        _append_polygon_extrusion(
+            build, _attachment_splits(poly, -d / 2, levels), a, b, -d / 2
+        )
+    return build.mesh("base", tol)
+
+
+def _analytic_snap_lever(p, part):
+    g, _, pin, hub, grip, _, angles = _snap_profiles(p)
+    g = latch_geometry(p, part)
+    pin, hub, grip = (_clean_profile(v) for v in (pin, hub, grip))
+    cx = g["pivot"]["x"]
+    L = p["latch_width"]
+    stub = g["stub_length"]
+    build = _SurfaceBuilder()
+
+    def loop(poly, x):
+        return np.column_stack((np.full(len(poly), x), poly))
+
+    p0, p1, p2, p3 = [
+        loop(pin, x)
+        for x in (cx - L / 2 - stub, cx - L / 2, cx + L / 2, cx + L / 2 + stub)
+    ]
+    h1, h2 = [loop(hub, x) for x in (cx - L / 2, cx + L / 2)]
+    build.join(p0, p1)
+    build.join(p2, p3)
+    build.join(h1, p1, True)
+    build.join(h2, p2)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    R = g["hub_radius"]
+    grip_offset = 1 + p["latch_retention"] + p["fit_clearance"]
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= R / math.sqrt(2)
+        else math.acos(-grip_offset / R)
+    )
+
+    def seam(a, b):
+        return (
+            abs(np.linalg.norm(a - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(b - [cy, cz]) - R) < 1e-7
+            and join_angle - 1e-7 <= math.atan2(a[1] - cz, a[0] - cy) <= math.pi + 1e-7
+            and join_angle - 1e-7 <= math.atan2(b[1] - cz, b[0] - cy) <= math.pi + 1e-7
+        )
+
+    for i in range(len(hub)):
+        j = (i + 1) % len(hub)
+        if not seam(hub[i], hub[j]):
+            build.quad(h1[i], h1[j], h2[j], h2[i])
+    _append_polygon_extrusion(
+        build, pin, cx - L / 2 - stub, cx + L / 2 + stub, skip_edge=lambda a, b: True
+    )
+    _append_polygon_extrusion(build, grip, cx - L / 2, cx + L / 2, skip_edge=seam)
+    return build.mesh(part, min(p["fit_clearance"] / 4, 0.04) * 0.3)
+
+
+def _analytic_snap_lid(p):
+    w, d, h, t, c, r, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "fit_clearance",
+            "corner_radius",
+            "lid_height",
+        )
+    )
+    g = latch_geometry(p)
+    tol = min(c / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    spans = [
+        (cx - p["latch_width"] / 2 + c, cx + p["latch_width"] / 2 - c)
+        for cx in (-w * 0.24, w * 0.24)
+    ]
+    xs = sorted(v for a, b in spans for v in (a, b))
+
+    def loop(pw, pd, pr, z):
+        extent = pw / 2 - pr
+        return _rectangle_loop(
+            pw,
+            pd,
+            pr,
+            z,
+            n,
+            {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]},
+        )
+
+    sw, sd, sr = w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)
+    outer = [
+        loop(pw, pd, pr, z)
+        for z, pw, pd, pr in (
+            (h - p["lid_wall_height"], sw, sd, sr),
+            (h + c, sw, sd, sr),
+            (h + c, w, d, r),
+            (h + c + lh, w, d, r),
+        )
+    ]
+    inner = [
+        loop(sw - 2.4, sd - 2.4, max(0.15, sr - 1.2), z)
+        for z in (h - p["lid_wall_height"], h + c)
+    ]
+    b = _SurfaceBuilder()
+    b.join(inner[0], outer[0])
+    b.join(inner[0], inner[1], True)
+    b.disk(inner[1], True)
+    b.disk(outer[-1])
+    b.join(outer[0], outer[1])
+    b.join(outer[1], outer[2])
+    low, high = outer[-2], outer[-1]
+    for i in range(len(low)):
+        j = (i + 1) % len(low)
+        x = (low[i, 0] + low[j, 0]) / 2
+        if (
+            abs(low[i, 1] + d / 2) < 1e-7
+            and abs(low[j, 1] + d / 2) < 1e-7
+            and any(a < x < bb for a, bb in spans)
+        ):
+            continue
+        b.quad(low[i], low[j], high[j], high[i])
+    for x0, x1 in spans:
+        y0, y1 = g["catch_outer_y"], -d / 2
+        z0, z1 = h + c, h + c + lh
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0), True)
+        b.quad((x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1))
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y0, z1), (x0, y0, z1))
+        b.quad((x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1))
+        b.quad((x0, y1, z0), (x0, y0, z0), (x0, y0, z1), (x0, y1, z1))
+    return b.mesh("lid", tol)
+
+
+def _snap_base_parts(p):
+    g, socket, _, _, _, stop, _ = _snap_profiles(p)
+    L = p["latch_width"]
+    c = p["fit_clearance"]
+    ear = g["ear_thickness"]
+    return [
+        (
+            cx + side * (L / 2 + c + ear / 2) - ear / 2,
+            cx + side * (L / 2 + c + ear / 2) + ear / 2,
+            socket,
+        )
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+        for side in (-1, 1)
+    ] + [
+        (cx - L * 0.25, cx + L * 0.25, stop)
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+    ]
+
+
+def _build_snap_latch_field(p, part):
+    g, socket, pin, hub, grip, stop, _ = _snap_profiles(p)
+    w, d, h, t, f, r, c, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+            "fit_clearance",
+            "lid_height",
+        )
+    )
+    if part.startswith("clip"):
+        g = latch_geometry(p, part)
+        cx = g["pivot"]["x"]
+        L = p["latch_width"]
+        stub = g["stub_length"]
+        field = _union(
+            _polygon_prism_field(pin, cx - L / 2 - stub, cx + L / 2 + stub),
+            _polygon_prism_field(hub, cx - L / 2, cx + L / 2),
+            _polygon_prism_field(grip, cx - L / 2, cx + L / 2),
+        )
+        points = np.r_[pin, hub, grip]
+        bounds = (
+            cx - L / 2 - stub - 1,
+            cx + L / 2 + stub + 1,
+            points[:, 0].min() - 1,
+            points[:, 0].max() + 1,
+            points[:, 1].min() - 1,
+            points[:, 1].max() + 1,
+        )
+        return field, bounds, {"params": p}
+    # Reuse the validated shell/features without the previous latch geometry.
+    shell = copy_params(p)
+    shell["style"] = "open_bin" if part == "base" else "screw_corner"
+    shell["handles_enabled"] = False
+    if part == "base":
+        use_gasket = shell["gasket_enabled"]
+        shell["gasket_enabled"] = False
+        field, bounds, hints = build_part_field(shell, "base")
+        for a, b, poly in _snap_base_parts(p):
+            outline = []
+            for u, v in zip(poly, np.roll(poly, -1, axis=0)):
+                outline.append(u)
+                if abs(u[0] + d / 2) < 1e-7 and abs(v[0] + d / 2) < 1e-7:
+                    outline.extend([[-d / 2 + 0.1, u[1]], [-d / 2 + 0.1, v[1]]])
+            overlap = np.asarray(outline)
+            field = _union(field, _polygon_prism_field(overlap, a, b))
+        if use_gasket:
+            gw, gd = p["gasket_width"], p["gasket_depth"]
+            field = _difference(
+                field,
+                _ring(
+                    w - t + gw,
+                    d - t + gw,
+                    h - gd,
+                    h + 1,
+                    gw,
+                    max(0.2, r - t / 2 + gw / 2),
+                ),
+            )
+            hints["rectangles"].extend(
+                [
+                    (w - t + gw, d - t + gw, max(0.2, r - t / 2 + gw / 2)),
+                    (w - t - gw, d - t - gw, max(0.15, r - t / 2 - gw / 2)),
+                ]
+            )
+            hints["levels"].append(h - gd)
+        polygons = [poly for _, _, poly in _snap_base_parts(p)]
+        bounds = (
+            *bounds[:2],
+            min(float(poly[:, 0].min()) for poly in polygons) - 1,
+            bounds[3],
+            bounds[4],
+            bounds[5],
+        )
+        hints["params"] = p
+        for a, b, poly in _snap_base_parts(p):
+            hints["planes"][0].extend((a, b))
+            boundary = poly[np.abs(poly[:, 0] + d / 2) < 1e-7]
+            hints["planes"][2].extend(boundary[:, 1].tolist())
+        hints["circles"].extend(
+            [
+                (1, 2, g["pivot"]["y"], g["pivot"]["z"], rr)
+                for rr in (
+                    g["outer_radius"],
+                    g["bore_radius"],
+                    g["pin_radius"] + 2 * c + 0.15,
+                )
+            ]
+        )
+    elif part == "lid":
+        field = _union(
+            _rect(w, d, h + c, h + c + lh, r),
+            _ring(
+                w - 2 * t - 2 * c,
+                d - 2 * t - 2 * c,
+                h - p["lid_wall_height"],
+                h + c + 0.1,
+                1.2,
+                max(0.2, r - t - c),
+            ),
+        )
+        for cx in (-w * 0.24, w * 0.24):
+            field = _union(
+                field,
+                _box(
+                    cx - p["latch_width"] / 2 + c,
+                    cx + p["latch_width"] / 2 - c,
+                    g["catch_outer_y"],
+                    -d / 2 + 0.1,
+                    h + c,
+                    h + c + lh,
+                ),
+            )
+        bounds = (
+            -w / 2 - 1,
+            w / 2 + 1,
+            g["catch_outer_y"] - 1,
+            d / 2 + 1,
+            h - p["lid_wall_height"] - 1,
+            h + c + lh + 1,
+        )
+        hints = {"params": p}
+    else:
+        raise ValueError("Unknown latch part: " + part)
+    return field, bounds, hints
 
 # ===========================================================================
 # MODULE: box_studio.exporters
@@ -3200,7 +4186,7 @@ def write_orca_3mf(
 # MODULE: box_studio.presets_catalog
 # ===========================================================================
 
-"""Fifteen editable starting designs and atomic user-preset persistence."""
+"""Seventeen editable starting designs and atomic user-preset persistence."""
 
 pass  # [bundled] hoisted __future__ import
 import copy, json, os, re, tempfile
@@ -3362,8 +4348,8 @@ BUILTIN_PRESETS = [
     ),
     _preset(
         "snap_latch_case",
-        "Tampa removível · duas travas",
-        "Removable lid · two latches",
+        "Tampa removível · fechos articulados",
+        "Removable lid · pivoting latches",
         style="snap_latch",
         width_x=110,
         depth_y=80,
@@ -3372,6 +4358,7 @@ BUILTIN_PRESETS = [
         latch_width=18,
         latch_thickness=2,
         latch_retention=0.6,
+        latch_pivot_diameter=3,
     ),
     _preset(
         "stackable_parts_bin",
@@ -3385,6 +4372,30 @@ BUILTIN_PRESETS = [
         stack_clearance=0.25,
         front_access_width=90,
         front_access_drop=30,
+    ),
+    _preset(
+        "clamshell_pip_short",
+        "Estojo articulado · baixo",
+        "PIP clamshell · shallow",
+        style="clamshell_pip",
+        width_x=120,
+        depth_y=65,
+        height_z=14,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
+    ),
+    _preset(
+        "clamshell_pip_deep",
+        "Estojo articulado · profundo",
+        "PIP clamshell · deep",
+        style="clamshell_pip",
+        width_x=90,
+        depth_y=65,
+        height_z=25,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
     ),
 ]
 
@@ -3482,6 +4493,7 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
     )
     host = limits or {}
     stacking_family = original["style"] == "stackable_bin"
+    clamshell = original["style"] == "clamshell_pip"
     maxima = {
         "width_x": min(350.0, float(host.get("bed_x", 358)) - 8),
         "depth_y": min(
@@ -3499,12 +4511,31 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
             ),
         ),
     }
+    if clamshell:
+        # Sampling bounds accelerate rejection; the exact analytic open envelope
+        # below is authoritative, including the hinge's height above each floor.
+        maxima["depth_y"] = min(
+            maxima["depth_y"],
+            (float(host.get("bed_y", 372)) - 2 * original["hinge_separation"]) / 2,
+        )
     dimensions_to_vary = ("height_z",) if stacking_family else tuple(maxima)
 
     def fits(candidate):
-        return not validate_params(candidate) and all(
+        if validate_params(candidate) or not all(
             candidate[k] <= limit for k, limit in maxima.items()
-        )
+        ):
+            return False
+        if clamshell:
+            pass  # [bundled] resolved intra-package import
+
+            size = clamshell_print_bounds(candidate)["size"]
+            return all(
+                value <= float(host.get(key, default))
+                for value, key, default in zip(
+                    size, ("bed_x", "bed_y", "max_z"), (358, 372, 265)
+                )
+            )
+        return True
 
     for _ in range(64):
         candidate = copy.deepcopy(original)
@@ -5145,6 +6176,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                 ><button class="filter-chip" data-cat="open_bin" data-i18n="openBin">Caixa aberta</button
                 ><button class="filter-chip" data-cat="snap_latch" data-i18n="snapLatch">Travas</button
                 ><button class="filter-chip" data-cat="stackable_bin" data-i18n="stackableBin">Empilhável</button
+                ><button class="filter-chip" data-cat="clamshell_pip" data-i18n="clamshellPip">Articulado PIP</button
                 ><button
                   class="filter-chip"
                   data-cat="user"
@@ -5171,6 +6203,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                   <option value="open_bin" data-i18n="openBin">Caixa aberta</option>
                   <option value="snap_latch" data-i18n="snapLatch">Tampa com travas</option>
                   <option value="stackable_bin" data-i18n="stackableBin">Caixa empilhável</option>
+                  <option value="clamshell_pip" data-i18n="clamshellPip">Estojo articulado PIP</option>
                 </select></label
               >
               <div data-slider="width_x" class="ctrl-row">
@@ -5316,8 +6349,8 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
               <label class="ctrl-row"
                 ><span class="ctrl-label" data-i18n="quality">quality</span
                 ><select id="quality" class="vp-select box-select">
-                  <option value="standard">Standard</option>
-                  <option value="fine">Fine</option>
+                  <option value="standard" data-i18n="qualityStandard">Standard</option>
+                  <option value="fine" data-i18n="qualityFine">Fine</option>
                 </select></label
               >
               <p id="surface" class="helper-note"></p>
@@ -5739,6 +6772,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     <option value="print_in_place">Print-in-place</option>
                   </select></label
                 >
+              </div>
                 <div data-slider="hinge_pin_diameter" class="ctrl-row">
                   <label class="ctrl-top"
                     ><span
@@ -5765,7 +6799,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     step="0.2"
                   />
                 </div>
-              </div>
+
               <div class="screw">
                 <label class="ctrl-row"
                   ><span class="ctrl-label" data-i18n="screw">screw</span
@@ -5927,9 +6961,9 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
     <label class="ctrl-top"
       ><span
         class="ctrl-label"
-        data-pt="Espessura flexível"
-        data-en="Flexible arm thickness"
-        >Espessura flexível</span
+        data-pt="Espessura do fecho"
+        data-en="Latch body thickness"
+        >Espessura do fecho</span
       ><span class="ctrl-val-wrap"
         ><input
           class="ctrl-num"
@@ -5953,9 +6987,9 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
     <label class="ctrl-top"
       ><span
         class="ctrl-label"
-        data-pt="Retenção do gancho"
-        data-en="Hook retention"
-        >Retenção do gancho</span
+        data-pt="Engate do gancho"
+        data-en="Hook engagement"
+        >Engate do gancho</span
       ><span class="ctrl-val-wrap"
         ><input
           class="ctrl-num"
@@ -5975,9 +7009,37 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
       step="0.05"
     />
   </div>
+  <div data-slider="latch_pivot_diameter" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Diâmetro do pivô do fecho"
+        data-en="Latch pivot diameter"
+        >Diâmetro do pivô do fecho</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_pivot_diameter"
+          type="number"
+          min="2.4"
+          max="4"
+          step="0.1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_pivot_diameter"
+      type="range"
+      min="2.4"
+      max="4"
+      step="0.1"
+    />
+  </div>
   <p class="helper-note" data-i18n="twoLatches">
-    Tampa removível e duas travas separadas.
+    Duas travas articuladas na base, com pega e gancho. Solte as travas antes de
+    retirar a tampa.
   </p>
+  <p id="latch-motion-phase" class="helper-note" aria-live="polite" hidden></p>
 </div>
 <div data-slider="snap_retention" class="ctrl-row">
   <label class="ctrl-top"
@@ -6113,6 +7175,69 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
   <p class="helper-note" data-i18n="stackingFamily">
     A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as
     dimensões X/Y, cantos, paredes e encaixes iguais.
+  </p>
+</div>
+<div id="clamshell-pip-options" class="ctrl-row box-style-controls" hidden>
+  <div data-slider="pip_clearance" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Folga da dobradiça PIP"
+        data-en="PIP hinge clearance"
+        >Folga da dobradiça PIP</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="pip_clearance"
+          type="number"
+          min="0.2"
+          max="0.6"
+          step="0.05"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="pip_clearance"
+      type="range"
+      min="0.2"
+      max="0.6"
+      step="0.05"
+    />
+  </div>
+  <div data-slider="hinge_separation" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Afastamento da articulação"
+        data-en="Hinge separation"
+        >Afastamento da articulação</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="hinge_separation"
+          type="number"
+          min="4"
+          max="12"
+          step="0.5"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="hinge_separation"
+      type="range"
+      min="4"
+      max="12"
+      step="0.5"
+    />
+  </div>
+  <p id="clamshell-closed-height" class="helper-note"></p>
+  <p
+    id="clamshell-feature-warning"
+    class="helper-note warn"
+    data-i18n="clamshellFeatures"
+    hidden
+  >
+    Remova acessórios incompatíveis.
   </p>
 </div>
 <p id="pipNote" class="helper-note warn"></p>
@@ -6291,6 +7416,9 @@ const INITIAL = __BOX_CONTEXT__;
     localDirty = false,
     meshParams = clone(INITIAL.params),
     meshRevisionKey = null,
+    openingStyle = null,
+    lastInterfaceError = null,
+    statusTranslationKey = null,
     timer = null,
     playing = false,
     angle = 25,
@@ -6386,6 +7514,13 @@ const INITIAL = __BOX_CONTEXT__;
       openBin: "Caixa aberta",
       snapLatch: "Tampa com travas",
       stackableBin: "Caixa empilhável",
+      clamshellPip: "Estojo articulado PIP",
+      hingedAssembly: "Conjunto articulado",
+      equalHalfNote:
+        "Metades iguais · altura fechada: {height} mm. O conjunto é impresso aberto a 180°.",
+      clamshellPrintBounds: "Na mesa, aberto: {size} mm.",
+      clamshellFeatures:
+        "Remova torres, recortes, divisórias e TPU existentes para usar este estilo.",
       stackingFamily:
         "A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as dimensões X/Y, cantos, paredes e encaixes iguais.",
       connections: "Encaixes & alças",
@@ -6393,7 +7528,15 @@ const INITIAL = __BOX_CONTEXT__;
       handleFaces: "Par de faces",
       leftRight: "Esquerda / direita",
       frontBack: "Frente / trás",
-      twoLatches: "Tampa removível e duas travas separadas.",
+      twoLatches:
+        "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
+      releaseAndOpen: "Soltar fechos e abrir",
+      latchesEngaged: "Fechos presos · tampa fechada",
+      releasingLatches: "Soltando os fechos · tampa parada",
+      liftingLid: "Fechos abertos · afastando a tampa",
+      lidRemoved: "Fechos abertos · tampa afastada",
+      latchMotionUnavailable:
+        "Movimento dos fechos indisponível. Gere a prévia novamente.",
       width: "Largura X",
       depth: "Profundidade Y",
       height: "Altura da base Z",
@@ -6402,11 +7545,14 @@ const INITIAL = __BOX_CONTEXT__;
       floor: "Fundo",
       lid: "Espessura tampa",
       clearance: "Folga por lado",
+      hingeClearance: "Folga da dobradiça",
       lip: "Profundidade de encaixe",
       hinge: "Dobradiça",
       pin: "Diâmetro do pino",
       screw: "Parafuso de canto",
       quality: "Resolução da superfície",
+      qualityStandard: "Padrão",
+      qualityFine: "Fina",
       sealing: "Vedação TPU",
       enableGasket: "Canal perimetral e junta",
       gasketWidth: "Largura do canal",
@@ -6447,12 +7593,14 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Abrir pasta de exportação",
       printHelp:
         "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+      printHelpClamshell:
+        "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
       printHelpOpen:
         "Base com fundo na mesa e abertura para cima. Confira as paredes e as pontes das alças, quando ativadas, na prévia do fatiador.",
       printHelpStack:
         "Imprima com o pé apoiado na mesa e a frente aberta. A altura total inclui o pé. Teste o encaixe entre peças da mesma família antes de empilhar.",
       printHelpLatch:
-        "Conjunto: base, tampa e duas travas. Base com fundo na mesa; tampa invertida e travas apoiadas pela face larga. Teste o encaixe das peças impressas antes do uso.",
+        "Conjunto: base, tampa e duas travas. Imprima base e tampa pelas faces externas, e as travas em pé. Monte as travas nos pivôs da base; solte os ganchos antes de retirar a tampa. Teste o encaixe das peças impressas.",
       gesture: "Arraste para orbitar · roda para zoom",
       generating: "Gerando malha… você pode continuar editando.",
       ready: "Malha atualizada · pronta para inspecionar.",
@@ -6482,6 +7630,13 @@ const INITIAL = __BOX_CONTEXT__;
       openBin: "Open bin",
       snapLatch: "Latch lid",
       stackableBin: "Stackable bin",
+      clamshellPip: "PIP clamshell",
+      hingedAssembly: "Hinged assembly",
+      equalHalfNote:
+        "Equal halves · closed height: {height} mm. The assembly prints open at 180°.",
+      clamshellPrintBounds: "Open footprint on the bed: {size} mm.",
+      clamshellFeatures:
+        "Remove existing standoffs, cutouts, dividers and TPU features to use this style.",
       stackingFamily:
         "Total height includes the foot. To stack different heights, keep X/Y dimensions, corners, walls and mating features identical.",
       connections: "Connections & grips",
@@ -6489,7 +7644,15 @@ const INITIAL = __BOX_CONTEXT__;
       handleFaces: "Pair of faces",
       leftRight: "Left / right",
       frontBack: "Front / back",
-      twoLatches: "Removable lid and two separate latches.",
+      twoLatches:
+        "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
+      releaseAndOpen: "Release latches & open",
+      latchesEngaged: "Latches engaged · lid closed",
+      releasingLatches: "Releasing latches · lid stationary",
+      liftingLid: "Latches open · lifting the lid",
+      lidRemoved: "Latches open · lid removed",
+      latchMotionUnavailable:
+        "Latch motion unavailable. Regenerate the preview.",
       width: "Width X",
       depth: "Depth Y",
       height: "Base height Z",
@@ -6498,11 +7661,14 @@ const INITIAL = __BOX_CONTEXT__;
       floor: "Floor",
       lid: "Lid thickness",
       clearance: "Clearance per side",
+      hingeClearance: "Hinge clearance",
       lip: "Locating skirt depth",
       hinge: "Hinge",
       pin: "Pin diameter",
       screw: "Corner screw",
       quality: "Surface resolution",
+      qualityStandard: "Standard",
+      qualityFine: "Fine",
       sealing: "TPU gasket",
       enableGasket: "Perimeter channel and gasket",
       gasketWidth: "Channel width",
@@ -6543,12 +7709,14 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Open export folder",
       printHelp:
         "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
+      printHelpClamshell:
+        "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
       printHelpOpen:
         "Base floor down, opening upwards. Check the walls and the bridges above hand grips, when enabled, in the slicer preview.",
       printHelpStack:
         "Print with the foot on the bed and the front open. Total height includes the foot. Test the fit between bins of the same family before stacking.",
       printHelpLatch:
-        "Set: base, lid and two latches. Base floor down; lid inverted and latches on their broad side. Check the fit of the printed parts before use.",
+        "Set: base, lid and two latches. Print the shells on their outer faces and the latches upright. Fit the latches onto the base pivots; release the hooks before lifting the lid. Check the fit of the printed parts.",
       gesture: "Drag to orbit · wheel to zoom",
       generating: "Generating mesh… you can keep editing.",
       ready: "Mesh updated · ready to inspect.",
@@ -6582,7 +7750,8 @@ const INITIAL = __BOX_CONTEXT__;
     }
     return false;
   }
-  function status(s, error = false) {
+  function status(s, error = false, translationKey = null) {
+    statusTranslationKey = translationKey;
     $("status").textContent = s;
     $("status").classList.toggle("warn", error);
     const banner = $("toast-banner");
@@ -6613,12 +7782,67 @@ const INITIAL = __BOX_CONTEXT__;
       }),
   );
   function updatePrintHelp() {
-    const key = {
-      open_bin: "printHelpOpen",
-      stackable_bin: "printHelpStack",
-      snap_latch: "printHelpLatch",
-    }[p.style] || "printHelp";
+    const key =
+      {
+        open_bin: "printHelpOpen",
+        stackable_bin: "printHelpStack",
+        snap_latch: "printHelpLatch",
+        clamshell_pip: "printHelpClamshell",
+      }[p.style] || "printHelp";
     document.querySelector('[data-i18n="printHelp"]').textContent = tr(key);
+  }
+  function updateClamshellNote() {
+    let note = tr("equalHalfNote").replace(
+      "{height}",
+      (2 * Number(p.height_z) + Number(p.fit_clearance)).toFixed(2),
+    );
+    if (
+      !localDirty &&
+      meshParams.style === "clamshell_pip" &&
+      INITIAL.print_bounds?.size
+    ) {
+      note +=
+        " " +
+        tr("clamshellPrintBounds").replace(
+          "{size}",
+          INITIAL.print_bounds.size
+            .map((value) => Number(value).toFixed(1))
+            .join("×"),
+        );
+    }
+    $("clamshell-closed-height").textContent = note;
+  }
+  function updateClearanceLabels() {
+    const clamshell = p.style === "clamshell_pip";
+    const label = document.querySelector(
+      '[data-slider="fit_clearance"] .ctrl-label',
+    );
+    label.dataset.pt = clamshell ? "Folga entre metades Z" : "Folga por lado";
+    label.dataset.en = clamshell
+      ? "Gap between halves Z"
+      : "Clearance per side";
+    label.textContent = label.dataset[lang];
+    document.querySelector('[data-i18n="hud_mouth_hole"]').textContent = tr(
+      clamshell ? "hingeClearance" : "clearance",
+    );
+    $("hud-clearance").textContent =
+      Number(clamshell ? p.pip_clearance : p.fit_clearance).toFixed(2) + " mm";
+  }
+  function updateOpeningCaption() {
+    document.querySelector('[data-i18n="open"]').textContent = tr(
+      p.style === "snap_latch" ? "releaseAndOpen" : "open",
+    );
+  }
+  function updatePreviewText() {
+    if (Number.isFinite(lastInterfaceError)) {
+      $("surface").textContent =
+        (lang === "pt" ? "Alvo de erro nas interfaces curvas ≤ " : "Curved interface chord-error target ≤ ") +
+        lastInterfaceError.toFixed(3) + " mm";
+    }
+    if (statusTranslationKey === "ready") {
+      $("status").textContent = tr("ready");
+      $("toast-banner").textContent = tr("ready");
+    }
   }
   function translate() {
     p.theme = theme;
@@ -6633,7 +7857,11 @@ const INITIAL = __BOX_CONTEXT__;
     document
       .querySelectorAll("[data-pt]")
       .forEach((e) => (e.textContent = e.dataset[lang]));
+    updatePreviewText();
+    updateClearanceLabels();
+    updateOpeningCaption();
     updatePrintHelp();
+    updateClamshellNote();
     const names = {
       base_and_lid: tr("both"),
       base_only: tr("baseOnly"),
@@ -6667,42 +7895,91 @@ const INITIAL = __BOX_CONTEXT__;
     requestPreview();
   }
   function sync() {
+    updateClearanceLabels();
+    updateOpeningCaption();
     updatePrintHelp();
     const openBin = p.style === "open_bin";
     const lidless = openBin || p.style === "stackable_bin";
-    const heightLabel = document.querySelector('[data-slider="height_z"] .ctrl-label');
-    heightLabel.dataset.pt = p.style === "stackable_bin" ? "Altura total Z" : "Altura Z";
-    heightLabel.dataset.en = p.style === "stackable_bin" ? "Total height Z" : "Height Z";
+    const heightLabel = document.querySelector(
+      '[data-slider="height_z"] .ctrl-label',
+    );
+    heightLabel.dataset.pt =
+      p.style === "clamshell_pip"
+        ? "Altura de cada metade Z"
+        : p.style === "stackable_bin"
+          ? "Altura total Z"
+          : "Altura Z";
+    heightLabel.dataset.en =
+      p.style === "clamshell_pip"
+        ? "Height of each half Z"
+        : p.style === "stackable_bin"
+          ? "Total height Z"
+          : "Height Z";
     heightLabel.textContent = heightLabel.dataset[lang];
     document.querySelector('[data-slider="snap_retention"]').style.display =
       p.style === "lip_snap" ? "grid" : "none";
     $("open-bin-handles").hidden = !openBin;
     $("snap-latch-options").hidden = p.style !== "snap_latch";
     $("stackable-bin-options").hidden = p.style !== "stackable_bin";
-    $("open").disabled = lidless;
-    $("play").disabled = lidless;
+    const clamshell = p.style === "clamshell_pip";
+    $("clamshell-pip-options").hidden = !clamshell;
+    updateClamshellNote();
+    $("clamshell-feature-warning").hidden =
+      !clamshell ||
+      !(
+        ["standoffs", "cutouts", "dividers_x", "dividers_y"].some(
+          (key) => p[key]?.length,
+        ) || p.gasket_enabled
+      );
+    $("addPost").disabled = clamshell;
+    $("addPort").disabled = clamshell;
+    const diameterRow = document.querySelector(
+      '[data-slider="hinge_pin_diameter"]',
+    );
+    diameterRow.style.display = ["rugged_box", "clamshell_pip"].includes(
+      p.style,
+    )
+      ? "grid"
+      : "none";
+    const diameterLabel = diameterRow.querySelector(".ctrl-label");
+    diameterLabel.dataset.pt = clamshell
+      ? "Diâmetro do eixo integral"
+      : "Diâmetro do pino";
+    diameterLabel.dataset.en = clamshell
+      ? "Integral axle diameter"
+      : "Pin diameter";
+    diameterLabel.textContent = diameterLabel.dataset[lang];
+    $("open").disabled = lidless || INITIAL.preview_mode === "calibration";
+    $("play").disabled = lidless || INITIAL.preview_mode === "calibration";
     for (const key of ["lid_height", "lip_depth", "fit_clearance"]) {
       const row = document.querySelector('[data-slider="' + key + '"]');
       row.style.display =
         lidless ||
         (p.style === "sliding_lid" && key !== "fit_clearance") ||
-        (p.style === "snap_latch" && key === "lip_depth")
+        (p.style === "snap_latch" && key === "lip_depth") ||
+        (p.style === "clamshell_pip" && key !== "fit_clearance")
           ? "none"
           : "grid";
     }
-    $("gasket_enabled").closest(".switch-row").style.display = lidless
-      ? "none"
-      : "flex";
+    $("gasket_enabled").closest(".switch-row").style.display =
+      lidless || (clamshell && !p.gasket_enabled) ? "none" : "flex";
     for (const key of ["gasket_width", "gasket_depth"])
       document.querySelector('[data-slider="' + key + '"]').style.display =
-        lidless ? "none" : "grid";
+        lidless || p.style === "clamshell_pip" ? "none" : "grid";
     for (const option of $("target").options) {
       option.disabled =
         (lidless &&
           ["lid_only", "gasket", "fit_test_kit"].includes(option.value)) ||
-        (p.style === "snap_latch" && option.value === "fit_test_kit");
+        (p.style === "snap_latch" && option.value === "fit_test_kit") ||
+        (p.style === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(option.value));
       if (option.value === "base_and_lid")
-        option.textContent = lidless ? tr("baseOnly") : tr("both");
+        option.textContent =
+          p.style === "clamshell_pip"
+            ? tr("hingedAssembly")
+            : lidless
+              ? tr("baseOnly")
+              : tr("both");
     }
     $("name").value = p.name;
     document
@@ -6769,7 +8046,9 @@ const INITIAL = __BOX_CONTEXT__;
       key === "style" &&
       ((["open_bin", "stackable_bin"].includes(value) &&
         ["lid_only", "gasket", "fit_test_kit"].includes(p.export_target)) ||
-        (value === "snap_latch" && p.export_target === "fit_test_kit"))
+        (value === "snap_latch" && p.export_target === "fit_test_kit") ||
+        (value === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(p.export_target)))
     )
       p.export_target = "base_and_lid";
     sync();
@@ -7276,12 +8555,30 @@ const INITIAL = __BOX_CONTEXT__;
         status(m.message, true);
         return;
       }
+      if (
+        m.params?.style === "snap_latch" &&
+        (!m.latch_motion?.clip_left || !m.latch_motion?.clip_right)
+      ) {
+        status(tr("latchMotionUnavailable"), true);
+        return;
+      }
+      if (m.params?.style === "snap_latch") {
+        try {
+          for (const part of ["clip_left", "clip_right", "lid"])
+            snapLatchTransform(part, 0, m.latch_motion);
+        } catch (_) {
+          status(tr("latchMotionUnavailable"), true);
+          return;
+        }
+      }
       localDirty = false;
       p = clone(m.params);
       p.lang = lang;
       p.theme = theme;
       meshParams = clone(m.params);
       INITIAL.hinge = m.hinge;
+      INITIAL.print_bounds = m.print_bounds || null;
+      INITIAL.latch_motion = m.latch_motion || null;
       INITIAL.preview_mode = m.preview_mode || "assembly";
       if (!m.geometry_key || m.geometry_key !== meshRevisionKey) {
         loadMeshes(m.meshes);
@@ -7291,14 +8588,9 @@ const INITIAL = __BOX_CONTEXT__;
       $("triangles").textContent =
         (m.meshes.reduce((s, x) => s + x.triangle_count, 0) / 1000).toFixed(0) +
         "k";
-      const err = Math.max(...m.meshes.map((x) => x.interface_error_mm));
-      $("surface").textContent =
-        (lang === "pt"
-          ? "Alvo de erro nas interfaces curvas ≤ "
-          : "Curved interface chord-error target ≤ ") +
-        err.toFixed(3) +
-        " mm";
-      status(tr("ready"));
+      lastInterfaceError = Math.max(...m.meshes.map((x) => x.interface_error_mm));
+      updatePreviewText();
+      status(tr("ready"), false, "ready");
       sync();
       return;
     }
@@ -7712,17 +9004,94 @@ const INITIAL = __BOX_CONTEXT__;
   function dot(a, b) {
     return a.reduce((s, x, i) => s + x * b[i], 0);
   }
-  function partTransform(
-    part,
-    opening = Number($("open").value) / 100,
-    offset = null,
-  ) {
+  function openingFraction(value = Number($("open").value)) {
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    return value / (shape.style === "clamshell_pip" ? 180 : 100);
+  }
+  function openingLabel() {
+    const suffix = meshParams.style === "clamshell_pip" ? "°" : "%";
+    $("openValue").textContent = Math.round(Number($("open").value)) + suffix;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+  }
+  function configureOpening() {
+    const nextStyle = meshParams.style;
+    const isClamshell = nextStyle === "clamshell_pip";
+    $("open").max = isClamshell ? "180" : "100";
+    if (isClamshell && openingStyle !== nextStyle) $("open").value = "180";
+    else if (nextStyle === "snap_latch" && openingStyle !== nextStyle)
+      $("open").value = "0";
+    else if (
+      !isClamshell &&
+      nextStyle !== "snap_latch" &&
+      ["clamshell_pip", "snap_latch"].includes(openingStyle)
+    )
+      $("open").value = "25";
+    openingStyle = nextStyle;
+    openingLabel();
+  }
+  function snapLatchTransform(part, opening, motion) {
+    if (part !== "lid" && !part.startsWith("clip")) return I();
+    const left = motion?.clip_left;
+    const right = motion?.clip_right;
+    if (!left || !right) throw Error("Missing latch motion metadata");
+    for (const info of [left, right]) {
+      if (!info.pivot || ![info.pivot.x, info.pivot.y, info.pivot.z, info.release_fraction, info.release_angle, info.lid_lift_mm].every(Number.isFinite) || info.release_fraction <= 0 || info.release_fraction >= 1 || info.release_angle <= 0 || info.lid_lift_mm <= 0)
+        throw Error("Invalid latch motion metadata");
+    }
+    const phase = Math.max(0, Math.min(1, opening));
+    const releaseFraction = Math.max(
+      left.release_fraction,
+      right.release_fraction,
+    );
+    if (part === "lid") {
+      const liftPhase = Math.max(
+        0,
+        Math.min(1, (phase - releaseFraction) / (1 - releaseFraction)),
+      );
+      return translateM(0, 0, liftPhase * left.lid_lift_mm);
+    }
+    const info = motion[part];
+    if (!info) throw Error("Unknown latch part: " + part);
+    const angle =
+      (Math.min(1, phase / info.release_fraction) *
+        info.release_angle *
+        Math.PI) /
+      180;
+    const pivot = info.pivot;
+    return mult(
+      translateM(pivot.x, pivot.y, pivot.z),
+      mult(rotateX(angle), translateM(-pivot.x, -pivot.y, -pivot.z)),
+    );
+  }
+  function updateLatchMotionStatus() {
+    const label = $("latch-motion-phase");
+    const info = INITIAL.latch_motion?.clip_left;
+    label.hidden = !info;
+    if (!info) return;
+    const phase = openingFraction();
+    const key =
+      phase <= 0
+        ? "latchesEngaged"
+        : phase < info.release_fraction
+          ? "releasingLatches"
+          : phase < 1
+            ? "liftingLid"
+            : "lidRemoved";
+    const message = tr(key);
+    if (label.textContent !== message) label.textContent = message;
+  }
+  function partTransform(part, opening = openingFraction(), offset = null) {
     const shape = typeof meshParams === "undefined" ? p : meshParams;
     const frame = translateM(...(offset || [0, 0, 0]));
     if (INITIAL.preview_mode === "calibration") return frame;
+    if (shape.style === "snap_latch")
+      return mult(
+        frame,
+        snapLatchTransform(part, opening, INITIAL.latch_motion),
+      );
     let model = I();
     if (part === "lid") {
-      if (shape.style === "rugged_box") {
+      if (shape.style === "rugged_box" || shape.style === "clamshell_pip") {
         const h = INITIAL.hinge || {
           y: shape.depth_y / 2 + 5,
           z: shape.height_z - 4,
@@ -7735,7 +9104,7 @@ const INITIAL = __BOX_CONTEXT__;
         model = translateM(0, -opening * (shape.depth_y + 10), 0);
       else model = translateM(0, 0, opening * 50);
     }
-    if (part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
+    if (shape.style === "rugged_box" && part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
     return mult(frame, model);
   }
   function transformPoint(m, x, y, z) {
@@ -7745,7 +9114,7 @@ const INITIAL = __BOX_CONTEXT__;
       m[2] * x + m[6] * y + m[10] * z + m[14],
     ];
   }
-  function sceneBounds(opening = Number($("open").value) / 100) {
+  function sceneBounds(opening = openingFraction()) {
     if (!meshes.length) return null;
     const lo = [Infinity, Infinity, Infinity],
       hi = [-Infinity, -Infinity, -Infinity];
@@ -7843,6 +9212,7 @@ const INITIAL = __BOX_CONTEXT__;
     return new ctor(a.buffer);
   }
   function loadMeshes(items) {
+    configureOpening();
     const calibration = INITIAL.preview_mode === "calibration";
     $("open").disabled =
       calibration || ["open_bin", "stackable_bin"].includes(meshParams.style);
@@ -7960,13 +9330,23 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updateHud(b) {
     if (!b) return;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
     const h = currentPrinter(),
+      printSize =
+        meshParams.style === "clamshell_pip" && INITIAL.print_bounds?.size
+          ? INITIAL.print_bounds.size
+          : b.size,
       fits =
-        b.size[0] <= h.bed_x && b.size[1] <= h.bed_y && b.size[2] <= h.max_z;
+        printSize[0] <= h.bed_x &&
+        printSize[1] <= h.bed_y &&
+        printSize[2] <= h.max_z;
     $("hud-dims").textContent = b.size.map((x) => x.toFixed(1)).join("×");
     $("hud-wall-floor").textContent =
       `${p.wall_thickness.toFixed(1)} / ${p.floor_thickness.toFixed(1)} mm`;
-    $("hud-clearance").textContent = p.fit_clearance.toFixed(2) + " mm";
+    $("hud-clearance").textContent =
+      Number(
+        p.style === "clamshell_pip" ? p.pip_clearance : p.fit_clearance,
+      ).toFixed(2) + " mm";
     $("hud-overhang").textContent =
       Math.max(0, ...meshes.map((m) => m.maxOverhang)).toFixed(1) + "°";
     $("hud-status-pill").textContent = fits ? "OK" : "⚠";
@@ -8014,11 +9394,7 @@ const INITIAL = __BOX_CONTEXT__;
       MATERIAL_PRESETS[$("xray").checked ? "xray" : material] ||
       MATERIAL_PRESETS.emerald_silk;
     for (const m of meshes) {
-      const model = partTransform(
-        m.part,
-        Number($("open").value) / 100,
-        m.preview_offset,
-      );
+      const model = partTransform(m.part, openingFraction(), m.preview_offset);
       gl.useProgram(program);
       gl.uniformMatrix4fv(
         gl.getUniformLocation(program, "u_mvp"),
@@ -8291,7 +9667,7 @@ const INITIAL = __BOX_CONTEXT__;
     render();
   };
   $("open").oninput = () => {
-    $("openValue").textContent = $("open").value + "%";
+    openingLabel();
     render();
   };
   $("xray").onchange = render;
@@ -8303,8 +9679,9 @@ const INITIAL = __BOX_CONTEXT__;
   };
   function tick(t) {
     if (!playing) return;
-    $("open").value = 50 - 50 * Math.cos(t * 0.0007);
-    $("openValue").textContent = Math.round($("open").value) + "%";
+    const extent = Number($("open").max) || 100;
+    $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+    openingLabel();
     render();
     requestAnimationFrame(tick);
   }
@@ -8421,6 +9798,12 @@ const INITIAL = __BOX_CONTEXT__;
     presets();
   }
   function presetThumb(params) {
+    if (params.style === "clamshell_pip") {
+      const shell = (x, y) =>
+        `<path d="M${x} ${y}l16 -8h44l-16 8Z" fill="#00a896" fill-opacity=".55" stroke="#80ffea"/><path d="M${x} ${y}v14h44v-14M${x + 44} ${y}l16 -8v14l-16 8" fill="#00796b" fill-opacity=".45" stroke="#55cfbb"/>`;
+      return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true">${shell(43, 24)}<path d="M37 44l17 -8M65 44l17 -8" stroke="#ffcf77" stroke-width="3"/>${shell(12, 51)}</svg>`;
+    }
+
     const w = params.width_x || 90,
       d = params.depth_y || 65,
       h = params.height_z || 35,
@@ -8433,23 +9816,29 @@ const INITIAL = __BOX_CONTEXT__;
     const lid = ["open_bin", "stackable_bin"].includes(params.style)
       ? ""
       : `<path d="M${ox} ${oy - 8}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#26363e" stroke="#ffcf77"/>`;
-    const accessWidth = Math.min(ww * .85, (params.front_access_width || w * .6) * sx);
-    const accessDrop = Math.min(hh * .8, (params.front_access_drop || h * .35) * sx);
+    const accessWidth = Math.min(
+      ww * 0.85,
+      (params.front_access_width || w * 0.6) * sx,
+    );
+    const accessDrop = Math.min(
+      hh * 0.8,
+      (params.front_access_drop || h * 0.35) * sx,
+    );
     const details =
       params.style === "stackable_bin"
         ? `<path d="M${ox + (ww - accessWidth) / 2} ${oy - 1}v${accessDrop}h${accessWidth}v${-accessDrop}Z" fill="#172126" stroke="#80ffea"/><path d="M${ox + 2} ${oy + hh - 2}h${ww - 4}" stroke="#80ffea"/>`
         : params.style === "open_bin" && params.handles_enabled
-        ? params.handle_faces === "front_back"
-          ? `<rect x="${ox + ww * 0.28}" y="${oy + hh * 0.3}" width="${ww * 0.44}" height="5" rx="2.5" fill="#172126" stroke="#80ffea"/>`
-          : `<path d="M${ox + ww + dd * 0.2} ${oy + hh * 0.25 - dd * 0.1}l${dd * 0.6} ${-dd * 0.3}v5l${-dd * 0.6} ${dd * 0.3}Z" fill="#172126" stroke="#80ffea"/>`
-        : params.style === "snap_latch"
-          ? [0.2, 0.7]
-              .map(
-                (x) =>
-                  `<rect x="${ox + ww * x}" y="${oy - 5}" width="${ww * 0.1}" height="12" rx="1" fill="#ffb74d" stroke="#ffe0a3"/>`,
-              )
-              .join("")
-          : "";
+          ? params.handle_faces === "front_back"
+            ? `<rect x="${ox + ww * 0.28}" y="${oy + hh * 0.3}" width="${ww * 0.44}" height="5" rx="2.5" fill="#172126" stroke="#80ffea"/>`
+            : `<path d="M${ox + ww + dd * 0.2} ${oy + hh * 0.25 - dd * 0.1}l${dd * 0.6} ${-dd * 0.3}v5l${-dd * 0.6} ${dd * 0.3}Z" fill="#172126" stroke="#80ffea"/>`
+          : params.style === "snap_latch"
+            ? [0.2, 0.7]
+                .map(
+                  (x) =>
+                    `<rect x="${ox + ww * x}" y="${oy - 5}" width="${ww * 0.1}" height="12" rx="1" fill="#ffb74d" stroke="#ffe0a3"/>`,
+                )
+                .join("")
+            : "";
     return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true"><path d="M${ox} ${oy}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#00a896" fill-opacity=".6" stroke="#80ffea"/><path d="M${ox} ${oy}v${hh}h${ww}v${-hh}M${ox + ww} ${oy}l${dd} ${-dd * 0.5}v${hh}l${-dd} ${dd * 0.5}" fill="#00796b" fill-opacity=".4" stroke="#55cfbb"/>${lid}${details}</svg>`;
   }
   function presets() {
@@ -8710,8 +10099,9 @@ const INITIAL = __BOX_CONTEXT__;
     const dt = lastAnimationTime ? Math.min(t - lastAnimationTime, 50) : 16;
     lastAnimationTime = t;
     if (playing) {
-      $("open").value = 50 - 50 * Math.cos(t * 0.0007);
-      $("openValue").textContent = Math.round($("open").value) + "%";
+      const extent = Number($("open").max) || 100;
+      $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+      openingLabel();
     }
     if (spin) yaw += dt * 0.00025;
     render();
@@ -8758,6 +10148,7 @@ const INITIAL = __BOX_CONTEXT__;
     const injectedTheme = detectInjectedOrcaTheme();
     if (injectedTheme) theme = injectedTheme;
   }
+  configureOpening();
   try {
     initializeGL();
   } catch (e) {
@@ -10362,6 +11753,13 @@ class BoxStudioController:
     def _preview_payload(self, p):
         target = p["export_target"]
         items = self._geometry(p, assembled=True, target=target)
+        latch_motion = None
+        if p["style"] == "snap_latch":
+            pass  # [bundled] resolved intra-package import
+
+            latch_motion = {
+                part: latch_geometry(p, part) for part in ("clip_left", "clip_right")
+            }
         calibration = target == "fit_test_kit"
         offsets = [[0.0, 0.0, 0.0] for _ in items]
         if calibration:
@@ -10422,11 +11820,15 @@ class BoxStudioController:
             "ok": True,
             "params": p,
             "preview_mode": "calibration" if calibration else "assembly",
+            "print_bounds": clamshell_print_bounds(p)
+            if p["style"] == "clamshell_pip"
+            else None,
             "geometry_key": hashlib.sha256(
                 (self._geometry_key(p) + "|" + target).encode("utf-8")
             ).hexdigest(),
             "meshes": encoded,
             "hinge": hinge_geometry(p),
+            "latch_motion": latch_motion,
             "volume_cm3": sum(m.volume_cm3 for _, m in items),
             "surface_note": "Curved surfaces are tessellated; fit-interface chord target is shown in mm.",
         }

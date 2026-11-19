@@ -14,6 +14,7 @@ VALID_STYLES = (
     "open_bin",
     "snap_latch",
     "stackable_bin",
+    "clamshell_pip",
 )
 VALID_EXPORT_TARGETS = (
     "base_and_lid",
@@ -45,11 +46,14 @@ DEFAULT_PARAMS: dict[str, Any] = {
     "latch_width": 18.0,
     "latch_thickness": 2.0,
     "latch_retention": 0.6,
+    "latch_pivot_diameter": 3.0,
     "lid_wall_height": 8.0,
     "stack_foot_height": 2.0,
     "stack_clearance": 0.25,
     "front_access_width": 60.0,
     "front_access_drop": 14.0,
+    "pip_clearance": 0.30,
+    "hinge_separation": 5.0,
     "hinge_mode": "pin",
     "hinge_pin_diameter": 3.0,
     "screw_size": "M3",
@@ -113,11 +117,14 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
         ("latch_width", 8, 30),
         ("latch_thickness", 1.2, 4),
         ("latch_retention", 0.2, 1.2),
+        ("latch_pivot_diameter", 2.4, 4.0),
         ("lid_wall_height", 3, 25),
         ("stack_foot_height", 1, 5),
         ("stack_clearance", 0.1, 0.8),
         ("front_access_width", 12, 300),
         ("front_access_drop", 4, 150),
+        ("pip_clearance", 0.20, 0.60),
+        ("hinge_separation", 4, 12),
         ("hinge_pin_diameter", 2, 6),
         ("screw_diameter", 2, 3),
         ("gasket_width", 0.6, 2),
@@ -217,6 +224,37 @@ def validate_params(p: dict[str, Any]) -> list[str]:
         for k in ("width_x", "depth_y", "height_z", "wall_thickness", "floor_thickness")
     )
     keepout = t + p["corner_radius"] + 1
+    if p["style"] == "clamshell_pip":
+        outer_radius = p["hinge_pin_diameter"] / 2 + p["pip_clearance"] + 1.4
+        knuckle = max(4.0, min(6.0, w * 0.06))
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.26 + 1.5 * knuckle + 2 * p["pip_clearance"] + 1.2 > tangent - 1.2:
+            errors.append(
+                "Dobradiças: aumente a largura ou reduza o raio dos cantos / increase width or reduce corner radius for both hinges."
+            )
+        if p["hinge_separation"] < outer_radius + 0.8:
+            errors.append(
+                "Dobradiças: aumente a separação para preservar a rotação / increase hinge separation for the barrel radius."
+            )
+        if h + p["fit_clearance"] / 2 - 0.7 * outer_radius < f + 1.2:
+            errors.append(
+                "Dobradiças: aumente a altura de cada metade / increase the height of each half."
+            )
+        if any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            errors.append(
+                "Estojo articulado: torres, recortes, divisórias e TPU ainda não são compatíveis / articulated case does not yet support posts, ports, dividers or TPU."
+            )
     if p["style"] == "stackable_bin":
         f += p["stack_foot_height"]
         if p["front_access_width"] > w - 2 * (p["corner_radius"] + 2 * t):
@@ -252,13 +290,26 @@ def validate_params(p: dict[str, Any]) -> list[str]:
                 "Alças: preserve a espessura da borda superior / preserve the top rim thickness."
             )
     if p["style"] == "snap_latch":
-        if p["latch_width"] + 2 * (p["corner_radius"] + 1.2) > w * 0.52:
+        c = p["fit_clearance"]
+        pr = p["latch_pivot_diameter"] / 2
+        outer = pr + 2 * c + 0.15 + 1.2
+        offset = pr + c + 0.4
+        ear = max(1.6, p["latch_thickness"])
+        frame = p["latch_width"] / 2 + c + ear
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.24 + frame > tangent - 1.2 or w * 0.48 < 2 * frame + 1.2:
             errors.append(
-                "Travas: reduza a largura ou aumente a caixa / reduce latch width or enlarge the box."
+                "Travas: preserve espaço para as orelhas dos pivôs / increase box width or reduce latch width for the pivot ears."
             )
-        if h < 16 or t < 1.2:
+        if h - 7.5 - outer - offset < f + 1.2:
             errors.append(
-                "Travas: altura mínima 16 mm / snap latches require at least 16 mm height."
+                "Travas: aumente a altura para apoiar os pivôs / increase height to support the latch pivots."
+            )
+        if t < outer - offset + 0.8:
+            errors.append(
+                "Travas: aumente a parede atrás dos pivôs / increase wall thickness behind the latch sockets."
             )
         if p["lid_wall_height"] > h - f - 1.2:
             errors.append(
@@ -318,6 +369,8 @@ def validate_params(p: dict[str, Any]) -> list[str]:
             - (
                 p["stack_foot_height"]
                 if p["style"] == "stackable_bin"
+                else p["lid_wall_height"]
+                if p["style"] == "snap_latch"
                 else p["lip_depth"]
             )
             - 2
@@ -338,15 +391,21 @@ def validate_params(p: dict[str, Any]) -> list[str]:
             half = (
                 3
                 if p["style"] == "rugged_box"
-                else p["latch_width"] / 2 - p["fit_clearance"]
+                else p["latch_width"] / 2
+                + p["fit_clearance"]
+                + max(1.6, p["latch_thickness"])
             )
-            top = (
-                h - 5.5
+            top = h - 5.5 if p["style"] == "rugged_box" else h
+            root = (
+                h - 7.2
                 if p["style"] == "rugged_box"
-                else h - 7.2 + p["latch_retention"] + p["fit_clearance"] + 1.2
+                else h
+                - 7.5
+                - (p["latch_pivot_diameter"] / 2 + 2 * p["fit_clearance"] + 0.15 + 1.2)
+                - (p["latch_pivot_diameter"] / 2 + p["fit_clearance"] + 0.4)
             )
             if (
-                c["z"] + c["height"] / 2 > h - 7.2 - 1.2
+                c["z"] + c["height"] / 2 > root - 1.2
                 and c["z"] - c["height"] / 2 < top + 1.2
                 and any(
                     abs(c["u"] - cx) < c["width"] / 2 + half + 1.2

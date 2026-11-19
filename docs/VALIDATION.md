@@ -1,6 +1,32 @@
 # Validation status
 
-## Version 1.2 verification — 2026-11-18
+## Snap lever redesign — 2026-11-19
+
+The current `snap_latch` has two lever latches articulated on the base, replacing the previous removable C-retainers. Four pieces are printed: base, lid and two levers with integral side pins. The pins pressure-fit through chamfered socket mouths. Both levers rotate to 90 degrees before the lid lifts, and stay attached to the base. Pivot diameter, lever width/thickness, hook retention and lid skirt depth remain independently editable within the validated geometric limits.
+
+The independent combined run passed **17/17 tests in 92.129 seconds** with `-B -W error`: ten adapted functional checks and seven new lever checks. They verify sampled closed clearance, actual lid retention/release, pivot-axis purity, radial/axial capture, temporary mounting/cam interference with progressive entry, a real closing stop, accessible grip space and print-layer starts. The large-pin/thin-grip and maximum-clearance counterexamples are covered. Focused actual-triangle checks found no proper crossings or coplanar area overlap in the tested Snap parts; this is not an exact global proof over all legacy geometry or every parameter combination.
+
+The post-freeze isolated browser passed **12 layouts and 37 interactions**, without layout/script errors. Five new checks inspect the actual WebGL model matrices during closed, partial-release, fully released/lid-seated and lifted phases, plus resizing. At 35% of opening both levers are at 90 degrees and the lid has not moved; later travel lifts the lid while keeping the levers on their base pivots.
+
+The **new Snap page passed native geometry/export checks** in a fresh installation of the final geometry on Windows with OrcaSlicer 2.5.1. A 110 × 80 × 40 mm preset showed approximately 51° lever rotation at 20% opening with the lid stationary, 90°/lid still seated at 35%, then 50 mm lid lift at 100% with the levers fixed on the base. A subsequent 160 × 95 × 35 mm configuration with 10 mm skirt and 0.40 mm clearance regenerated. EN/light and PT/dark views were exercised. Native export produced a 3MF and four STL files; delivery to an empty Plater visually confirmed base, lid and both replacement lever objects. The installed bundle matched the distribution, and sibling-plugin/activation-state hashes remained unchanged. No slicing or printing occurred.
+
+### Final rebuilt Windows dock and localization
+
+After a fresh rebuild/restart on 2026-11-19, the **new Snap dock passed** inside OrcaSlicer 2.5.1 on Windows. Space → Speed Dial → Orca Box Studio — Painel Lateral opened the dock. Switching EN→PT immediately translated Padrão, Alvo de erro and the ready-status text without observed geometry regeneration; the displayed mesh was retained. The 110 × 80 × 40 mm preset traversed 0→100% opening. Changing pivot diameter from 3.0 to 3.2 mm regenerated while preserving 100% opening. Resources fields and print instructions were present in Portuguese. Dock 3MF export succeeded, and Send visibly loaded base, lid and two levers as four objects on the Plater with the dock open. This supersedes the three stale labels observed in the earlier page session.
+
+The final focused UI subset passed **28 cases**: one localization, ten visual-template, eleven cache/local-edit and six articulated-case UI/bridge checks. These are focused runs, not additional unique cases to add to a full-suite total.
+
+During closing in an earlier native session, Orca prompted to save the exported project's process settings (four walls, five bottom layers and 35% Gyroid infill). Choosing **Discard** restored the preceding profile without saving over it. No slicing or printing occurred. Review imported process settings and the actual printer profile before printing.
+
+### Storage export correction and full-suite status
+
+The earlier full snapshot completed **134 cases in 573.985 seconds: 133 passed and one errored**. The error was an obsolete storage-export fixture expecting the new four-part Snap, body 160 × 95 × 35 mm, to fit a 220 × 220 mm bed. The pivot/socket envelope and the current conservative arranger's spacing require more room. This was not a successful full run.
+
+The fixture now verifies a 160 × 90 × 35 mm Snap on a 220 × 220 mm bed and 160 × 95 × 35 mm on a 260 × 260 mm bed, with default mating parameters. It also verifies actionable rejection of 160 × 95 × 35 mm on 220 × 220 mm, unchanged source vertices and no invalid output file. All **3 focused storage-export tests passed in 7.842 seconds**. The product packer was unchanged; these are specific verified layouts, not universal minimum beds or an optimum packing proof.
+
+The **final complete local run passed 136 tests in 574.594 seconds**, with `-B -W error`, Chromium enabled and **no failures, errors or skips**. It includes the final localization changes and corrected three-case storage-export coverage. Cross-platform results for each revision are available in the [CI run history](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml). Isolated checks of the standalone bundle and unpacked wheel also passed eight actual preview/print-geometry/3MF checks across `open_bin`, `snap_latch`, `stackable_bin` and `clamshell_pip`; the `_any` bundle was byte-identical. The previous Snap native result and older complete-run counts below concern the superseded mechanism. Unchanged styles retain their separately recorded results. Native macOS/Linux integration and physical fitting, release force, fatigue, bridges and load remain untested.
+
+## Version 1.2 historical baseline before lever redesign — 2026-11-18
 
 ### Confirmed independent functional subset
 
@@ -30,15 +56,47 @@ After the final style-specific print-help change, the UI/cache/local-edit subset
 
 The isolated browser run passed **12 layouts and 26 interactions**, with zero layout or script errors. A final 26-interaction run after the print-help change also passed. It exercises the real Python meshes, changes the stacking foot/clearance/front opening, exports a single-piece stacking 3MF and restores lid controls when switching styles. Both standalone bundles and the wheel passed isolated import/registration and wheel RECORD verification. These checks do not control OrcaSlicer.
 
-### Current scope and remaining checks
+### Articulated PIP case targeted verification
 
-Version 1.2 has seven styles and fifteen editable presets. `open_bin` exports an open base with optional paired hand openings. `snap_latch` exports a base, flat removable lid and two separate front clips. Its `lid_wall_height` is the skirt depth below the cap; the flat cap top is `height_z + fit_clearance + lid_height`. Body dimensions are external base dimensions in millimetres, not the complete catch/clip envelope or the inside cavity.
+The post-stacking 89-case and 26-interaction results above are the baseline before adding the articulated case. After adding it and correcting the initial print-layer support geometry, all **8** independent cases in `tests/test_clamshell_mating.py` passed with `-B -W error`.
 
-Local source, export, packaging and isolated-browser checks after adding `stackable_bin` passed as recorded above. Native version 1.2 page/dock acceptance, regeneration, export and Plater loading remain pending. The earlier version 1.1 Windows observations below do not validate the changed mechanisms or current native bundle. Live macOS/Linux acceptance, slicing, physical print/fit, grip comfort, inserts, sealing and latch life remain pending.
+Both actual float32 halves are connected closed manifold shells, each genus four/Euler minus six, with correct normals and analytic-field/chord agreement. Equal external half height `H` produces a closed body height of `2H + fit_clearance`; both open halves have broad real floor surfaces at Z=0. The pure opening transform matches an independent rotation. Vertex, face-centre and weighted interior-face samples clear the opposite solid in both query directions at **83 poses** from 0 to 180 degrees, including closely spaced endpoint poses. Small axial travel remains clear, while integral end stops prevent larger displacement through the base bores.
 
-See [generation measurements](PERFORMANCE.md) for separate timing methodology and limits; no complete-suite timing is asserted here. The generic fit kit is unavailable for the three storage styles. Test smaller configurations of their actual parts with the same wall thickness, clearance, clip dimensions and retention; uniform mesh scaling changes these values.
+Layer-event checks slice actual triangles between vertex-Z events below the body rim. Each positive filled contour must originate at the bed or overlap same-half material below the event. Splitting a previously supported contour is allowed; a new suspended tube/head start is not. The final barrels and lid heads have integral floor pedestals. Short axle bridges remain between supports, so these computational checks do not establish support-free printing or physical hinge release.
+
+The **3** actual export tests passed after this correction: one 3MF object/build transform preserves both open shells and float32 arrays, binary STL rewelds to the same two oriented shells, and an undersized bed rejects the assembly without rearrangement/scaling. The isolated browser run passed **12 layouts and 32 interactions**, with no layout/script issues, before the last label-only patch. The final suite and native record below cover the later verification; targeted counts are not added together as a claimed total.
+
+### Pre-lever local suite and Windows native observations
+
+The full local command with `-B -W error` passed **114 tests in 390.310 seconds with no skips**, including the optional Chromium cascade test. One new gap/HUD label regression was added after that run had imported its tests. The later **17-case focused UI/cache follow-up passed**, including that new regression. Current test discovery is **115 cases**; an exact full 115-case CI result remains pending. The counts describe distinct runs, not 131 unique tests.
+
+The 12-layout/32-interaction browser run preceded that final label-only patch. Focused tests covered the change, and the final native session confirmed the PT/EN labels in the actual application.
+
+**Observed native session: OrcaSlicer 2.5.1 on Windows, final Box 1.2 bundle.** The application was launched fresh after installation. Version/activation were confirmed in the plugin manager; existing activation metadata and the checked hashes of three sibling plugin bundles were preserved. The studio page showed 17 presets. The following operations were visually confirmed:
+
+| Native configuration | Observed result |
+| --- | --- |
+| Articulated case, 120 × 65 mm, half height changed from 14 to 18 mm | PT/EN, light/dark and 180°→0° opening controls worked; closed height displayed 36.2 mm. Export/delivery while the preview was closed loaded the correct open 180° captive assembly on the Plater. |
+| Stackable bin, 140 × 100 mm, height changed from 80 to 100 mm, front access width 85 mm | Regenerated and appeared as the single intended model on the Plater. This was not a physical stacking test. |
+| Open bin, height 72 mm, hand-opening width 48 mm | STL export and native Plater loading succeeded; the wall openings were visibly present. |
+| Previous removable clip lid, 160 × 95 × 35 mm, skirt depth 10 mm — superseded | Closed preview and 3MF loading succeeded for the former design. This does not validate the replacement base-mounted levers. |
+| Dock via Space → Speed Dial → Orca Box → Orca Box Studio — Painel Lateral → Enter | Shape, Features, Print and Presets tabs worked. The short articulated preset began open at 180° with correct gap labels; dock 3MF export and Send to Plater loaded the grouped PIP assembly. |
+
+All 3MF imports in this session were opened **as projects**, keeping them separate from existing models. The native session ended with the PIP assembly on the Plater and the dock open. Visual confirmation establishes actual loading for these observations; the client status correctly continues to report only that an import request was transmitted.
+
+No slicing or physical printing was performed. An acceleration-above-limit warning came from the selected existing Anycubic Kobra 260 × 260 printer profile; the validation session did not alter acceleration settings. Review the actual printer profile and its limit warnings before printing. Native macOS/Linux integration, physical fit, release force, service life, bridge quality and calibration prints remain pending.
+
+### Scope and remaining checks recorded before lever redesign
+
+Version 1.2 has eight styles and seventeen editable presets. `open_bin` exports an open base with optional paired hand openings. `snap_latch` exports a base, flat removable lid and two separate front clips. Its `lid_wall_height` is the skirt depth below the cap; the flat cap top is `height_z + fit_clearance + lid_height`. Body dimensions are external base dimensions in millimetres, not the complete catch/clip envelope or the inside cavity.
+
+Local source, export, packaging and browser checks passed as recorded above, with a 114-case no-skip full run and focused verification of the final added regression. Final Windows page/dock generation, export and Plater loading were observed separately in the native session. The exact current 115-case full CI run remains pending. The earlier version 1.1 Windows observations below are historical; current native evidence comes from the separate version 1.2 session. Live macOS/Linux acceptance, slicing, physical print/fit, grip comfort, inserts, sealing and latch life remain pending.
+
+See [generation measurements](PERFORMANCE.md) for separate timing methodology and limits; the full-run timing above is separate from controller generation timings. The generic fit kit is unavailable for the three storage styles and the articulated case. Test smaller configurations of their actual parts with the same wall thickness, clearance, clip dimensions and retention; uniform mesh scaling changes these values.
 
 For `stackable_bin`, total height includes the foot. Matching outside X/Y, corner radius, wall, foot height and stacking clearance define a family; heights/front access may differ. The assembly offset is `lower.height_z - upper.stack_foot_height`, and combined height is the sum of the two heights minus the upper foot height. Only one base is exported per design.
+
+For `clamshell_pip`, only **Base + lid** and **Complete set** are supported, producing one open two-shell assembly. Individual halves, PCB posts, cutouts, dividers, TPU and the generic kit are rejected. The print envelope is width X, depth `2*depth_y + 2*hinge_separation` and maximum height `height_z + fit_clearance/2 + outer_hinge_radius`. It has no initial front latch. No source-photo assets are included.
 
 The version 1.0 and 1.1 records below are preserved as historical evidence.
 

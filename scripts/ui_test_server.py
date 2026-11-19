@@ -61,10 +61,20 @@ class Handler(BaseHTTPRequestHandler):
         html = mod.get_studio_html(mode, context)
         shim = """<script>
 window.__hostMessages=[];window.__sentMessages=[];
+// Development-only observation of the actual matrices submitted to WebGL.
+// Product code receives no additional API and the native host is never used.
+window.__glModelFrame={models:[]};
+if(window.WebGL2RenderingContext){
+const proto=WebGL2RenderingContext.prototype,names=new WeakMap();
+const getLocation=proto.getUniformLocation,uniformMatrix=proto.uniformMatrix4fv,clear=proto.clear;
+proto.getUniformLocation=function(program,name){const location=getLocation.call(this,program,name);if(location)names.set(location,name);return location;};
+proto.clear=function(){window.__glModelFrame={models:[]};return clear.apply(this,arguments);};
+proto.uniformMatrix4fv=function(location,transpose,matrix){if(location&&names.get(location)==='u_model')window.__glModelFrame.models.push(Array.from(matrix));return uniformMatrix.apply(this,arguments);};
+}
 window.orca={onMessage:callback=>window.__hostCallback=callback,postMessage:payload=>{
 window.__sentMessages.push(payload);return fetch('/message?mode=MODE',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}};
 setInterval(async()=>{try{const response=await fetch('/messages');for(const m of await response.json()){
-window.__hostMessages.push({type:m.type,warning:m.warning,ok:m.ok,meshes:m.meshes?.length,parts:m.meshes?.map(mesh=>mesh.part),request_id:m.request_id,message:m.message,params:m.params});
+window.__hostMessages.push({type:m.type,warning:m.warning,ok:m.ok,meshes:m.meshes?.length,parts:m.meshes?.map(mesh=>mesh.part),request_id:m.request_id,message:m.message,params:m.params,hinge:m.hinge,latch_motion:m.latch_motion,geometry_key:m.geometry_key});
 if(window.__hostCallback)window.__hostCallback(m);else if(window.handleHostMessage)window.handleHostMessage(m);else window.dispatchEvent(new MessageEvent('message',{data:m}));
 }}catch(error){console.error(error);}},150);
 </script>""".replace("MODE", mode)

@@ -12,6 +12,7 @@ from .mesh_generator import (
     topology_report,
     hinge_geometry,
     orient_mesh_for_print,
+    clamshell_print_bounds,
     generate_box_mesh,
     np,
 )
@@ -1365,6 +1366,13 @@ class BoxStudioController:
     def _preview_payload(self, p):
         target = p["export_target"]
         items = self._geometry(p, assembled=True, target=target)
+        latch_motion = None
+        if p["style"] == "snap_latch":
+            from .mesh_generator import latch_geometry
+
+            latch_motion = {
+                part: latch_geometry(p, part) for part in ("clip_left", "clip_right")
+            }
         calibration = target == "fit_test_kit"
         offsets = [[0.0, 0.0, 0.0] for _ in items]
         if calibration:
@@ -1425,11 +1433,15 @@ class BoxStudioController:
             "ok": True,
             "params": p,
             "preview_mode": "calibration" if calibration else "assembly",
+            "print_bounds": clamshell_print_bounds(p)
+            if p["style"] == "clamshell_pip"
+            else None,
             "geometry_key": hashlib.sha256(
                 (self._geometry_key(p) + "|" + target).encode("utf-8")
             ).hexdigest(),
             "meshes": encoded,
             "hinge": hinge_geometry(p),
+            "latch_motion": latch_motion,
             "volume_cm3": sum(m.volume_cm3 for _, m in items),
             "surface_note": "Curved surfaces are tessellated; fit-interface chord target is shown in mm.",
         }
