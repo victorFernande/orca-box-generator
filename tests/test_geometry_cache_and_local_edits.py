@@ -227,7 +227,7 @@ class CanonicalCacheTests(unittest.TestCase):
 class LocalEditTests(unittest.TestCase):
     def run_js(self, script):
         result = subprocess.run(
-            ["node"], input=script, text=True, capture_output=True, timeout=20
+            ["node"], input=script, text=True, encoding="utf-8", capture_output=True, timeout=20
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 

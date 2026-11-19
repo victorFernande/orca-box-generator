@@ -131,7 +131,7 @@ class StudioInteractionTests(unittest.TestCase):
         result = subprocess.run(
             [shutil.which("node"), "-e", setup + script[start:end] + checks],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
             timeout=15,
             check=False,
         )
@@ -162,7 +162,7 @@ if(saved.length!==2||saved[1]!==91||p.width_x!==96)throw Error('pointer gesture 
         result = subprocess.run(
             [shutil.which("node"), "-e", setup + block + check],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
             timeout=15,
             check=False,
         )
@@ -272,7 +272,7 @@ console.log('camera framing PASS');"""
         result = subprocess.run(
             [shutil.which("node"), "-e", program],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
             timeout=15,
             check=False,
         )

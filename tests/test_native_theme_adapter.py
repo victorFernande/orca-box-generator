@@ -60,7 +60,7 @@ if(theme!=='dark')throw Error('explicit theme should take precedence over inject
         result = subprocess.run(
             [shutil.which("node"), "-e", program],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
             timeout=15,
             check=False,
         )
@@ -128,7 +128,7 @@ assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await
                 {"pages": pages, "automatic": automatic, "hostCSS": HOST_LIGHT_CSS}
             ),
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
             timeout=90,
             check=False,
         )

@@ -415,7 +415,7 @@ class VisualTemplateTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node.js is needed for JavaScript syntax verification")
     def test_javascript_is_syntactically_valid(self):
         script = "\n".join(Document(studio_html()).scripts)
-        result = subprocess.run([shutil.which("node"), "--check"], input=script, text=True, capture_output=True, timeout=30)
+        result = subprocess.run([shutil.which("node"), "--check"], input=script, text=True, encoding="utf-8", capture_output=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is needed for transform verification")
@@ -480,7 +480,7 @@ console.log('Transform-aware lid, sliding and perspective framing: PASS');
 """
         result = subprocess.run(
             [shutil.which("node")], input=prefix + production_math + assertions,
-            text=True, capture_output=True, timeout=30,
+            text=True, encoding="utf-8", capture_output=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -540,7 +540,7 @@ assert.equal(p.width_x,92);assert.equal(saved.length,1);assert.equal(saved[0].wi
 """
         result = subprocess.run(
             [shutil.which("node")], input=fixture + handlers + checks,
-            text=True, capture_output=True, timeout=30,
+            text=True, encoding="utf-8", capture_output=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -577,7 +577,7 @@ assert.deepEqual(press('BODY','z',false,false),{actions:[],prevented:false});
 """
         result = subprocess.run(
             [shutil.which("node")], input=fixture + binding.group() + checks,
-            text=True, capture_output=True, timeout=30,
+            text=True, encoding="utf-8", capture_output=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 

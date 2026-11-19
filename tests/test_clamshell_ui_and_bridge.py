@@ -118,7 +118,7 @@ class ClamshellUiTests(unittest.TestCase):
         result = subprocess.run(
             ["node"],
             input=setup + script[start:end] + suffix,
-            text=True,
+            text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,
         )
@@ -186,7 +186,7 @@ class ClamshellUiTests(unittest.TestCase):
         result = subprocess.run(
             ["node"],
             input=setup + translations + helper + checks,
-            text=True,
+            text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,
         )
@@ -228,7 +228,7 @@ class ClamshellUiTests(unittest.TestCase):
         result = subprocess.run(
             ["node"],
             input=setup + translations + helper + hud + checks,
-            text=True,
+            text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,
         )

@@ -57,7 +57,7 @@ class PivotLatchUiTests(unittest.TestCase):
         result = subprocess.run(
             ["node"],
             input=setup + script[start:end] + checks,
-            text=True,
+            text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,
         )

@@ -1381,6 +1381,10 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
 }
 </style>
     <style>
+      /* Preserve the reference page height when fallback font metrics differ. */
+      body[data-mode="page"] .studio-header {
+        min-height: 43px;
+      }
       .box-select {
         width: 100%;
         max-width: 100%;

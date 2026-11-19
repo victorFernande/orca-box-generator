@@ -86,7 +86,7 @@ class PreviewTranslationTests(unittest.TestCase):
         result = subprocess.run(
             ["node"],
             input=setup + translations + status + language + checks,
-            text=True,
+            text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,
         )
