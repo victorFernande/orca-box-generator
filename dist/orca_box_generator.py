@@ -5,15 +5,16 @@
 # [tool.orcaslicer.plugin]
 # id = "orca-box-studio"
 # name = "Orca Box Studio"
-# description = "Offline parametric enclosure studio with four construction styles and calibration parts"
+# description = "Offline parametric boxes, handgrip bins, removable latching lids and calibration parts"
 # author = "Orca Box Studio"
-# version = "1.0.0"
+# version = "1.2.0"
 # ///
 
 # MIT License
 #
 # Copyright (c) 2026 Orca Box Studio
 # Copyright (c) 2026 Orca Gear Studio (adapted infrastructure)
+# Copyright (c) 2026 Orca Vase Studio (adapted interface template)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +52,16 @@ import math
 from typing import Any
 
 SCHEMA_VERSION = 1
-VALID_STYLES = ("lip_snap", "rugged_box", "sliding_lid", "screw_corner")
+VALID_STYLES = (
+    "lip_snap",
+    "rugged_box",
+    "sliding_lid",
+    "screw_corner",
+    "open_bin",
+    "snap_latch",
+    "stackable_bin",
+    "clamshell_pip",
+)
 VALID_EXPORT_TARGETS = (
     "base_and_lid",
     "base_only",
@@ -73,6 +83,23 @@ DEFAULT_PARAMS: dict[str, Any] = {
     "corner_radius": 4.0,
     "fit_clearance": 0.2,
     "lip_depth": 5.0,
+    "snap_retention": 0.12,
+    "handles_enabled": True,
+    "handle_faces": "left_right",
+    "handle_width": 45.0,
+    "handle_height": 12.0,
+    "handle_top_margin": 8.0,
+    "latch_width": 18.0,
+    "latch_thickness": 2.0,
+    "latch_retention": 0.6,
+    "latch_pivot_diameter": 3.0,
+    "lid_wall_height": 8.0,
+    "stack_foot_height": 2.0,
+    "stack_clearance": 0.25,
+    "front_access_width": 60.0,
+    "front_access_drop": 14.0,
+    "pip_clearance": 0.30,
+    "hinge_separation": 5.0,
     "hinge_mode": "pin",
     "hinge_pin_diameter": 3.0,
     "screw_size": "M3",
@@ -129,6 +156,21 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
         ("corner_radius", 0.8, 30),
         ("fit_clearance", 0.1, 0.4),
         ("lip_depth", 3, 10),
+        ("snap_retention", 0.03, 0.30),
+        ("handle_width", 12, 160),
+        ("handle_height", 6, 40),
+        ("handle_top_margin", 3, 40),
+        ("latch_width", 8, 30),
+        ("latch_thickness", 1.2, 4),
+        ("latch_retention", 0.2, 1.2),
+        ("latch_pivot_diameter", 2.4, 4.0),
+        ("lid_wall_height", 3, 25),
+        ("stack_foot_height", 1, 5),
+        ("stack_clearance", 0.1, 0.8),
+        ("front_access_width", 12, 300),
+        ("front_access_drop", 4, 150),
+        ("pip_clearance", 0.20, 0.60),
+        ("hinge_separation", 4, 12),
         ("hinge_pin_diameter", 2, 6),
         ("screw_diameter", 2, 3),
         ("gasket_width", 0.6, 2),
@@ -140,6 +182,9 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
     p["corner_radius"] = min(p["corner_radius"], min(p["width_x"], p["depth_y"]) / 5)
     p["lip_depth"] = min(p["lip_depth"], p["height_z"] - p["floor_thickness"] - 2)
     p["style"] = p["style"] if p["style"] in VALID_STYLES else "lip_snap"
+    p["handle_faces"] = (
+        "front_back" if p["handle_faces"] == "front_back" else "left_right"
+    )
     p["hinge_mode"] = (
         p["hinge_mode"] if p["hinge_mode"] in ("pin", "print_in_place") else "pin"
     )
@@ -154,7 +199,7 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
     p["theme"] = "light" if p["theme"] == "light" else "dark"
     p["screw_size"] = p["screw_size"] if p["screw_size"] in INSERT_PRESETS else "M3"
     p["screw_diameter"] = {"M2": 2.0, "M2.5": 2.5, "M3": 3.0}[p["screw_size"]]
-    for key in ("gasket_enabled", "auto_configure_slicer"):
+    for key in ("gasket_enabled", "auto_configure_slicer", "handles_enabled"):
         p[key] = p[key] is True or p[key] == 1
     for key in ("dividers_x", "dividers_y"):
         values = p[key] if isinstance(p[key], list) else []
@@ -225,6 +270,101 @@ def validate_params(p: dict[str, Any]) -> list[str]:
         for k in ("width_x", "depth_y", "height_z", "wall_thickness", "floor_thickness")
     )
     keepout = t + p["corner_radius"] + 1
+    if p["style"] == "clamshell_pip":
+        outer_radius = p["hinge_pin_diameter"] / 2 + p["pip_clearance"] + 1.4
+        knuckle = max(4.0, min(6.0, w * 0.06))
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.26 + 1.5 * knuckle + 2 * p["pip_clearance"] + 1.2 > tangent - 1.2:
+            errors.append(
+                "Dobradiças: aumente a largura ou reduza o raio dos cantos / increase width or reduce corner radius for both hinges."
+            )
+        if p["hinge_separation"] < outer_radius + 0.8:
+            errors.append(
+                "Dobradiças: aumente a separação para preservar a rotação / increase hinge separation for the barrel radius."
+            )
+        if h + p["fit_clearance"] / 2 - 0.7 * outer_radius < f + 1.2:
+            errors.append(
+                "Dobradiças: aumente a altura de cada metade / increase the height of each half."
+            )
+        if any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            errors.append(
+                "Estojo articulado: torres, recortes, divisórias e TPU ainda não são compatíveis / articulated case does not yet support posts, ports, dividers or TPU."
+            )
+    if p["style"] == "stackable_bin":
+        f += p["stack_foot_height"]
+        if p["front_access_width"] > w - 2 * (p["corner_radius"] + 2 * t):
+            errors.append(
+                "Acesso frontal: preserve os cantos e apoios / front access must preserve corners and side supports."
+            )
+        if h - p["front_access_drop"] < f + max(3.0, t):
+            errors.append(
+                "Acesso frontal: preserve o fundo e a ponte inferior / front access must preserve the floor and lower bridge."
+            )
+        if h - p["stack_foot_height"] < f + 1.2:
+            errors.append(
+                "Altura insuficiente para receber o pé da próxima caixa / insufficient cavity height for the next stacking foot."
+            )
+        if min(w, d) - 2 * (t + p["stack_clearance"]) < 4:
+            errors.append(
+                "Pé de empilhamento pequeno demais / stacking guide footprint is too small."
+            )
+    if p["style"] == "open_bin" and p["handles_enabled"]:
+        span = d if p["handle_faces"] == "left_right" else w
+        if p["handle_width"] < p["handle_height"] or p["handle_width"] > span - 2 * (
+            p["corner_radius"] + 1.2
+        ):
+            errors.append(
+                "Alças: reduza a largura para preservar os cantos / reduce handle width to preserve corners."
+            )
+        if h - p["handle_top_margin"] - p["handle_height"] < f + 1.2:
+            errors.append(
+                "Alças: preserve 1.2 mm acima do fundo / leave 1.2 mm above the floor."
+            )
+        if p["handle_top_margin"] < max(3, t):
+            errors.append(
+                "Alças: preserve a espessura da borda superior / preserve the top rim thickness."
+            )
+    if p["style"] == "snap_latch":
+        c = p["fit_clearance"]
+        pr = p["latch_pivot_diameter"] / 2
+        outer = pr + 2 * c + 0.15 + 1.2
+        offset = pr + c + 0.4
+        ear = max(1.6, p["latch_thickness"])
+        frame = p["latch_width"] / 2 + c + ear
+        tangent = min(
+            w / 2 - p["corner_radius"], w / 2 - t - max(0.15, p["corner_radius"] - t)
+        )
+        if w * 0.24 + frame > tangent - 1.2 or w * 0.48 < 2 * frame + 1.2:
+            errors.append(
+                "Travas: preserve espaço para as orelhas dos pivôs / increase box width or reduce latch width for the pivot ears."
+            )
+        if h - 7.5 - outer - offset < f + 1.2:
+            errors.append(
+                "Travas: aumente a altura para apoiar os pivôs / increase height to support the latch pivots."
+            )
+        if t < outer - offset + 0.8:
+            errors.append(
+                "Travas: aumente a parede atrás dos pivôs / increase wall thickness behind the latch sockets."
+            )
+        if p["lid_wall_height"] > h - f - 1.2:
+            errors.append(
+                "Parede da tampa invade o fundo / lid wall height enters the floor clearance."
+            )
+    if p["style"] in ("open_bin", "stackable_bin") and p["gasket_enabled"]:
+        errors.append(
+            "Caixa aberta não usa junta de tampa / open bin does not use a lid gasket."
+        )
     for i, s in enumerate(p["standoffs"]):
         r = s["outer_diameter"] / 2
         if abs(s["x"]) + r > w / 2 - keepout or abs(s["y"]) + r > d / 2 - keepout:
@@ -235,7 +375,16 @@ def validate_params(p: dict[str, Any]) -> list[str]:
             errors.append(
                 f"Torre {i + 1}: fundo do furo deve ter 1.2 mm / hole needs a 1.2 mm blind floor."
             )
-        if f + s["height"] > h - p["lip_depth"] - 0.5:
+        depth = (
+            0
+            if p["style"] == "open_bin"
+            else p["stack_foot_height"]
+            if p["style"] == "stackable_bin"
+            else p["lid_wall_height"]
+            if p["style"] == "snap_latch"
+            else p["lip_depth"]
+        )
+        if f + s["height"] > h - depth - 0.5:
             errors.append(
                 f"Torre {i + 1}: altura invade a tampa / standoff height enters lid clearance."
             )
@@ -261,11 +410,71 @@ def validate_params(p: dict[str, Any]) -> list[str]:
         if (
             abs(c["u"]) + c["width"] / 2 > span / 2 - keepout
             or c["z"] - c["height"] / 2 < f + 1.2
-            or c["z"] + c["height"] / 2 > h - p["lip_depth"] - 2
+            or c["z"] + c["height"] / 2
+            > h
+            - (
+                p["stack_foot_height"]
+                if p["style"] == "stackable_bin"
+                else p["lid_wall_height"]
+                if p["style"] == "snap_latch"
+                else p["lip_depth"]
+            )
+            - 2
         ):
             errors.append(
                 f"Recorte {i + 1}: preserve fundo, cantos e encaixe / preserve floor, corners and lid interface."
             )
+        if (
+            p["style"] == "stackable_bin"
+            and c["face"] == "front"
+            and abs(c["u"]) < p["front_access_width"] / 2 + c["width"] / 2 + 1.2
+            and c["z"] + c["height"] / 2 > h - p["front_access_drop"] - 1.2
+        ):
+            errors.append(
+                f"Recorte {i + 1}: afaste o acesso frontal / move port away from the front access opening."
+            )
+        if p["style"] in ("rugged_box", "snap_latch") and c["face"] == "front":
+            half = (
+                3
+                if p["style"] == "rugged_box"
+                else p["latch_width"] / 2
+                + p["fit_clearance"]
+                + max(1.6, p["latch_thickness"])
+            )
+            top = h - 5.5 if p["style"] == "rugged_box" else h
+            root = (
+                h - 7.2
+                if p["style"] == "rugged_box"
+                else h
+                - 7.5
+                - (p["latch_pivot_diameter"] / 2 + 2 * p["fit_clearance"] + 0.15 + 1.2)
+                - (p["latch_pivot_diameter"] / 2 + p["fit_clearance"] + 0.4)
+            )
+            if (
+                c["z"] + c["height"] / 2 > root - 1.2
+                and c["z"] - c["height"] / 2 < top + 1.2
+                and any(
+                    abs(c["u"] - cx) < c["width"] / 2 + half + 1.2
+                    for cx in (-w * 0.24, w * 0.24)
+                )
+            ):
+                errors.append(
+                    f"Recorte {i + 1}: afaste o suporte da trava / move port away from latch catch."
+                )
+        faces = (
+            ("left", "right")
+            if p["handle_faces"] == "left_right"
+            else ("front", "back")
+        )
+        if p["style"] == "open_bin" and p["handles_enabled"] and c["face"] in faces:
+            center = h - p["handle_top_margin"] - p["handle_height"] / 2
+            if (
+                abs(c["u"]) < (c["width"] + p["handle_width"]) / 2 + 1.2
+                and abs(c["z"] - center) < (c["height"] + p["handle_height"]) / 2 + 1.2
+            ):
+                errors.append(
+                    f"Recorte {i + 1}: afaste a alça / move port away from handle opening."
+                )
         for j, o in enumerate(p["cutouts"][:i]):
             if (
                 c["face"] == o["face"]
@@ -365,7 +574,7 @@ def _slab(v: np.ndarray, low: float, high: float) -> np.ndarray:
 
 
 def _round2(a: np.ndarray, b: np.ndarray, ha: float, hb: float, r: float) -> np.ndarray:
-    radius = min(r, ha * 0.95, hb * 0.95)
+    radius = min(r, ha, hb)
     qa, qb = np.abs(a) - ha + radius, np.abs(b) - hb + radius
     return (
         np.hypot(np.maximum(qa, 0), np.maximum(qb, 0))
@@ -450,6 +659,65 @@ def _ring(w: float, d: float, z0: float, z1: float, t: float, r: float) -> Field
     )
 
 
+def _loft_rect_field(a: tuple, b: tuple) -> Field:
+    """Analytic linear loft between concentric rounded rectangle sections."""
+    z0, w0, d0, r0 = a
+    z1, w1, d1, r1 = b
+
+    def field(v):
+        u = np.clip((v[:, 2] - z0) / (z1 - z0), 0, 1)
+        w, d, radius = w0 + (w1 - w0) * u, d0 + (d1 - d0) * u, r0 + (r1 - r0) * u
+        radius = np.minimum(radius, np.minimum(w, d) * 0.475)
+        qx, qy = np.abs(v[:, 0]) - w / 2 + radius, np.abs(v[:, 1]) - d / 2 + radius
+        cross = (
+            np.hypot(np.maximum(qx, 0), np.maximum(qy, 0))
+            + np.minimum(np.maximum(qx, qy), 0)
+            - radius
+        )
+        return np.maximum(cross, _slab(v[:, 2], z0, z1))
+
+    return field
+
+
+def _lip_outer_profile(p):
+    w, d, h, t, c, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "fit_clearance",
+            "corner_radius",
+        )
+    )
+    sw, sd, sr = w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)
+    z = h - p["lip_depth"]
+    retention = p["snap_retention"]
+    # The lower chamfer starts the skirt freely; the bead ramps outward before
+    # its flat retaining shoulder. Retention and dimensional clearance differ.
+    chamfer = min(0.6, p["lip_depth"] - 2.9, (sw - 2.4) / 8, (sd - 2.4) / 8)
+    return [
+        (z, sw - 2 * chamfer, sd - 2 * chamfer, max(0.15, sr - chamfer)),
+        (z + chamfer, sw, sd, sr),
+        (h - 2.85, sw, sd, sr),
+        (
+            h - 2.25,
+            w - 2 * t + 2 * retention,
+            d - 2 * t + 2 * retention,
+            max(0.2, r - t + retention),
+        ),
+        (
+            h - 2.20,
+            w - 2 * t + 2 * retention,
+            d - 2 * t + 2 * retention,
+            max(0.2, r - t + retention),
+        ),
+        (h - 2.20, sw, sd, sr),
+        (h + c, sw, sd, sr),
+    ]
+
+
 def _corner_centers(p: dict[str, Any]) -> list[tuple[float, float]]:
     w, d, t = (p[k] for k in ("width_x", "depth_y", "wall_thickness"))
     return [
@@ -459,7 +727,17 @@ def _corner_centers(p: dict[str, Any]) -> list[tuple[float, float]]:
     ]
 
 
-def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
+def hinge_geometry(p: dict[str, Any]) -> dict[str, Any]:
+    if p.get("style") == "clamshell_pip":
+        radius = p["hinge_pin_diameter"] / 2
+        return {
+            "y": p["depth_y"] / 2 + p["hinge_separation"],
+            "z": p["height_z"] + p["fit_clearance"] / 2,
+            "radius": radius,
+            "outer_radius": radius + p["pip_clearance"] + 1.4,
+            "knuckle_length": max(4.0, min(6.0, p["width_x"] * 0.06)),
+            "centers": [-p["width_x"] * 0.26, p["width_x"] * 0.26],
+        }
     return {
         "y": p["depth_y"] / 2 + 5.0,
         "z": p["height_z"] - 4.0,
@@ -468,6 +746,190 @@ def hinge_geometry(p: dict[str, Any]) -> dict[str, float]:
         "span": p["width_x"] * 0.64,
         "knuckle_length": max(5.0, min(12.0, p["width_x"] * 0.13)),
     }
+
+
+def clamshell_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], angle: float = 180.0
+) -> np.ndarray:
+    """Rotate the canonical closed lid about the actual hinge, without mutation."""
+    p = normalize_params(raw)
+    if p["style"] != "clamshell_pip" or not math.isfinite(float(angle)):
+        raise ValueError(
+            "Use um estojo articulado e ângulo finito / use an articulated case and finite angle."
+        )
+    hg = hinge_geometry(p)
+    theta = -math.radians(float(angle))
+    cosine, sine = math.cos(theta), math.sin(theta)
+    v = np.asarray(vertices, dtype=np.float64).copy()
+    dy, dz = v[:, 1] - hg["y"], v[:, 2] - hg["z"]
+    v[:, 1] = hg["y"] + dy * cosine - dz * sine
+    v[:, 2] = hg["z"] + dy * sine + dz * cosine
+    v[np.abs(v) < 1e-10] = 0.0
+    if math.isclose(float(angle), 180.0, rel_tol=0, abs_tol=1e-10):
+        # Canonical meshes are float32. Snap only the analytically zero floor
+        # plane, avoiding a few microns of negative round-off on the print bed.
+        v[np.abs(v[:, 2]) < 3e-5, 2] = 0.0
+    return v
+
+
+def clamshell_print_bounds(raw: dict[str, Any]) -> dict[str, list[float]]:
+    """Analytic bounds of the open, captive assembly; no tessellation required."""
+    p = normalize_params(raw)
+    errors = validate_params(p)
+    if p["style"] != "clamshell_pip" or errors:
+        raise ValueError(
+            "Estojo inválido / invalid articulated case. " + "; ".join(errors)
+        )
+    hg = hinge_geometry(p)
+    low = [-p["width_x"] / 2, -p["depth_y"] / 2, 0.0]
+    high = [
+        p["width_x"] / 2,
+        3 * p["depth_y"] / 2 + 2 * p["hinge_separation"],
+        hg["z"] + hg["outer_radius"],
+    ]
+    return {"min": low, "max": high, "size": [b - a for a, b in zip(low, high)]}
+
+
+def stacking_pose_z(
+    raw_lower: dict[str, Any], raw_upper: dict[str, Any] | None = None
+) -> float:
+    """Bottom Z of the upper bin when its shoulders rest on the lower U rim.
+
+    height_z includes the foot. Heights and front access may differ; matching
+    exterior dimensions, wall/radius and guide parameters define a family.
+    This is geometric compatibility, not a physical load or print certification.
+    """
+    lower = normalize_params(raw_lower)
+    upper = normalize_params(raw_upper if raw_upper is not None else raw_lower)
+    for p in (lower, upper):
+        errors = validate_params(p)
+        if p["style"] != "stackable_bin" or errors:
+            raise ValueError(
+                "Use caixas empilháveis válidas / use valid stackable bins. "
+                + "; ".join(errors)
+            )
+    for key in (
+        "width_x",
+        "depth_y",
+        "corner_radius",
+        "wall_thickness",
+        "stack_foot_height",
+        "stack_clearance",
+    ):
+        if not math.isclose(lower[key], upper[key], rel_tol=0, abs_tol=1e-6):
+            raise ValueError(
+                "Famílias de empilhamento incompatíveis / incompatible stacking family: "
+                + key
+            )
+    return lower["height_z"] - upper["stack_foot_height"]
+
+
+def _stack_front_top(p, x):
+    half = p["front_access_width"] / 2
+    ramp = min(4.0, p["front_access_width"] / 4, p["front_access_drop"] / 2)
+    return (
+        p["height_z"]
+        - p["front_access_drop"]
+        + np.clip((np.abs(x) - (half - ramp)) / ramp, 0, 1) * p["front_access_drop"]
+    )
+
+
+def _clamshell_spans(p, part):
+    return [(a, b) for a, b, _ in _clamshell_knuckles(p, part)]
+
+
+def _clamshell_knuckles(p, part):
+    hg = hinge_geometry(p)
+    k = hg["knuckle_length"]
+    pc = p["pip_clearance"]
+    if part == "base":
+        return [
+            (
+                cx + side * (k + pc) - k / 2,
+                cx + side * (k + pc) + k / 2,
+                hg["outer_radius"],
+            )
+            for cx in hg["centers"]
+            for side in (-1, 1)
+        ]
+    end = 1.5 * k + 2 * pc
+    capr = hg["radius"] + pc + 0.8
+    return [
+        profile
+        for cx in hg["centers"]
+        for profile in (
+            (cx - end - 1.2, cx - end, capr),
+            (cx - k / 2, cx + k / 2, hg["outer_radius"]),
+            (cx + end, cx + end + 1.2, capr),
+        )
+    ]
+
+
+def _build_clamshell_field(p, part):
+    if part not in ("base", "lid"):
+        _GEOMETRY_HINTS.set(None)
+        raise ValueError(
+            "Estojo articulado usa apenas duas metades cativas / articulated case has only two captive halves."
+        )
+    hg = hinge_geometry(p)
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    zlo, zhi = 0.0, cz - 0.1 * R
+    solid = _difference(
+        _rect(w, d, 0, h, r), _rect(w - 2 * t, d - 2 * t, f, h + 1, max(0.15, r - t))
+    )
+    additions = []
+    for a, b, rr in _clamshell_knuckles(p, part):
+        additions.extend(
+            (
+                _cylinder_x(a, b, cy, cz, rr),
+                _box(a, b, d / 2 - 0.1, cy, 0.0, cz - 0.1 * rr),
+            )
+        )
+    solid = _union(solid, *additions)
+    if part == "base":
+        for a, b in _clamshell_spans(p, part):
+            solid = _difference(solid, _cylinder_x(a - 0.1, b + 0.1, cy, cz, pr + pc))
+    else:
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            solid = _union(
+                solid,
+                _cylinder_x(cx - end - 1.2, cx + end + 1.2, cy, cz, pr),
+            )
+    registry = _GEOMETRY_HINTS.get() or {
+        "planes": [[], [], []],
+        "circles": [],
+        "rectangles": [],
+    }
+    _GEOMETRY_HINTS.set(None)
+    if part == "lid":
+        upright = solid
+
+        def mirrored(v):
+            query = v.copy()
+            query[:, 2] = 2 * h + p["fit_clearance"] - v[:, 2]
+            return upright(query)
+
+        solid = mirrored
+    lowz = 0 if part == "base" else min(h + p["fit_clearance"], cz - R)
+    highz = max(h, cz + R) if part == "base" else 2 * h + p["fit_clearance"]
+    bounds = (-w / 2 - 1, w / 2 + 1, -d / 2 - 1, cy + R + 1, lowz - 1, highz + 1)
+    hints = {**registry, "levels": [0, f, h, zlo, zhi, cz - R, cz + R], "params": p}
+    return solid, bounds, hints
 
 
 def build_part_field(
@@ -494,6 +956,14 @@ def build_part_field(
         )
     )
     style = p["style"]
+    if style == "snap_latch" and part in ("base", "lid", "clip_left", "clip_right"):
+        return _build_snap_latch_field(p, part)
+    if style == "clamshell_pip":
+        return _build_clamshell_field(p, part)
+    if style in ("open_bin", "stackable_bin") and part != "base":
+        raise ValueError(
+            "Caixa aberta tem apenas base / open bin has no lid or fit kit."
+        )
     zcap = h + c
     circles: list[tuple[int, int, float, float, float]] = []
     rectangles: list[tuple[float, float, float]] = [
@@ -503,10 +973,25 @@ def build_part_field(
     levels = []
     bounds = (-w / 2 - 2, w / 2 + 2, -d / 2 - 2, d / 2 + 2, -2, h + c + lh + 2)
     if part == "base":
+        foot = p["stack_foot_height"] if style == "stackable_bin" else 0.0
+        if foot:
+            f += foot
         result = _difference(
-            _rect(w, d, 0, h, r),
+            _rect(w, d, foot, h, r),
             _rect(w - 2 * t, d - 2 * t, f, h + 3, max(0.15, r - t)),
         )
+        if style == "stackable_bin":
+            sc = p["stack_clearance"]
+            result = _union(
+                result,
+                _rect(
+                    w - 2 * t - 2 * sc,
+                    d - 2 * t - 2 * sc,
+                    0,
+                    foot + 0.1,
+                    max(0.2, r - t - sc),
+                ),
+            )
         additions = []
         for x in p["dividers_x"]:
             additions.append(
@@ -516,7 +1001,7 @@ def build_part_field(
                     -d / 2 + t - 0.2,
                     d / 2 - t + 0.2,
                     f - 0.2,
-                    h - p["lip_depth"] - 1,
+                    h - (foot + 0.2 if foot else p["lip_depth"]) - 1,
                 )
             )
         for y in p["dividers_y"]:
@@ -527,7 +1012,7 @@ def build_part_field(
                     y - t / 2,
                     y + t / 2,
                     f - 0.2,
-                    h - p["lip_depth"] - 1,
+                    h - (foot + 0.2 if foot else p["lip_depth"]) - 1,
                 )
             )
         for s in p["standoffs"]:
@@ -567,17 +1052,42 @@ def build_part_field(
                 )
             levels.append(h - 9)
         result = _union(result, *additions)
+        if style == "stackable_bin":
+
+            def access(v):
+                return np.maximum.reduce(
+                    (
+                        np.abs(v[:, 0]) - p["front_access_width"] / 2,
+                        _stack_front_top(p, v[:, 0]) - v[:, 2],
+                        v[:, 2] - (h + 1),
+                        _slab(v[:, 1], -d / 2 - 1, -d / 2 + t + 0.5),
+                    )
+                )
+
+            result = _difference(result, access)
+            half = p["front_access_width"] / 2
+            ramp = min(4.0, p["front_access_width"] / 4, p["front_access_drop"] / 2)
+            _planes(0, -half, -half + ramp, half - ramp, half)
+            _planes(1, -d / 2, -d / 2 + t)
+            levels.extend([foot, f, h - p["front_access_drop"]])
         if style == "lip_snap":
+            relief = p["snap_retention"] + 0.18
             groove = _ring(
-                w - 2 * t + 0.6,
-                d - 2 * t + 0.6,
+                w - 2 * t + 2 * relief,
+                d - 2 * t + 2 * relief,
                 h - 3.0,
                 h - 2.1,
                 0.4,
-                max(0.2, r - t + 0.3),
+                max(0.2, r - t + relief),
             )
             result = _difference(result, groove)
-            rectangles.append((w - 2 * t + 0.6, d - 2 * t + 0.6, max(0.2, r - t + 0.3)))
+            rectangles.append(
+                (
+                    w - 2 * t + 2 * relief,
+                    d - 2 * t + 2 * relief,
+                    max(0.2, r - t + relief),
+                )
+            )
         if style == "sliding_lid":
             _planes(0, -w / 2 + t, -w / 2 + t + 1.6, w / 2 - t - 1.6, w / 2 - t)
             _planes(1, -d / 2 + t, d / 2 - t)
@@ -599,12 +1109,34 @@ def build_part_field(
                 )
 
             result = _union(result, rail)
-            # Rear detent pocket, away from the lip load path.
+            # A rear shelf carries a recessed socket. The lid's downward tooth
+            # must climb this shelf on withdrawal; a pocket open toward -Y alone
+            # cannot retain a sliding lid.
+            rear = d / 2 - t
+            result = _union(result, _box(-2.5, 2.5, rear - 4, rear + 0.2, h - 5, h - 3))
             result = _difference(
-                result, _box(-2, 2, d / 2 - t - 0.6, d / 2 + 0.2, h - 2.9, h - 1.9)
+                result, _box(-1.5, 1.5, rear - 1.7, rear - 0.2, h - 4.2, h - 2.8)
             )
-            levels.extend([h - 4, h - 1.4, h - 2.9, h - 1.9])
-        for cut in p["cutouts"]:
+            levels.extend([h - 5, h - 4.2, h - 3, h - 2.8, h - 4, h - 1.4])
+        cuts = list(p["cutouts"])
+        if style == "open_bin" and p["handles_enabled"]:
+            for face in (
+                ("left", "right")
+                if p["handle_faces"] == "left_right"
+                else ("front", "back")
+            ):
+                cuts.append(
+                    {
+                        "face": face,
+                        "kind": "handle",
+                        "shape": "rounded",
+                        "u": 0.0,
+                        "z": h - p["handle_top_margin"] - p["handle_height"] / 2,
+                        "width": p["handle_width"],
+                        "height": p["handle_height"],
+                    }
+                )
+        for cut in cuts:
             face = cut["face"]
 
             def opening(v: np.ndarray, cut=cut, face=face) -> np.ndarray:
@@ -622,7 +1154,15 @@ def build_part_field(
                         - min(a, b) * 0.866025403784
                     )
                 else:
-                    cross = _round2(u, z, a, b, min(1.0, a * 0.4, b * 0.4))
+                    cross = _round2(
+                        u,
+                        z,
+                        a,
+                        b,
+                        min(a, b)
+                        if cut.get("kind") == "handle"
+                        else min(1.0, a * 0.4, b * 0.4),
+                    )
                 if face in ("front", "back"):
                     normal = v[:, 1] * (1 if face == "back" else -1)
                     slab = _slab(normal, d / 2 - t - 1, d / 2 + 3)
@@ -643,6 +1183,12 @@ def build_part_field(
                     )
                 )
             levels.extend([cut["z"] - cut["height"] / 2, cut["z"] + cut["height"] / 2])
+            if cut.get("kind") == "handle":
+                axis = 0 if face in ("front", "back") else 1
+                rad = min(cut["width"], cut["height"]) / 2
+                for u in (-cut["width"] / 2 + rad, cut["width"] / 2 - rad):
+                    circles.append((axis, 2, u, cut["z"], rad))
+                _planes(axis, -cut["width"] / 2, cut["width"] / 2)
         if p["gasket_enabled"]:
             gw, gd = p["gasket_width"], p["gasket_depth"]
             result = _difference(
@@ -696,18 +1242,44 @@ def build_part_field(
                     h + 1.2,
                 ),
             )
-            # Flexible rear tongue and bump engaging the rear pocket.
-            result = _union(
+            # Two slots leave a connected 7 mm flexure. The tooth has a rear
+            # insertion ramp and a front retaining shoulder, with positive
+            # clearance while seated in the shelf socket.
+            rear = d / 2 - t
+            result = _difference(
                 result,
-                _box(-1.5, 1.5, d / 2 - t - 2, d / 2 - t + 0.25, h - 2.7, h - 2.1),
+                _box(-2, -1.2, rear - 7, rear + 0.1, h - 4, h + 1),
+                _box(1.2, 2, rear - 7, rear + 0.1, h - 4, h + 1),
             )
-            levels.extend([h - 3 + c, h - 1.4 - c, h + 1.2, h - 2.7, h - 2.1])
+
+            def tooth(v):
+                bottom = (
+                    h
+                    - 3
+                    - 0.35
+                    + np.clip((v[:, 1] - (rear - 0.9)) / 0.5, 0, 1) * (0.35 + c)
+                )
+                return np.maximum.reduce(
+                    (
+                        np.abs(v[:, 0]) - 1.1,
+                        _slab(v[:, 1], rear - 1.5, rear - 0.4),
+                        bottom - v[:, 2],
+                        v[:, 2] - (h - 3 + c + 0.3),
+                    )
+                )
+
+            result = _union(result, tooth)
+            _planes(0, -1.1, 1.1)
+            _planes(1, rear - 1.5, rear - 0.9, rear - 0.4)
+            levels.extend(
+                [h - 3 - 0.35, h - 3 + c, h - 3 + c + 0.3, h - 1.4 - c, h + 1.2]
+            )
         else:
             result = _rect(w, d, zcap, zcap + lh, r)
             skirt = _ring(
                 w - 2 * t - 2 * c,
                 d - 2 * t - 2 * c,
-                h - p["lip_depth"],
+                h - (p["lid_wall_height"] if style == "snap_latch" else p["lip_depth"]),
                 zcap + 0.2,
                 1.2,
                 max(0.2, r - t - c),
@@ -725,19 +1297,27 @@ def build_part_field(
                 ]
             )
             if style == "lip_snap":
-                bead = _ring(
-                    w - 2 * t + 0.24,
-                    d - 2 * t + 0.24,
-                    h - 2.85,
-                    h - 2.25,
-                    c + 0.3,
-                    max(0.2, r - t + 0.12),
+                profile = _lip_outer_profile(p)
+                outer = _union(
+                    *[
+                        _loft_rect_field(a, b)
+                        for a, b in zip(profile, profile[1:])
+                        if b[0] > a[0]
+                    ]
                 )
-                result = _union(result, bead)
-                rectangles.append(
-                    (w - 2 * t + 0.24, d - 2 * t + 0.24, max(0.2, r - t + 0.12))
+                inner = _rect(
+                    w - 2 * t - 2 * c - 2.4,
+                    d - 2 * t - 2 * c - 2.4,
+                    h - p["lip_depth"] - 1,
+                    zcap + 0.1,
+                    max(0.15, r - t - c - 1.2),
                 )
-                levels.extend([h - 2.85, h - 2.25])
+                result = _union(
+                    _rect(w, d, zcap, zcap + lh, r), _difference(outer, inner)
+                )
+                for z, pw, pd, pr in profile:
+                    _rect(pw, pd, z, z + 0.001, pr)
+                    levels.append(z)
             if style == "screw_corner":
                 # Relieve skirt around bosses: the four screw posts are continuous to the rim.
                 for x, y in _corner_centers(p):
@@ -796,32 +1376,99 @@ def build_part_field(
         bounds = (-w / 2 - 3, w / 2 + 3, d / 2, d / 2 + 12, h - 11, h + 5)
     elif part.startswith("clip"):
         cx = (-1 if part == "clip_left" else 1) * w * 0.24
-        # Detachable flexure clip; middle relief leaves two connected spring arms.
-        result = _difference(
-            _box(cx - 4, cx + 4, -d / 2 - 6, -d / 2 - 1, h - 9, zcap + lh + 1),
-            _box(
-                cx - 2.6, cx + 2.6, -d / 2 - 4.6, -d / 2 + 0.2, h - 7, zcap + lh - 0.4
-            ),
-        )
-        # Inward return toe engages the base's catch boss.
-        result = _union(
-            result, _box(cx - 4, cx + 4, -d / 2 - 4, -d / 2 - 0.1, h - 9, h - 7.5)
-        )
-        result = _union(
-            result,
-            _box(
-                cx - 4,
-                cx + 4,
-                -d / 2 - 6,
-                -d / 2 + 1.4,
-                zcap + lh + 0.25,
-                zcap + lh + 1,
-            ),
-        )
-        bounds = (cx - 6, cx + 6, -d / 2 - 8, -d / 2 + 2, h - 11, zcap + lh + 3)
-        levels.extend([h - 9, h - 7.5, h - 7, zcap + lh - 0.4, zcap + lh + 1])
+        if style == "snap_latch":
+            poly = _storage_clip_profile(p)
+
+            def clipfield(v):
+                yz = v[:, [1, 2]]
+                inside = np.zeros(len(v), dtype=bool)
+                distance = np.full(len(v), np.inf)
+                for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+                    edge = b - a
+                    u = np.clip(((yz - a) * edge).sum(axis=1) / (edge @ edge), 0, 1)
+                    distance = np.minimum(
+                        distance, np.linalg.norm(yz - a - u[:, None] * edge, axis=1)
+                    )
+                    inside ^= ((a[1] > yz[:, 1]) != (b[1] > yz[:, 1])) & (
+                        yz[:, 0]
+                        < (b[0] - a[0]) * (yz[:, 1] - a[1]) / (b[1] - a[1] + 1e-30)
+                        + a[0]
+                    )
+                return np.maximum(
+                    np.where(inside, -distance, distance),
+                    np.abs(v[:, 0] - cx) - p["latch_width"] / 2,
+                )
+
+            result = clipfield
+            for y, z in poly:
+                _planes(1, float(y))
+                _planes(2, float(z))
+            _planes(0, cx - p["latch_width"] / 2, cx + p["latch_width"] / 2)
+            bounds = (
+                cx - p["latch_width"] / 2 - 1,
+                cx + p["latch_width"] / 2 + 1,
+                float(poly[:, 0].min() - 1),
+                float(poly[:, 0].max() + 1),
+                float(poly[:, 1].min() - 1),
+                float(poly[:, 1].max() + 1),
+            )
+        else:
+            # Detachable flexure clip; middle relief leaves two connected spring arms.
+            result = _difference(
+                _box(cx - 4, cx + 4, -d / 2 - 6, -d / 2 - 1, h - 9, zcap + lh + 1),
+                _box(
+                    cx - 3 - c,
+                    cx + 3 + c,
+                    -d / 2 - 4.6,
+                    -d / 2 + 0.2,
+                    h - 7.2 - c,
+                    zcap + lh - 0.4,
+                ),
+            )
+            # Inward return toe engages the base's catch boss.
+            result = _union(
+                result, _box(cx - 4, cx + 4, -d / 2 - 4, -d / 2 - 0.1, h - 9, h - 7.5)
+            )
+            result = _union(
+                result,
+                _box(
+                    cx - 4,
+                    cx + 4,
+                    -d / 2 - 6,
+                    -d / 2 + 1.4,
+                    zcap + lh + 0.25,
+                    zcap + lh + 1,
+                ),
+            )
+            bounds = (cx - 6, cx + 6, -d / 2 - 8, -d / 2 + 2, h - 11, zcap + lh + 3)
+            levels.extend([h - 9, h - 7.5, h - 7.2 - c, zcap + lh - 0.4, zcap + lh + 1])
     else:
         raise ValueError(f"Unknown part: {part}")
+    if style == "snap_latch" and part == "base":
+        bounds = (-w / 2 - 2, w / 2 + 2, -d / 2 - 4.2, d / 2 + 2, -2, h + c + lh + 2)
+        for cx in (-w * 0.24, w * 0.24):
+            bottom = h - 7.2
+            roof = bottom + p["latch_retention"] + c
+            top = roof + 1.2
+            catch = _difference(
+                _box(
+                    cx - p["latch_width"] / 2 + c,
+                    cx + p["latch_width"] / 2 - c,
+                    -d / 2 - 2.2,
+                    -d / 2 + 0.1,
+                    bottom,
+                    top,
+                ),
+                _box(
+                    cx - p["latch_width"] / 2 - 0.1,
+                    cx + p["latch_width"] / 2 + 0.1,
+                    -d / 2 - 1.8,
+                    -d / 2 - 0.5,
+                    bottom - 0.1,
+                    roof,
+                ),
+            )
+            result = _union(result, catch)
     if style == "rugged_box" and part in ("base", "lid"):
         hg = hinge_geometry(p)
         cy, cz, pr, hr, span, kl = (
@@ -891,6 +1538,8 @@ def build_part_field(
         bounds = (-w / 2 - 3, w / 2 + 3, -d / 2 - 4, d / 2 + 12, -2, h + c + lh + 3)
     if part == "lid" and style != "rugged_box":
         bounds = (*bounds[:4], h - p["lip_depth"] - 2, zcap + lh + 2)
+        if style == "snap_latch":
+            bounds = (*bounds[:4], h - p["lid_wall_height"] - 2, zcap + lh + 2)
     if part == "gasket":
         bounds = (*bounds[:4], h - p["gasket_depth"] - 1, h + 1)
     hints = {
@@ -1294,6 +1943,762 @@ def mesh_field(
     )
 
 
+class _SurfaceBuilder:
+    """Small, welded boundary mesh builder; never concatenates overlapping solids."""
+
+    def __init__(self):
+        self.vertices = []
+        self.faces = []
+        self.lookup = {}
+
+    def vertex(self, p):
+        key = tuple(float(x) for x in np.asarray(p, dtype=np.float32))
+        if key not in self.lookup:
+            self.lookup[key] = len(self.vertices)
+            self.vertices.append(key)
+        return self.lookup[key]
+
+    def triangle(self, a, b, c, reverse=False):
+        ids = [self.vertex(x) for x in (a, b, c)]
+        if len(set(ids)) == 3:
+            v = np.asarray([self.vertices[i] for i in ids], dtype=float)
+            if np.linalg.norm(np.cross(v[1] - v[0], v[2] - v[0])) > 1e-12:
+                self.faces.append(ids[::-1] if reverse else ids)
+
+    def quad(self, a, b, c, d, reverse=False):
+        self.triangle(a, b, c, reverse)
+        self.triangle(a, c, d, reverse)
+
+    def join(self, a, b, reverse=False):
+        for i in range(len(a)):
+            j = (i + 1) % len(a)
+            self.quad(a[i], a[j], b[j], b[i], reverse)
+
+    def disk(self, loop, reverse=False):
+        center = np.mean(loop, axis=0)
+        for i in range(len(loop)):
+            self.triangle(center, loop[i], loop[(i + 1) % len(loop)], reverse)
+
+    def mesh(self, part, error):
+        v = np.asarray(self.vertices, dtype=np.float32)
+        tri = np.asarray(self.faces, dtype=np.int32)
+        pts = v[tri].astype(float)
+        normals = np.cross(pts[:, 1] - pts[:, 0], pts[:, 2] - pts[:, 0])
+        normals /= np.linalg.norm(normals, axis=1)[:, None]
+        volume = float(np.sum(pts[:, 0] * np.cross(pts[:, 1], pts[:, 2])) / 6 / 1000)
+        if volume < 0:
+            tri = tri[:, [0, 2, 1]]
+            normals = -normals
+            volume = -volume
+        low, high = v.min(axis=0), v.max(axis=0)
+        return MeshData(
+            v,
+            tri,
+            normals.astype(np.float32),
+            {"min": low.tolist(), "max": high.tolist(), "size": (high - low).tolist()},
+            volume,
+            part,
+            error,
+        )
+
+
+def _rectangle_loop(w, d, r, z, n, edge_stops=None):
+    """CCW section with matching arc angles and optional straight-edge splits."""
+    r = min(r, w * 0.475, d * 0.475)
+    sections = []
+    corners = [
+        (w / 2 - r, -d / 2 + r, -90),
+        (w / 2 - r, d / 2 - r, 0),
+        (-w / 2 + r, d / 2 - r, 90),
+        (-w / 2 + r, -d / 2 + r, 180),
+    ]
+    # front, right, back, left: each edge followed by its CCW corner.
+    endpoints = [
+        ((-w / 2 + r, -d / 2), (w / 2 - r, -d / 2)),
+        ((w / 2, -d / 2 + r), (w / 2, d / 2 - r)),
+        ((w / 2 - r, d / 2), (-w / 2 + r, d / 2)),
+        ((-w / 2, d / 2 - r), (-w / 2, -d / 2 + r)),
+    ]
+    for k, ((a, b), (c, e)) in enumerate(endpoints):
+        stops = (edge_stops or {}).get(k, [0.0, 1.0])
+        for u in stops[:-1]:
+            sections.append((a + (c - a) * u, b + (e - b) * u, z))
+        cx, cy, angle = corners[k]
+        for theta in np.linspace(math.radians(angle), math.radians(angle + 90), n + 1)[
+            :-1
+        ]:
+            sections.append((cx + r * math.cos(theta), cy + r * math.sin(theta), z))
+    return np.asarray(sections)
+
+
+def _analytic_profile_mesh(p, part):
+    """Exact planar/profile patches with curved chords below the interface budget."""
+    if p["style"] == "snap_latch":
+        if part in ("clip_left", "clip_right"):
+            return _analytic_snap_lever(p, part)
+        if part == "lid":
+            return _analytic_snap_lid(p)
+        if part == "base" and not any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            return _analytic_snap_base(p)
+        return None
+    if p["style"] == "clamshell_pip":
+        return _analytic_clamshell_mesh(p, part)
+    if p["style"] == "stackable_bin" and part == "base":
+        if any(
+            p[k]
+            for k in (
+                "standoffs",
+                "cutouts",
+                "dividers_x",
+                "dividers_y",
+                "gasket_enabled",
+            )
+        ):
+            return None
+        return _analytic_stackable_mesh(p)
+    if p["style"] == "snap_latch" and part in ("clip_left", "clip_right"):
+        return _analytic_storage_mesh(p, part)
+    if p["style"] not in ("lip_snap", "open_bin", "snap_latch") or part not in (
+        "base",
+        "lid",
+    ):
+        return None
+    if part == "base" and any(
+        p[k]
+        for k in ("standoffs", "cutouts", "dividers_x", "dividers_y", "gasket_enabled")
+    ):
+        return None
+    w, d, h, t, f, c, r, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "fit_clearance",
+            "corner_radius",
+            "lid_height",
+        )
+    )
+    if (
+        r < t + 0.25
+    ):  # Different tangent locations need the general CSG boundary mesher.
+        return None
+    if p["style"] == "snap_latch":
+        return _analytic_storage_mesh(p, part)
+    tol = min(c / 4, 0.04) * 0.45
+    n = max(
+        4,
+        int(math.ceil((math.pi / 2) / math.acos(max(-1, min(1, 1 - tol / max(r, 1)))))),
+    )
+    b = _SurfaceBuilder()
+    if part == "base" and p["style"] == "open_bin":
+        return _analytic_storage_mesh(p, part)
+    if part == "base":
+        outer = [(0, w, d, r), (h, w, d, r)]
+        iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+        q = p["snap_retention"] + 0.18
+        inner = [
+            (f, iw, id_, ir),
+            (h - 3, iw, id_, ir),
+            (h - 3, iw + 2 * q, id_ + 2 * q, ir + q),
+            (h - 2.1, iw + 2 * q, id_ + 2 * q, ir + q),
+            (h - 2.1, iw, id_, ir),
+            (h, iw, id_, ir),
+        ]
+        outloops = [_rectangle_loop(pw, pd, pr, z, n) for z, pw, pd, pr in outer]
+        inloops = [_rectangle_loop(pw, pd, pr, z, n) for z, pw, pd, pr in inner]
+        for a, bb in zip(outloops, outloops[1:]):
+            b.join(a, bb)
+        for a, bb in zip(inloops, inloops[1:]):
+            b.join(a, bb, True)
+        b.disk(outloops[0], True)
+        b.disk(inloops[0])
+        b.join(outloops[-1], inloops[-1])
+    else:
+        outer = _lip_outer_profile(p) + [(h + c, w, d, r), (h + c + lh, w, d, r)]
+        iw, id_, ir = (
+            w - 2 * t - 2 * c - 2.4,
+            d - 2 * t - 2 * c - 2.4,
+            max(0.15, r - t - c - 1.2),
+        )
+        outloops = [_rectangle_loop(pw, pd, pr, z, n) for z, pw, pd, pr in outer]
+        inloops = [
+            _rectangle_loop(iw, id_, ir, z, n) for z in (h - p["lip_depth"], h + c)
+        ]
+        for a, bb in zip(outloops, outloops[1:]):
+            b.join(a, bb)
+        b.join(inloops[0], inloops[1], True)
+        b.join(inloops[0], outloops[0])
+        b.disk(inloops[-1], True)
+        b.disk(outloops[-1])
+    return b.mesh(part, tol)
+
+
+def _analytic_stackable_mesh(p):
+    """One boundary: foot guide, load shoulders, floor and open-access U rim."""
+    w, d, h, t, r, fh, sc = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "corner_radius",
+            "stack_foot_height",
+            "stack_clearance",
+        )
+    )
+    floor = fh + p["floor_thickness"]
+    tol = min(p["fit_clearance"] / 4, sc / 4, 0.04) * 0.45
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    half = p["front_access_width"] / 2
+    ramp = min(4.0, p["front_access_width"] / 4, p["front_access_drop"] / 2)
+    breaks = [-half, -half + ramp, half - ramp, half]
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {0: [(v + extent) / (2 * extent) for v in [-extent, *breaks, extent]]}
+
+    outer_stops = stops(w, r)
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    inner_stops = stops(iw, ir)
+    fw, fd, fr = iw - 2 * sc, id_ - 2 * sc, max(0.2, r - t - sc)
+    foot0 = _rectangle_loop(fw, fd, fr, 0, n, outer_stops)
+    foot1 = _rectangle_loop(fw, fd, fr, fh, n, outer_stops)
+    body0 = _rectangle_loop(w, d, r, fh, n, outer_stops)
+    outer_top = _rectangle_loop(w, d, r, h, n, outer_stops)
+    floor_loop = _rectangle_loop(iw, id_, ir, floor, n, inner_stops)
+    inner_top = _rectangle_loop(iw, id_, ir, h, n, inner_stops)
+    # Only the straight front panel is lowered. Its end posts and all corner
+    # arcs remain at full height, leaving three continuous load-bearing sides.
+    front_count = len(outer_stops[0])
+    outer_top[:front_count, 2] = _stack_front_top(p, outer_top[:front_count, 0])
+    inner_top[:front_count, 2] = _stack_front_top(p, inner_top[:front_count, 0])
+    b = _SurfaceBuilder()
+    b.disk(foot0, True)
+    b.join(foot0, foot1)
+    b.join(foot1, body0)
+    b.join(body0, outer_top)
+    b.disk(floor_loop)
+    b.join(floor_loop, inner_top, True)
+    b.join(outer_top, inner_top)
+    return b.mesh("base", tol)
+
+
+def _clamshell_angles(p):
+    hg = hinge_geometry(p)
+    R = hg["outer_radius"]
+    tol = min(p["fit_clearance"] / 4, p["pip_clearance"] / 4, 0.04) * 0.45
+    segments = 4 * math.ceil((2 * math.pi / (2 * math.acos(1 - tol / R))) / 4)
+    hi = math.atan2(-0.1, -math.sqrt(1 - 0.1**2)) % (2 * math.pi)
+    lo = 3 * math.pi / 2
+    angles = np.unique(np.r_[np.arange(segments) * 2 * math.pi / segments, hi, lo])
+    return angles, hi, lo, tol
+
+
+def _hinge_circle(angles, x, cy, cz, radius):
+    return np.column_stack(
+        (
+            np.full(len(angles), x),
+            cy + radius * np.cos(angles),
+            cz + radius * np.sin(angles),
+        )
+    )
+
+
+def _append_captive_knuckle(
+    builder, p, a, b, inner_radius, bored, outer_radius, attachment_levels
+):
+    """A barrel fused to its wall aperture, with a bore or an integral shaft.
+
+    The circular cap annulus and the connector cap meet along one shared arc.
+    Internal circle/rectangle union surfaces and the wall attachment are omitted.
+    """
+    hg = hinge_geometry(p)
+    cy, cz = (hg[k] for k in ("y", "z"))
+    R = outer_radius
+    angles, hi, lo, _ = _clamshell_angles(p)
+    outer0 = _hinge_circle(angles, a, cy, cz, R)
+    outer1 = _hinge_circle(angles, b, cy, cz, R)
+    inner0 = _hinge_circle(angles, a, cy, cz, inner_radius)
+    inner1 = _hinge_circle(angles, b, cy, cz, inner_radius)
+    builder.join(outer0, inner0, True)
+    builder.join(outer1, inner1)
+    if bored:
+        builder.join(inner0, inner1, True)
+    for i, theta in enumerate(angles):
+        j = (i + 1) % len(angles)
+        end = angles[j] + (2 * math.pi if j == 0 else 0)
+        if hi < (theta + end) / 2 < lo:
+            continue
+        builder.quad(outer0[i], outer0[j], outer1[j], outer1[i])
+    zlo, zhi = 0.0, cz - 0.1 * R
+    arc = angles[(angles >= hi - 1e-10) & (angles <= lo + 1e-10)][::-1]
+    poly = np.r_[
+        np.array([[p["depth_y"] / 2, zlo], [cy, 0.0]]),
+        np.column_stack((cy + R * np.cos(arc), cz + R * np.sin(arc))),
+        np.array([[p["depth_y"] / 2, zhi]]),
+        np.array(
+            [[p["depth_y"] / 2, z] for z in reversed(attachment_levels) if 0 < z < zhi]
+        ).reshape(-1, 2),
+    ]
+
+    def internal(u, v):
+        # The circular seam belongs to the disc boundary, not an exterior wall.
+        return (
+            abs(np.linalg.norm(u - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(v - [cy, cz]) - R) < 1e-7
+        )
+
+    _append_polygon_extrusion(builder, poly, a, b, p["depth_y"] / 2, internal)
+
+
+def _analytic_clamshell_mesh(p, part):
+    if part not in ("base", "lid"):
+        raise ValueError(
+            "Estojo articulado usa duas metades / articulated case has two halves."
+        )
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    hg = hinge_geometry(p)
+    cy, cz, R, pr, k = (
+        hg[key] for key in ("y", "z", "outer_radius", "radius", "knuckle_length")
+    )
+    pc = p["pip_clearance"]
+    knuckles = _clamshell_knuckles(p, part)
+    spans = _clamshell_spans(p, part)
+    angles, _, _, tol = _clamshell_angles(p)
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted([v for span in spans for v in span], reverse=True)
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {2: [(extent - v) / (2 * extent) for v in [extent, *xs, -extent]]}
+
+    outer_stops = stops(w, r)
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    inner_stops = stops(iw, ir)
+    levels = sorted(set([0.0, f, h] + [cz - 0.1 * rr for _, _, rr in knuckles]))
+    outer = [_rectangle_loop(w, d, r, z, n, outer_stops) for z in levels]
+    inner = [_rectangle_loop(iw, id_, ir, z, n, inner_stops) for z in levels if z >= f]
+    builder = _SurfaceBuilder()
+    builder.disk(outer[0], True)
+    builder.disk(inner[0])
+    builder.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            midx = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] - d / 2) < 1e-8
+                and abs(lower[j, 1] - d / 2) < 1e-8
+                and any(
+                    a < midx < b and 0 < midz < cz - 0.1 * rr for a, b, rr in knuckles
+                )
+            ):
+                continue
+            builder.quad(lower[i], lower[j], upper[j], upper[i])
+    for lower, upper in zip(inner, inner[1:]):
+        builder.join(lower, upper, True)
+    for a, b, rr in knuckles:
+        _append_captive_knuckle(
+            builder,
+            p,
+            a,
+            b,
+            pr + pc if part == "base" else pr,
+            part == "base",
+            rr,
+            levels,
+        )
+    if part == "lid":
+        for cx in hg["centers"]:
+            end = 1.5 * k + 2 * pc
+            left = [(cx - end, pr), (cx - k / 2, pr)]
+            right = [(cx + k / 2, pr), (cx + end, pr)]
+            for profile in (left, right):
+                loops = [_hinge_circle(angles, x, cy, cz, rr) for x, rr in profile]
+                for aa, bb in zip(loops, loops[1:]):
+                    builder.join(aa, bb)
+            builder.disk(_hinge_circle(angles, cx - end - 1.2, cy, cz, pr), True)
+            builder.disk(_hinge_circle(angles, cx + end + 1.2, cy, cz, pr))
+    mesh = builder.mesh(part, tol)
+    if part == "lid":
+        verts = mesh.vertices.copy()
+        verts[:, 2] = 2 * h + p["fit_clearance"] - verts[:, 2]
+        reflected = MeshData(
+            verts,
+            mesh.triangles[:, [0, 2, 1]].copy(),
+            mesh.face_normals.copy(),
+            {},
+            mesh.volume_cm3,
+            part,
+            tol,
+        )
+        return _reframe(reflected, verts)
+    return mesh
+
+
+def _storage_clip_profile(p):
+    """Closed-pose C clip. Hooks have positive vertical clearance and entry bevels."""
+    front = -p["depth_y"] / 2
+    thick = p["latch_thickness"]
+    ret = p["latch_retention"]
+    c = p["fit_clearance"]
+    spring_length = max(10.0, 6 * thick)
+    far = front - 2.2 - c - spring_length - thick
+    inner = far + thick
+    lower = p["height_z"] - 7.2 - c
+    upper = p["height_z"] + c + p["lid_height"] + c
+    lower_tip = front - 0.4
+    upper_tip = front + ret
+    bevel = min(ret, thick * 0.4)
+    return np.asarray(
+        [
+            (far, lower - thick),
+            (lower_tip, lower - thick + bevel),
+            (lower_tip, lower),
+            (front - 0.7, lower),
+            (front - 1.1, p["height_z"] - 7.2 + ret),
+            (front - 1.6, p["height_z"] - 7.2 + ret),
+            (front - 1.6, lower),
+            (inner, lower),
+            (inner, upper),
+            (upper_tip - bevel, upper),
+            (upper_tip, upper + bevel),
+            (upper_tip, upper + thick - bevel),
+            (far, upper + thick),
+        ],
+        dtype=float,
+    )
+
+
+_CAP_TRIANGLES: dict[bytes, tuple[tuple[int, int, int], ...]] = {}
+
+
+def _append_polygon_extrusion(b, poly, x0, x1, attachment=None, skip_edge=None):
+    """Ear-clip a simple planar contour and stitch its extrusion, sharing edges."""
+    area = float(
+        np.sum(
+            poly[:, 0] * np.roll(poly[:, 1], -1) - poly[:, 1] * np.roll(poly[:, 0], -1)
+        )
+    )
+    if area < 0:
+        poly = poly[::-1]
+
+    def cross(a, bb, c):
+        return (bb[0] - a[0]) * (c[1] - a[1]) - (bb[1] - a[1]) * (c[0] - a[0])
+
+    key = np.ascontiguousarray(poly, dtype=np.float64).tobytes()
+    faces = _CAP_TRIANGLES.get(key)
+    if faces is None:
+        indices = list(range(len(poly)))
+        result = []
+        while len(indices) > 3:
+            found = False
+            for j in range(len(indices)):
+                a, bb, c = (indices[(j + k) % len(indices)] for k in (-1, 0, 1))
+                if cross(poly[a], poly[bb], poly[c]) <= 1e-10:
+                    continue
+                others = [i for i in indices if i not in (a, bb, c)]
+                if any(
+                    cross(poly[a], poly[bb], poly[i]) >= -1e-10
+                    and cross(poly[bb], poly[c], poly[i]) >= -1e-10
+                    and cross(poly[c], poly[a], poly[i]) >= -1e-10
+                    for i in others
+                ):
+                    continue
+                result.append((a, bb, c))
+                indices.pop(j)
+                found = True
+                break
+            if not found:
+                raise ValueError("Invalid latch contour / contorno de trava inválido.")
+        result.append(tuple(indices))
+        faces = tuple(result)
+        if len(_CAP_TRIANGLES) >= 64:
+            _CAP_TRIANGLES.pop(next(iter(_CAP_TRIANGLES)))
+        _CAP_TRIANGLES[key] = faces
+    lo = np.column_stack((np.full(len(poly), x0), poly))
+    hi = np.column_stack((np.full(len(poly), x1), poly))
+    for a, bb, c in faces:
+        b.triangle(lo[a], lo[bb], lo[c], True)
+        b.triangle(hi[a], hi[bb], hi[c])
+    for i in range(len(poly)):
+        j = (i + 1) % len(poly)
+        if skip_edge is not None and skip_edge(poly[i], poly[j]):
+            continue
+        if (
+            attachment is not None
+            and abs(poly[i, 0] - attachment) < 1e-8
+            and abs(poly[j, 0] - attachment) < 1e-8
+        ):
+            continue
+        b.quad(lo[i], lo[j], hi[j], hi[i])
+
+
+def _extruded_polygon_mesh(poly, x0, x1, part, error):
+    b = _SurfaceBuilder()
+    _append_polygon_extrusion(b, poly, x0, x1)
+    return b.mesh(part, error)
+
+
+def _analytic_storage_mesh(p, part):
+    w, d, h, t, f, c, r, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "fit_clearance",
+            "corner_radius",
+            "lid_height",
+        )
+    )
+    tol = min(c / 4, 0.04) * 0.45
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    if part.startswith("clip"):
+        cx = (-1 if part == "clip_left" else 1) * w * 0.24
+        return _extruded_polygon_mesh(
+            _storage_clip_profile(p),
+            cx - p["latch_width"] / 2,
+            cx + p["latch_width"] / 2,
+            part,
+            0.0,
+        )
+    b = _SurfaceBuilder()
+    if part == "lid":
+        bottom = h - p["lid_wall_height"]
+        cap = h + c
+        top = cap + lh
+        sw, sd, sr = w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)
+        outer = [
+            (bottom, sw, sd, sr),
+            (cap, sw, sd, sr),
+            (cap, w, d, r),
+            (top, w, d, r),
+        ]
+        out = [_rectangle_loop(pw, pd, pr, z, n) for z, pw, pd, pr in outer]
+        innerbelow = [
+            _rectangle_loop(sw - 2.4, sd - 2.4, max(0.15, sr - 1.2), z, n)
+            for z in (bottom, cap)
+        ]
+        for a, bb in zip(out, out[1:]):
+            b.join(a, bb)
+        b.join(innerbelow[0], innerbelow[1], True)
+        b.join(innerbelow[0], out[0])
+        b.disk(innerbelow[-1], True)
+        b.disk(out[-1])
+        return b.mesh(part, tol)
+    # Four flat panels and four corner patches share the same boundary vertices.
+    # A handle is a capsule-shaped hole with a stitched wall tunnel, never a
+    # second shell pushed through the wall. Catch bosses replace front patches.
+    handles = p["style"] == "open_bin" and p["handles_enabled"]
+    handle_sides = (1, 3) if p["handle_faces"] == "left_right" else (0, 2)
+    stops = {}
+    handle_u = {}
+    rad = p["handle_height"] / 2
+    for k, span in enumerate((w, d, w, d)):
+        extent = span / 2 - r
+        values = [-extent, extent]
+        if handles and k in handle_sides:
+            hw = p["handle_width"] / 2
+            rr = rad
+            # Arc coordinates, including the two horizontal tangencies.
+            hn = max(2 * n, int(math.ceil(math.pi / math.acos(1 - tol / rad))))
+            vals = sorted(
+                set(
+                    float(x)
+                    for x in np.r_[np.linspace(-math.pi / 2, math.pi / 2, hn + 1), 0.0]
+                )
+            )
+            us = np.r_[
+                [-hw + rr - rr * math.cos(a) for a in vals],
+                [hw - rr + rr * math.cos(a) for a in vals],
+            ]
+            values.extend(us.tolist())
+            handle_u[k] = True
+        if p["style"] == "snap_latch" and k == 0:
+            for cx in (-w * 0.24, w * 0.24):
+                values.extend(
+                    [cx - p["latch_width"] / 2 + c, cx + p["latch_width"] / 2 - c]
+                )
+        values = sorted(set(round(float(x), 9) for x in values))
+        # CCW edge order reverses the back and left panels.
+        if k >= 2:
+            values = values[::-1]
+        stops[k] = [
+            (x + extent) / (2 * extent) if k < 2 else (extent - x) / (2 * extent)
+            for x in values
+        ]
+    out0 = _rectangle_loop(w, d, r, 0, n, stops)
+    inf = _rectangle_loop(w - 2 * t, d - 2 * t, r - t, f, n, stops)
+    outh = _rectangle_loop(w, d, r, h, n, stops)
+    inh = _rectangle_loop(w - 2 * t, d - 2 * t, r - t, h, n, stops)
+    b.disk(out0, True)
+    b.disk(inf)
+    b.join(outh, inh)
+    catch_bottom = h - 7.2
+    catch_roof = catch_bottom + p["latch_retention"] + c
+    catch_top = catch_roof + 1.2
+    zlevels = sorted(
+        set(
+            [0.0, f, h]
+            + ([h - p["handle_top_margin"] - rad] if handles else [])
+            + (
+                [catch_bottom, catch_roof, catch_top]
+                if p["style"] == "snap_latch"
+                else []
+            )
+        )
+    )
+    cursor = 0
+    for k, span in enumerate((w, d, w, d)):
+        count = len(stops[k]) - 1
+        # Planar edge endpoints are immediately followed by the first arc point.
+        outer = out0[cursor : cursor + count + 1].copy()
+        inner = inf[cursor : cursor + count + 1].copy()
+        axis = 0 if k in (0, 2) else 1
+        normal_axis = 1 - axis
+        normal_sign = -1 if k in (0, 3) else 1
+        us = outer[:, axis]
+        if k in handle_u:
+            center = h - p["handle_top_margin"] - rad
+            hw = p["handle_width"] / 2
+
+            def limits(u):
+                if abs(u) > hw + 1e-6:
+                    return None
+                dx = max(0.0, abs(u) - (hw - rad))
+                dz = math.sqrt(max(0.0, rad * rad - dx * dx))
+                return center - dz, center + dz
+
+            for j in range(count):
+                u0, u1 = us[j], us[j + 1]
+                mid = (u0 + u1) / 2
+                if abs(mid) > hw:
+                    for loop, low, reverse in ((outer, 0, False), (inner, f, True)):
+                        for za, zb in zip(zlevels, zlevels[1:]):
+                            if za < low:
+                                continue
+                            a, bb = loop[j].copy(), loop[j + 1].copy()
+                            a[2] = bb[2] = za
+                            cc, dd = bb.copy(), a.copy()
+                            cc[2] = dd[2] = zb
+                            b.quad(a, bb, cc, dd, reverse)
+                else:
+                    lows = [limits(u)[0] for u in (u0, u1)]
+                    highs = [limits(u)[1] for u in (u0, u1)]
+                    for loop, low, reverse in ((outer, 0, False), (inner, f, True)):
+                        a, bb = loop[j].copy(), loop[j + 1].copy()
+                        a[2] = bb[2] = low
+                        if low == 0:
+                            cc, dd = bb.copy(), a.copy()
+                            cc[2] = dd[2] = f
+                            b.quad(a, bb, cc, dd, reverse)
+                            a[2] = bb[2] = f
+                        cc, dd = bb.copy(), a.copy()
+                        cc[2], dd[2] = lows[1], lows[0]
+                        b.quad(a, bb, cc, dd, reverse)
+                        a, bb = loop[j].copy(), loop[j + 1].copy()
+                        a[2], bb[2] = highs
+                        cc, dd = bb.copy(), a.copy()
+                        cc[2] = dd[2] = h
+                        b.quad(a, bb, cc, dd, reverse)
+                    for zs, reverse in ((lows, False), (highs, True)):
+                        a, bb = outer[j].copy(), outer[j + 1].copy()
+                        a[2], bb[2] = zs
+                        cc, dd = inner[j + 1].copy(), inner[j].copy()
+                        cc[2], dd[2] = zs[1], zs[0]
+                        b.quad(a, bb, cc, dd, reverse)
+        else:
+            # Remove only the body's attachment patches. The catch boundary is
+            # extruded below with its underside socket, sharing those open edges.
+            catches = np.zeros((len(zlevels) - 1, count), dtype=bool)
+            if p["style"] == "snap_latch" and k == 0:
+                for zi, (za, zb) in enumerate(zip(zlevels, zlevels[1:])):
+                    for j in range(count):
+                        if catch_bottom < (za + zb) / 2 < catch_top and any(
+                            abs((us[j] + us[j + 1]) / 2 - cx) < p["latch_width"] / 2 - c
+                            for cx in (-w * 0.24, w * 0.24)
+                        ):
+                            catches[zi, j] = True
+            for zi, (za, zb) in enumerate(zip(zlevels, zlevels[1:])):
+                for j in range(count):
+                    if not catches[zi, j]:
+                        a, bb = outer[j].copy(), outer[j + 1].copy()
+                        a[2] = bb[2] = za
+                        cc, dd = bb.copy(), a.copy()
+                        cc[2] = dd[2] = zb
+                        b.quad(a, bb, cc, dd)
+                    if za >= f:
+                        a, bb = inner[j].copy(), inner[j + 1].copy()
+                        a[2] = bb[2] = za
+                        cc, dd = bb.copy(), a.copy()
+                        cc[2] = dd[2] = zb
+                        b.quad(a, bb, cc, dd, True)
+        # Corner wall patches (all straight panel Z events remain shared).
+        for j in range(cursor + count, cursor + count + n):
+            jj = (j + 1) % len(out0)
+            for loop, low, reverse in ((out0, 0, False), (inf, f, True)):
+                for za, zb in zip(zlevels, zlevels[1:]):
+                    if za < low:
+                        continue
+                    a, bb = loop[j].copy(), loop[jj].copy()
+                    a[2] = bb[2] = za
+                    cc, dd = bb.copy(), a.copy()
+                    cc[2] = dd[2] = zb
+                    b.quad(a, bb, cc, dd, reverse)
+        cursor += count + n
+    if p["style"] == "snap_latch":
+        front = -d / 2
+        poly = np.asarray(
+            [
+                (front, catch_bottom),
+                (front - 0.5, catch_bottom),
+                (front - 0.5, catch_roof),
+                (front - 1.8, catch_roof),
+                (front - 1.8, catch_bottom),
+                (front - 2.2, catch_bottom),
+                (front - 2.2, catch_top),
+                (front, catch_top),
+                (front, catch_roof),
+            ]
+        )
+        for cx in (-w * 0.24, w * 0.24):
+            _append_polygon_extrusion(
+                b,
+                poly,
+                cx - p["latch_width"] / 2 + c,
+                cx + p["latch_width"] / 2 - c,
+                front,
+            )
+    return b.mesh(part, tol)
+
+
 def generate_box_mesh(
     raw: dict[str, Any] | None = None,
     part: str = "base",
@@ -1301,18 +2706,35 @@ def generate_box_mesh(
 ) -> MeshData:
     p = normalize_params(raw)
     field, bounds, hints = build_part_field(p, part)
-    mesh = mesh_field(field, bounds, hints, part)
-    if print_orientation:
-        verts = mesh.vertices.copy()
-        if part == "lid" and p["style"] != "sliding_lid":
-            # Closed cap face on the bed; skirt points upward without support.
-            verts[:, 2] *= -1
-            mesh.triangles = mesh.triangles[:, [0, 2, 1]]
-        if part == "pin":
-            verts = verts[:, [1, 2, 0]]
-        verts[:, 2] -= verts[:, 2].min()
-        mesh = _reframe(mesh, verts)
-    return mesh
+    mesh = _analytic_profile_mesh(p, part)
+    if mesh is None:
+        mesh = mesh_field(field, bounds, hints, part)
+    return orient_mesh_for_print(mesh, p, part) if print_orientation else mesh
+
+
+def orient_mesh_for_print(mesh: MeshData, raw: dict[str, Any], part: str) -> MeshData:
+    """Return a print pose without modifying the cached canonical mesh or its arrays."""
+    p = normalize_params(raw)
+    verts = mesh.vertices.copy()
+    triangles = mesh.triangles.copy()
+    if part == "lid" and p["style"] == "clamshell_pip":
+        verts = clamshell_open_transform(verts, p, 180.0)
+    elif part == "lid" and p["style"] != "sliding_lid":
+        verts[:, 2] *= -1
+        triangles = triangles[:, [0, 2, 1]]
+    if part == "pin":
+        verts = verts[:, [1, 2, 0]]
+    verts[:, 2] -= verts[:, 2].min()
+    copy = MeshData(
+        verts,
+        triangles,
+        mesh.face_normals.copy(),
+        {},
+        mesh.volume_cm3,
+        part,
+        mesh.interface_error_mm,
+    )
+    return _reframe(copy, verts)
 
 
 def _reframe(mesh: MeshData, vertices: np.ndarray) -> MeshData:
@@ -1336,6 +2758,10 @@ def generate_fit_test_kit(
     raw: dict[str, Any] | None = None,
 ) -> list[tuple[str, MeshData]]:
     p = normalize_params(raw)
+    if p["style"] in ("open_bin", "snap_latch", "stackable_bin", "clamshell_pip"):
+        raise ValueError(
+            "Kit de encaixe indisponível para este mecanismo; exporte base/tampa/travas / fit kit unavailable for this mechanism; export the actual parts."
+        )
     kit = copy_params(p)
     kit.update(
         width_x=28.0,
@@ -1429,9 +2855,36 @@ def collect_target_meshes(
     target: str | None = None,
     lang: str = "pt",
     assembled: bool = False,
+    mesh_factory: Callable | None = None,
 ) -> list[tuple[str, MeshData]]:
     p = normalize_params(raw)
+    generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
+    if p["style"] == "clamshell_pip":
+        if target not in ("base_and_lid", "full_suite"):
+            raise ValueError(
+                "Estojo cativo requer o conjunto aberto completo / captive case requires the complete open assembly."
+            )
+        names = ("Base", "Tampa" if lang == "pt" else "Lid")
+        if assembled:
+            return [
+                (name, generate(p, part, False))
+                for name, part in zip(names, ("base", "lid"))
+            ]
+        base = generate(p, "base", False)
+        lid = generate(p, "lid", True)
+        return [
+            (
+                "Estojo aberto articulado / Open articulated case",
+                combine_meshes([base, lid], "clamshell_pip_assembly"),
+            )
+        ]
+    if p["style"] in ("open_bin", "stackable_bin") and target in (
+        "lid_only",
+        "gasket",
+        "fit_test_kit",
+    ):
+        raise ValueError("Caixa aberta tem apenas base / open bin supports base only.")
     if target == "fit_test_kit":
         return generate_fit_test_kit(p)
     names = {
@@ -1445,11 +2898,16 @@ def collect_target_meshes(
     parts = []
     if target in ("base_and_lid", "base_only", "full_suite"):
         parts.append("base")
-    if target in ("base_and_lid", "lid_only", "full_suite"):
+    if target in ("base_and_lid", "lid_only", "full_suite") and p["style"] not in (
+        "open_bin",
+        "stackable_bin",
+    ):
         parts.append("lid")
     if p["style"] == "rugged_box" and target in ("base_and_lid", "full_suite"):
         if p["hinge_mode"] == "pin":
             parts.append("pin")
+        parts.extend(("clip_left", "clip_right"))
+    if p["style"] == "snap_latch" and target in ("base_and_lid", "full_suite"):
         parts.extend(("clip_left", "clip_right"))
     if target == "gasket" or (target == "full_suite" and p["gasket_enabled"]):
         parts.append("gasket")
@@ -1461,17 +2919,16 @@ def collect_target_meshes(
         and p["hinge_mode"] == "print_in_place"
         and target in ("base_and_lid", "full_suite")
     ):
-        connected = [generate_box_mesh(p, part, False) for part in ("base", "lid")]
+        connected = [generate(p, part, False) for part in ("base", "lid")]
         assembly = combine_meshes(connected, "print_in_place_assembly")
         result = [("Conjunto cativo / Captive assembly", assembly)]
         return result + [
-            (names[part][lang == "en"], generate_box_mesh(p, part, True))
+            (names[part][lang == "en"], generate(p, part, True))
             for part in parts
             if part not in ("base", "lid")
         ]
     return [
-        (names[part][lang == "en"], generate_box_mesh(p, part, not assembled))
-        for part in parts
+        (names[part][lang == "en"], generate(p, part, not assembled)) for part in parts
     ]
 
 
@@ -1509,6 +2966,566 @@ def topology_report(mesh: MeshData) -> dict[str, Any]:
         "volume_cm3": mesh.volume_cm3,
         "interface_error_mm": mesh.interface_error_mm,
     }
+
+
+def latch_geometry(raw: dict[str, Any], part: str = "clip_left") -> dict[str, Any]:
+    """Articulated latch contract. Positive X rotation releases the front hook."""
+    p = normalize_params(raw)
+    if p["style"] != "snap_latch" or part not in ("clip_left", "clip_right"):
+        raise ValueError("Use uma trava articulada / use an articulated latch.")
+    c = p["fit_clearance"]
+    pr = p["latch_pivot_diameter"] / 2
+    front = -p["depth_y"] / 2
+    cy = front - pr - c - 0.4
+    cz = p["height_z"] - 7.5
+    radius = pr + 2 * c + 0.15 + 1.2
+    ear = max(1.6, p["latch_thickness"])
+    stub = c + 0.6 * ear
+    mouth = pr - min(0.225, pr * 0.15)
+    cx = (-1 if part == "clip_left" else 1) * p["width_x"] * 0.24
+    hook = p["height_z"] + c + p["lid_height"] + max(0.25, c)
+    return {
+        "pivot": {"x": cx, "y": cy, "z": cz},
+        "release_angle": 90.0,
+        "release_fraction": 0.35,
+        "lid_lift_mm": 50.0,
+        "hook_gap": max(0.25, c),
+        "cam_interval": [4.0, 22.0],
+        "pin_radius": pr,
+        "bore_radius": pr + c,
+        "outer_radius": radius,
+        "mouth_half_height": mouth,
+        "socket_snap": pr - mouth,
+        "ear_thickness": ear,
+        "stub_length": stub,
+        "axial_engagement": stub - c,
+        "hook_y": cy - 1.0,
+        "hook_bottom_z": hook,
+        "catch_outer_y": cy - 1 - p["latch_retention"],
+        "catch_top_z": p["height_z"] + c + p["lid_height"],
+        "hub_radius": pr + c + 0.25,
+        "flat_z": cz - pr + 0.2,
+        "grip_inner_y": cy - 1 - p["latch_retention"] - c,
+        "grip_outer_y": cy - 1 - p["latch_retention"] - c - p["latch_thickness"],
+    }
+
+
+def latch_open_transform(
+    vertices: np.ndarray, raw: dict[str, Any], part: str, angle: float = 90.0
+) -> np.ndarray:
+    g = latch_geometry(raw, part)
+    pivot = g["pivot"]
+    if not math.isfinite(float(angle)):
+        raise ValueError("Ângulo finito necessário / finite angle required.")
+    v = np.asarray(vertices, dtype=float).copy()
+    a = math.radians(float(angle))
+    dy, dz = v[:, 1] - pivot["y"], v[:, 2] - pivot["z"]
+    v[:, 1] = pivot["y"] + dy * math.cos(a) - dz * math.sin(a)
+    v[:, 2] = pivot["z"] + dy * math.sin(a) + dz * math.cos(a)
+    return v
+
+
+def _snap_profiles(p):
+    g = latch_geometry(p)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    pr, R, c = g["pin_radius"], g["outer_radius"], p["fit_clearance"]
+    seat = pr + 2 * c + 0.15
+    br = pr + c
+    mouth = g["mouth_half_height"]
+    front = -p["depth_y"] / 2
+    outer_delta = math.asin((pr + 0.2) / R)
+    upper_inner = math.pi - math.asin(mouth / seat)
+    lower_inner = -math.pi + math.asin(mouth / br)
+    root = cz - R - (front - cy)
+    top = cz + math.sqrt(R * R - (front - cy) ** 2)
+
+    def samples(a, b, critical=()):
+        return np.unique(
+            np.r_[
+                np.linspace(a, b, max(2, int(abs(b - a) / 0.05) + 1)),
+                [v for v in critical if a < v < b],
+            ]
+        )
+
+    lower = samples(math.pi + outer_delta, 1.5 * math.pi)
+    upper = samples(math.acos((front - cy) / R), math.pi - outer_delta)
+    theta = samples(
+        lower_inner,
+        upper_inner,
+        np.deg2rad([78, 80, 86, 90, 94, 98, 100, 104, 106, 110]),
+    )[::-1]
+    degrees = np.rad2deg(theta)
+    relief = np.minimum(
+        np.clip((degrees - 78) / 2, 0, 1),
+        np.maximum(
+            np.clip((100 - degrees) / 2, 0, 1), np.clip((degrees - 104) / 2, 0, 1)
+        ),
+    )
+    inner = br + relief * (seat - br)
+    socket = np.r_[
+        np.column_stack((cy + R * np.cos(lower), cz + R * np.sin(lower))),
+        [[front, root], [front, top]],
+        np.column_stack((cy + R * np.cos(upper), cz + R * np.sin(upper))),
+        np.column_stack((cy + inner * np.cos(theta), cz + inner * np.sin(theta))),
+    ]
+    hub = g["hub_radius"]
+    flat = pr - 0.2
+    critical = np.deg2rad(
+        [0, 78, 80, 86, 90, 94, 98, 100, 104, 106, 110, 135, 180, 270]
+    )
+    grip_offset = 1 + p["latch_retention"] + c
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= hub / math.sqrt(2)
+        else math.acos(-grip_offset / hub)
+    )
+    critical = np.r_[critical, join_angle]
+    for radius in (pr, hub):
+        a = math.asin(flat / radius)
+        critical = np.r_[critical, math.pi + a, 2 * math.pi - a]
+    angles = samples(0, 2 * math.pi, critical)[:-1]
+    cam = np.maximum(0, 1 - np.abs(np.rad2deg(angles) - 90) / 4) * (c + 0.15)
+    pin_radius = pr + cam
+    sine = np.sin(angles)
+    limit = np.where(sine < -0.00001, flat / np.maximum(-sine, 0.00001), np.inf)
+    pin_radius = np.minimum(pin_radius, limit)
+    hub_radius = np.minimum(np.full(len(angles), hub), limit)
+    pin = np.column_stack(
+        (cy + pin_radius * np.cos(angles), cz + pin_radius * np.sin(angles))
+    )
+    hub_profile = np.column_stack(
+        (cy + hub_radius * np.cos(angles), cz + hub_radius * np.sin(angles))
+    )
+    a = 1 + p["latch_retention"] + c
+    th = p["latch_thickness"]
+    hook = g["hook_bottom_z"]
+    arc = angles[(angles >= join_angle - 1e-9) & (angles <= math.pi + 1e-9)]
+    grip = np.r_[
+        [
+            [cy - hub, cz],
+            [cy - a - th, cz + max(0.3, a + th - hub)],
+            [cy - a - th, hook + th],
+            [cy - 1, hook + th],
+            [cy - 1, hook],
+            [cy - a, hook],
+            [cy - a, cz + max(a, math.sqrt(max(0, hub * hub - a * a)))],
+        ],
+        np.column_stack((cy + hub * np.cos(arc), cz + hub * np.sin(arc))),
+    ]
+    stop_y = cy - a + c
+    stop_top = cz + 6.5
+    clearance_radius = g["hub_radius"] + c
+    arc_y = cy + clearance_radius * np.cos(np.linspace(0, math.pi, 65))
+    ys = np.sort(np.r_[front, stop_y, arc_y[(arc_y > stop_y) & (arc_y < front)]])[::-1]
+    lower = stop_top - 1 + stop_y - ys
+    rel = ys - cy
+    relief = np.where(
+        np.abs(rel) < clearance_radius,
+        cz + np.sqrt(np.maximum(0, clearance_radius**2 - rel**2)),
+        -np.inf,
+    )
+    stop = np.r_[
+        np.column_stack((ys, np.maximum(lower, relief))),
+        [[stop_y, stop_top], [front, stop_top]],
+    ]
+    return g, socket, pin, hub_profile, grip, stop, angles
+
+
+def _polygon_prism_field(poly, x0, x1):
+    low, high = poly.min(axis=0), poly.max(axis=0)
+
+    def field(v):
+        # Far from the prism a positive box bound preserves its zero set.
+        # Exact polygon distances are evaluated throughout a 0.5 mm surface band.
+        yz_all = v[:, [1, 2]]
+        slab = _slab(v[:, 0], x0, x1)
+        box = np.maximum(np.max(low - yz_all, axis=1), np.max(yz_all - high, axis=1))
+        result = np.maximum(slab, box)
+        near = (slab <= 0.5) & (box <= 0.5)
+        yz = yz_all[near]
+        inside = np.zeros(len(yz), dtype=bool)
+        distance = np.full(len(yz), np.inf)
+        for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+            edge = b - a
+            length = float(edge @ edge)
+            if length < 1e-18:
+                continue
+            u = np.clip(((yz - a) * edge).sum(axis=1) / length, 0, 1)
+            distance = np.minimum(
+                distance, np.linalg.norm(yz - a - u[:, None] * edge, axis=1)
+            )
+            inside ^= ((a[1] > yz[:, 1]) != (b[1] > yz[:, 1])) & (
+                yz[:, 0]
+                < (b[0] - a[0]) * (yz[:, 1] - a[1]) / (b[1] - a[1] + 1e-30) + a[0]
+            )
+        result[near] = np.maximum(np.where(inside, -distance, distance), slab[near])
+        return result
+
+    return field
+
+
+def _clean_profile(poly):
+    p = np.asarray(poly, dtype=float)
+    p = p[np.r_[True, np.linalg.norm(np.diff(p, axis=0), axis=1) > 1e-9]]
+    return p[:-1] if len(p) > 1 and np.linalg.norm(p[0] - p[-1]) < 1e-9 else p
+
+
+def _attachment_splits(poly, front, levels):
+    result = []
+    for a, b in zip(poly, np.roll(poly, -1, axis=0)):
+        result.append(a)
+        if abs(a[0] - front) < 1e-7 and abs(b[0] - front) < 1e-7:
+            zs = sorted(
+                z for z in levels if min(a[1], b[1]) + 1e-8 < z < max(a[1], b[1]) - 1e-8
+            )
+            if b[1] < a[1]:
+                zs = zs[::-1]
+            result.extend([[front, z] for z in zs])
+    return _clean_profile(result)
+
+
+def _analytic_snap_base(p):
+    w, d, h, t, f, r = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+        )
+    )
+    parts = [(a, b, _clean_profile(poly)) for a, b, poly in _snap_base_parts(p)]
+    tol = min(p["fit_clearance"] / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    xs = sorted(set(v for a, b, _ in parts for v in (a, b)))
+
+    def stops(width, radius):
+        extent = width / 2 - radius
+        return {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]}
+
+    iw, id_, ir = w - 2 * t, d - 2 * t, max(0.15, r - t)
+    levels = sorted(
+        set(
+            [0.0, f, h]
+            + [
+                float(q[1])
+                for _, _, poly in parts
+                for q in poly
+                if abs(q[0] + d / 2) < 1e-7
+            ]
+        )
+    )
+    outer = [_rectangle_loop(w, d, r, z, n, stops(w, r)) for z in levels]
+    inner = [
+        _rectangle_loop(iw, id_, ir, z, n, stops(iw, ir)) for z in levels if z >= f
+    ]
+    build = _SurfaceBuilder()
+    build.disk(outer[0], True)
+    build.disk(inner[0])
+    build.join(outer[-1], inner[-1])
+    for lower, upper in zip(outer, outer[1:]):
+        midz = (lower[0, 2] + upper[0, 2]) / 2
+        for i in range(len(lower)):
+            j = (i + 1) % len(lower)
+            x = (lower[i, 0] + lower[j, 0]) / 2
+            if (
+                abs(lower[i, 1] + d / 2) < 1e-7
+                and abs(lower[j, 1] + d / 2) < 1e-7
+                and any(
+                    a < x < b
+                    and poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].min()
+                    < midz
+                    < poly[np.abs(poly[:, 0] + d / 2) < 1e-7, 1].max()
+                    for a, b, poly in parts
+                )
+            ):
+                continue
+            build.quad(lower[i], lower[j], upper[j], upper[i])
+    for a, b in zip(inner, inner[1:]):
+        build.join(a, b, True)
+    for a, b, poly in parts:
+        _append_polygon_extrusion(
+            build, _attachment_splits(poly, -d / 2, levels), a, b, -d / 2
+        )
+    return build.mesh("base", tol)
+
+
+def _analytic_snap_lever(p, part):
+    g, _, pin, hub, grip, _, angles = _snap_profiles(p)
+    g = latch_geometry(p, part)
+    pin, hub, grip = (_clean_profile(v) for v in (pin, hub, grip))
+    cx = g["pivot"]["x"]
+    L = p["latch_width"]
+    stub = g["stub_length"]
+    build = _SurfaceBuilder()
+
+    def loop(poly, x):
+        return np.column_stack((np.full(len(poly), x), poly))
+
+    p0, p1, p2, p3 = [
+        loop(pin, x)
+        for x in (cx - L / 2 - stub, cx - L / 2, cx + L / 2, cx + L / 2 + stub)
+    ]
+    h1, h2 = [loop(hub, x) for x in (cx - L / 2, cx + L / 2)]
+    build.join(p0, p1)
+    build.join(p2, p3)
+    build.join(h1, p1, True)
+    build.join(h2, p2)
+    cy, cz = (g["pivot"][k] for k in ("y", "z"))
+    R = g["hub_radius"]
+    grip_offset = 1 + p["latch_retention"] + p["fit_clearance"]
+    join_angle = (
+        3 * math.pi / 4
+        if grip_offset >= R / math.sqrt(2)
+        else math.acos(-grip_offset / R)
+    )
+
+    def seam(a, b):
+        return (
+            abs(np.linalg.norm(a - [cy, cz]) - R) < 1e-7
+            and abs(np.linalg.norm(b - [cy, cz]) - R) < 1e-7
+            and join_angle - 1e-7 <= math.atan2(a[1] - cz, a[0] - cy) <= math.pi + 1e-7
+            and join_angle - 1e-7 <= math.atan2(b[1] - cz, b[0] - cy) <= math.pi + 1e-7
+        )
+
+    for i in range(len(hub)):
+        j = (i + 1) % len(hub)
+        if not seam(hub[i], hub[j]):
+            build.quad(h1[i], h1[j], h2[j], h2[i])
+    _append_polygon_extrusion(
+        build, pin, cx - L / 2 - stub, cx + L / 2 + stub, skip_edge=lambda a, b: True
+    )
+    _append_polygon_extrusion(build, grip, cx - L / 2, cx + L / 2, skip_edge=seam)
+    return build.mesh(part, min(p["fit_clearance"] / 4, 0.04) * 0.3)
+
+
+def _analytic_snap_lid(p):
+    w, d, h, t, c, r, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "fit_clearance",
+            "corner_radius",
+            "lid_height",
+        )
+    )
+    g = latch_geometry(p)
+    tol = min(c / 4, 0.04) * 0.3
+    n = max(4, int(math.ceil((math.pi / 2) / math.acos(1 - tol / max(r, 1)))))
+    spans = [
+        (cx - p["latch_width"] / 2 + c, cx + p["latch_width"] / 2 - c)
+        for cx in (-w * 0.24, w * 0.24)
+    ]
+    xs = sorted(v for a, b in spans for v in (a, b))
+
+    def loop(pw, pd, pr, z):
+        extent = pw / 2 - pr
+        return _rectangle_loop(
+            pw,
+            pd,
+            pr,
+            z,
+            n,
+            {0: [(v + extent) / (2 * extent) for v in [-extent, *xs, extent]]},
+        )
+
+    sw, sd, sr = w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)
+    outer = [
+        loop(pw, pd, pr, z)
+        for z, pw, pd, pr in (
+            (h - p["lid_wall_height"], sw, sd, sr),
+            (h + c, sw, sd, sr),
+            (h + c, w, d, r),
+            (h + c + lh, w, d, r),
+        )
+    ]
+    inner = [
+        loop(sw - 2.4, sd - 2.4, max(0.15, sr - 1.2), z)
+        for z in (h - p["lid_wall_height"], h + c)
+    ]
+    b = _SurfaceBuilder()
+    b.join(inner[0], outer[0])
+    b.join(inner[0], inner[1], True)
+    b.disk(inner[1], True)
+    b.disk(outer[-1])
+    b.join(outer[0], outer[1])
+    b.join(outer[1], outer[2])
+    low, high = outer[-2], outer[-1]
+    for i in range(len(low)):
+        j = (i + 1) % len(low)
+        x = (low[i, 0] + low[j, 0]) / 2
+        if (
+            abs(low[i, 1] + d / 2) < 1e-7
+            and abs(low[j, 1] + d / 2) < 1e-7
+            and any(a < x < bb for a, bb in spans)
+        ):
+            continue
+        b.quad(low[i], low[j], high[j], high[i])
+    for x0, x1 in spans:
+        y0, y1 = g["catch_outer_y"], -d / 2
+        z0, z1 = h + c, h + c + lh
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0), True)
+        b.quad((x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1))
+        b.quad((x0, y0, z0), (x1, y0, z0), (x1, y0, z1), (x0, y0, z1))
+        b.quad((x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1))
+        b.quad((x0, y1, z0), (x0, y0, z0), (x0, y0, z1), (x0, y1, z1))
+    return b.mesh("lid", tol)
+
+
+def _snap_base_parts(p):
+    g, socket, _, _, _, stop, _ = _snap_profiles(p)
+    L = p["latch_width"]
+    c = p["fit_clearance"]
+    ear = g["ear_thickness"]
+    return [
+        (
+            cx + side * (L / 2 + c + ear / 2) - ear / 2,
+            cx + side * (L / 2 + c + ear / 2) + ear / 2,
+            socket,
+        )
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+        for side in (-1, 1)
+    ] + [
+        (cx - L * 0.25, cx + L * 0.25, stop)
+        for cx in (-p["width_x"] * 0.24, p["width_x"] * 0.24)
+    ]
+
+
+def _build_snap_latch_field(p, part):
+    g, socket, pin, hub, grip, stop, _ = _snap_profiles(p)
+    w, d, h, t, f, r, c, lh = (
+        p[k]
+        for k in (
+            "width_x",
+            "depth_y",
+            "height_z",
+            "wall_thickness",
+            "floor_thickness",
+            "corner_radius",
+            "fit_clearance",
+            "lid_height",
+        )
+    )
+    if part.startswith("clip"):
+        g = latch_geometry(p, part)
+        cx = g["pivot"]["x"]
+        L = p["latch_width"]
+        stub = g["stub_length"]
+        field = _union(
+            _polygon_prism_field(pin, cx - L / 2 - stub, cx + L / 2 + stub),
+            _polygon_prism_field(hub, cx - L / 2, cx + L / 2),
+            _polygon_prism_field(grip, cx - L / 2, cx + L / 2),
+        )
+        points = np.r_[pin, hub, grip]
+        bounds = (
+            cx - L / 2 - stub - 1,
+            cx + L / 2 + stub + 1,
+            points[:, 0].min() - 1,
+            points[:, 0].max() + 1,
+            points[:, 1].min() - 1,
+            points[:, 1].max() + 1,
+        )
+        return field, bounds, {"params": p}
+    # Reuse the validated shell/features without the previous latch geometry.
+    shell = copy_params(p)
+    shell["style"] = "open_bin" if part == "base" else "screw_corner"
+    shell["handles_enabled"] = False
+    if part == "base":
+        use_gasket = shell["gasket_enabled"]
+        shell["gasket_enabled"] = False
+        field, bounds, hints = build_part_field(shell, "base")
+        for a, b, poly in _snap_base_parts(p):
+            outline = []
+            for u, v in zip(poly, np.roll(poly, -1, axis=0)):
+                outline.append(u)
+                if abs(u[0] + d / 2) < 1e-7 and abs(v[0] + d / 2) < 1e-7:
+                    outline.extend([[-d / 2 + 0.1, u[1]], [-d / 2 + 0.1, v[1]]])
+            overlap = np.asarray(outline)
+            field = _union(field, _polygon_prism_field(overlap, a, b))
+        if use_gasket:
+            gw, gd = p["gasket_width"], p["gasket_depth"]
+            field = _difference(
+                field,
+                _ring(
+                    w - t + gw,
+                    d - t + gw,
+                    h - gd,
+                    h + 1,
+                    gw,
+                    max(0.2, r - t / 2 + gw / 2),
+                ),
+            )
+            hints["rectangles"].extend(
+                [
+                    (w - t + gw, d - t + gw, max(0.2, r - t / 2 + gw / 2)),
+                    (w - t - gw, d - t - gw, max(0.15, r - t / 2 - gw / 2)),
+                ]
+            )
+            hints["levels"].append(h - gd)
+        polygons = [poly for _, _, poly in _snap_base_parts(p)]
+        bounds = (
+            *bounds[:2],
+            min(float(poly[:, 0].min()) for poly in polygons) - 1,
+            bounds[3],
+            bounds[4],
+            bounds[5],
+        )
+        hints["params"] = p
+        for a, b, poly in _snap_base_parts(p):
+            hints["planes"][0].extend((a, b))
+            boundary = poly[np.abs(poly[:, 0] + d / 2) < 1e-7]
+            hints["planes"][2].extend(boundary[:, 1].tolist())
+        hints["circles"].extend(
+            [
+                (1, 2, g["pivot"]["y"], g["pivot"]["z"], rr)
+                for rr in (
+                    g["outer_radius"],
+                    g["bore_radius"],
+                    g["pin_radius"] + 2 * c + 0.15,
+                )
+            ]
+        )
+    elif part == "lid":
+        field = _union(
+            _rect(w, d, h + c, h + c + lh, r),
+            _ring(
+                w - 2 * t - 2 * c,
+                d - 2 * t - 2 * c,
+                h - p["lid_wall_height"],
+                h + c + 0.1,
+                1.2,
+                max(0.2, r - t - c),
+            ),
+        )
+        for cx in (-w * 0.24, w * 0.24):
+            field = _union(
+                field,
+                _box(
+                    cx - p["latch_width"] / 2 + c,
+                    cx + p["latch_width"] / 2 - c,
+                    g["catch_outer_y"],
+                    -d / 2 + 0.1,
+                    h + c,
+                    h + c + lh,
+                ),
+            )
+        bounds = (
+            -w / 2 - 1,
+            w / 2 + 1,
+            g["catch_outer_y"] - 1,
+            d / 2 + 1,
+            h - p["lid_wall_height"] - 1,
+            h + c + lh + 1,
+        )
+        hints = {"params": p}
+    else:
+        raise ValueError("Unknown latch part: " + part)
+    return field, bounds, hints
 
 # ===========================================================================
 # MODULE: box_studio.exporters
@@ -2169,7 +4186,7 @@ def write_orca_3mf(
 # MODULE: box_studio.presets_catalog
 # ===========================================================================
 
-"""Twelve editable starting designs and atomic user-preset persistence."""
+"""Seventeen editable starting designs and atomic user-preset persistence."""
 
 pass  # [bundled] hoisted __future__ import
 import copy, json, os, re, tempfile
@@ -2315,6 +4332,71 @@ BUILTIN_PRESETS = [
             for z in (12, 24)
         ],
     ),
+    _preset(
+        "open_bin_handles",
+        "Caixa aberta com alças",
+        "Open bin with hand grips",
+        style="open_bin",
+        width_x=140,
+        depth_y=100,
+        height_z=60,
+        handles_enabled=True,
+        handle_faces="left_right",
+        handle_width=45,
+        handle_height=12,
+        handle_top_margin=8,
+    ),
+    _preset(
+        "snap_latch_case",
+        "Tampa removível · fechos articulados",
+        "Removable lid · pivoting latches",
+        style="snap_latch",
+        width_x=110,
+        depth_y=80,
+        height_z=40,
+        lid_wall_height=8,
+        latch_width=18,
+        latch_thickness=2,
+        latch_retention=0.6,
+        latch_pivot_diameter=3,
+    ),
+    _preset(
+        "stackable_parts_bin",
+        "Organizador empilhável · acesso frontal",
+        "Stackable organizer · front access",
+        style="stackable_bin",
+        width_x=140,
+        depth_y=100,
+        height_z=80,
+        stack_foot_height=2,
+        stack_clearance=0.25,
+        front_access_width=90,
+        front_access_drop=30,
+    ),
+    _preset(
+        "clamshell_pip_short",
+        "Estojo articulado · baixo",
+        "PIP clamshell · shallow",
+        style="clamshell_pip",
+        width_x=120,
+        depth_y=65,
+        height_z=14,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
+    ),
+    _preset(
+        "clamshell_pip_deep",
+        "Estojo articulado · profundo",
+        "PIP clamshell · deep",
+        style="clamshell_pip",
+        width_x=90,
+        depth_y=65,
+        height_z=25,
+        pip_clearance=0.3,
+        hinge_separation=5,
+        hinge_pin_diameter=3,
+    ),
 ]
 
 
@@ -2393,2106 +4475,5697 @@ def delete_user_preset(path: str | Path, preset_id: str) -> bool:
     _persist(Path(path), remaining)
     return len(items) != len(remaining)
 
+
+def generate_random_printable_params(current=None, seed=None, limits=None):
+    """Seeded, validated current-style variation; never silently discard features."""
+    import random
+
+    original = normalize_params(current)
+    errors = validate_params(original)
+    if errors:
+        raise ValueError(
+            "Corrija os recursos / fix features before randomizing: "
+            + "\n".join(errors)
+        )
+    rng = random.Random(seed)
+    constrained = any(
+        original[k] for k in ("standoffs", "cutouts", "dividers_x", "dividers_y")
+    )
+    host = limits or {}
+    stacking_family = original["style"] == "stackable_bin"
+    clamshell = original["style"] == "clamshell_pip"
+    maxima = {
+        "width_x": min(350.0, float(host.get("bed_x", 358)) - 8),
+        "depth_y": min(
+            350.0,
+            float(host.get("bed_y", 372))
+            - (22 if original["style"] == "rugged_box" else 8),
+        ),
+        "height_z": min(
+            250.0,
+            float(host.get("max_z", 265))
+            - (
+                0
+                if original["style"] in ("open_bin", "stackable_bin")
+                else original["lid_height"] + 1
+            ),
+        ),
+    }
+    if clamshell:
+        # Sampling bounds accelerate rejection; the exact analytic open envelope
+        # below is authoritative, including the hinge's height above each floor.
+        maxima["depth_y"] = min(
+            maxima["depth_y"],
+            (float(host.get("bed_y", 372)) - 2 * original["hinge_separation"]) / 2,
+        )
+    dimensions_to_vary = ("height_z",) if stacking_family else tuple(maxima)
+
+    def fits(candidate):
+        if validate_params(candidate) or not all(
+            candidate[k] <= limit for k, limit in maxima.items()
+        ):
+            return False
+        if clamshell:
+            pass  # [bundled] resolved intra-package import
+
+            size = clamshell_print_bounds(candidate)["size"]
+            return all(
+                value <= float(host.get(key, default))
+                for value, key, default in zip(
+                    size, ("bed_x", "bed_y", "max_z"), (358, 372, 265)
+                )
+            )
+        return True
+
+    for _ in range(64):
+        candidate = copy.deepcopy(original)
+        for key in dimensions_to_vary:
+            maximum = maxima[key]
+            lo = original[key] if constrained else original[key] * 0.78
+            hi = min(maximum, original[key] * 1.24)
+            if hi < lo:
+                break
+            candidate[key] = round(rng.uniform(lo, hi), 1)
+        else:
+            candidate["fit_clearance"] = round(rng.uniform(0.12, 0.35), 2)
+            if not constrained and not stacking_family:
+                candidate["corner_radius"] = round(
+                    rng.uniform(2, min(candidate["width_x"], candidate["depth_y"]) / 9),
+                    1,
+                )
+            candidate = normalize_params(candidate)
+            if fits(candidate):
+                return candidate
+    for preset in BUILTIN_PRESETS:
+        if preset["params"]["style"] != original["style"]:
+            continue
+        candidate = copy.deepcopy(original)
+        for key in dimensions_to_vary:
+            candidate[key] = (
+                max(original[key], preset["params"][key])
+                if constrained
+                else preset["params"][key]
+            )
+        candidate = normalize_params(candidate)
+        if fits(candidate):
+            return candidate
+    raise ValueError(
+        "Nenhuma variação segura cabe sem alterar recursos / no safe variation fits without changing requested features."
+    )
+
 # ===========================================================================
 # MODULE: box_studio.studio_ui
 # ===========================================================================
 
-"""Offline HTML/CSS/WebGL2 workspace. Preview displays the exported Python mesh."""
+"""Canonical offline Orca Studio interface; MIT reference styling and real Python meshes."""
 
 pass  # [bundled] hoisted __future__ import
+import copy
 import json
 from typing import Any
+pass  # [bundled] resolved intra-package import
+pass  # [bundled] resolved intra-package import
 
 _BOX_HTML = r"""<!doctype html>
-<html lang="pt" data-theme="dark">
+<html lang="__INITIAL_LANG__" data-theme="__INITIAL_THEME__">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Orca Box Studio</title>
     <style>
-      :root {
-        --bg: #15171b;
-        --panel: #1d2026;
-        --card: #242830;
-        --input: #16181d;
-        --border: #313641;
-        --text: #eef2f7;
-        --muted: #9aa4b4;
-        --accent: #00a896;
-        --hover: #00bfa5;
-        --warn: #ffcf77;
-        --error: #ff726e;
-        --soft: rgba(0, 191, 165, 0.12);
+:root,
+[data-theme="dark"] {
+  --bg-app: #16181c;
+  --bg-panel: #1e2026;
+  --bg-card: #252830;
+  --bg-card-hover: #2c303a;
+  --bg-input: #17191e;
+  --bg-viewport-top: #232730;
+  --bg-viewport-bot: #121418;
+  --bg-hud: rgba(24, 27, 33, 0.86);
+  --border-subtle: #313640;
+  --border-strong: #414856;
+  --text-main: #eef2f6;
+  --text-muted: #9aa3b2;
+  --text-dim: #6e7787;
+  --orca-accent: #00a896;
+  --orca-accent-hover: #00bfa5;
+  --orca-accent-soft: rgba(0, 191, 165, 0.15);
+  --orca-accent-border: rgba(0, 191, 165, 0.48);
+  --status-ok: #00c853;
+  --status-warn: #ffb300;
+  --status-crit: #ff5252;
+  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --font-sans: var(--orca-font, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Ubuntu, sans-serif);
+  --font-mono: "Cascadia Code", Consolas, "SFMono-Regular", monospace;
+}
+
+[data-theme="light"] {
+  --bg-app: #eef2f6;
+  --bg-panel: #ffffff;
+  --bg-card: #f5f7fa;
+  --bg-card-hover: #eaeff5;
+  --bg-input: #ffffff;
+  --bg-viewport-top: #dde4ec;
+  --bg-viewport-bot: #c7d1dc;
+  --bg-hud: rgba(255, 255, 255, 0.90);
+  --border-subtle: #d5dce4;
+  --border-strong: #b8c3cf;
+  --text-main: #1c222b;
+  --text-muted: #556070;
+  --text-dim: #7b8696;
+  --orca-accent: #00897b;
+  --orca-accent-hover: #00796b;
+  --orca-accent-soft: rgba(0, 137, 123, 0.12);
+  --orca-accent-border: rgba(0, 137, 123, 0.45);
+  --status-ok: #1b9e4b;
+  --status-warn: #d98200;
+  --status-crit: #d93025;
+  --shadow-soft: 0 8px 24px rgba(15, 25, 40, 0.10);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--orca-accent);
+}
+
+button, input, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.studio-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* Header Bar */
+.studio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #00bfa5 0%, #00796b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 191, 165, 0.30);
+}
+
+.brand-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.design-name-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  width: 165px;
+  transition: border-color 0.15s;
+}
+.design-name-input:focus {
+  outline: none;
+  border-color: var(--orca-accent);
+}
+
+.printer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 99px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  max-width: min(560px, 56vw);
+  min-width: 0;
+  flex: 0 1 auto;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.printer-pill:hover {
+  border-color: var(--orca-accent-border);
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+.printer-pill:active {
+  transform: translateY(1px);
+}
+
+.printer-pill-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.printer-pill-name {
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.printer-pill-specs {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.6px;
+}
+
+.printer-pill-sync {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--orca-accent-hover);
+  margin-left: 1px;
+  transition: transform 0.38s ease;
+}
+[data-theme="light"] .printer-pill-sync {
+  color: var(--orca-accent);
+}
+.printer-pill.syncing .printer-pill-sync {
+  transform: rotate(360deg);
+}
+
+.printer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--orca-accent-hover);
+  flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, transform 0.08s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  padding: 5px 7px;
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--orca-accent) 0%, #00897b 100%);
+  border-color: transparent;
+  color: #ffffff;
+}
+.btn-accent:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--orca-accent-hover) 0%, var(--orca-accent) 100%);
+  border-color: transparent;
+}
+
+.btn-soft {
+  background: var(--orca-accent-soft);
+  border-color: var(--orca-accent-border);
+  color: var(--orca-accent-hover);
+}
+[data-theme="light"] .btn-soft {
+  color: var(--orca-accent);
+}
+.btn-soft:hover:not(:disabled) {
+  background: var(--orca-accent);
+  color: #ffffff;
+}
+
+/* Main Workspace Grid */
+.studio-workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 332px minmax(340px, 1fr) 364px;
+  overflow: hidden;
+}
+
+.col-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+.col-left {
+  border-right: 1px solid var(--border-subtle);
+}
+.col-right {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.col-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Dock Mode Navigation Tabs (hidden in wide page mode) */
+.dock-tabs {
+  display: none;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 4px 6px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dock-tab-btn {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.14s;
+}
+.dock-tab-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-card);
+}
+.dock-tab-btn.active {
+  background: var(--orca-accent-soft);
+  border-color: var(--orca-accent-border);
+  color: var(--orca-accent-hover);
+}
+[data-theme="light"] .dock-tab-btn.active {
+  color: var(--orca-accent);
+}
+
+/* Cards & Sections */
+.studio-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.card-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--orca-accent-soft);
+  color: var(--orca-accent-hover);
+}
+[data-theme="light"] .card-badge {
+  color: var(--orca-accent);
+}
+
+/* Presets Grid */
+.preset-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filter-chip {
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 99px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.filter-chip.active {
+  background: var(--orca-accent);
+  border-color: var(--orca-accent);
+  color: #ffffff;
+}
+
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 205px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.preset-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+  text-align: left;
+}
+.preset-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+.preset-card.active {
+  border-color: var(--orca-accent-hover);
+  background: var(--orca-accent-soft);
+}
+
+.preset-thumb {
+  width: 30px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.preset-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-sub {
+  font-size: 9.8px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-del-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(255, 82, 82, 0.16);
+  color: var(--status-crit);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preset-del-btn:hover {
+  background: var(--status-crit);
+  color: #ffffff;
+}
+
+.save-preset-bar {
+  display: none;
+  gap: 5px;
+  align-items: center;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.save-preset-bar.open {
+  display: flex;
+}
+.save-preset-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--orca-accent-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  font-size: 11.5px;
+}
+
+/* Segmented Mode Switch */
+.seg-group {
+  display: flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.seg-btn {
+  flex: 1;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.seg-btn.active {
+  background: var(--orca-accent);
+  color: #ffffff;
+}
+
+/* 2D Curve Canvas Box */
+.curve-editor-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  overflow: hidden;
+}
+
+#curve-canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.curve-overlay-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.curve-coord-readout {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--orca-accent-hover);
+}
+[data-theme="light"] .curve-coord-readout {
+  color: var(--orca-accent);
+}
+
+.curve-hint {
+  font-size: 10.2px;
+  color: var(--text-dim);
+}
+
+/* Slider Controls */
+.ctrl-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ctrl-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ctrl-label {
+  font-size: 11.3px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ctrl-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ctrl-num {
+  width: 58px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 2px 5px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-main);
+}
+.ctrl-num:focus {
+  outline: none;
+  border-color: var(--orca-accent);
+}
+
+.ctrl-unit {
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 18px;
+}
+
+input[type="range"].orca-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--border-strong);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].orca-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--orca-accent-hover);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+  transition: transform 0.1s;
+}
+input[type="range"].orca-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Toggle Switch */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.toggle-track::before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 2px;
+  top: 2px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.18s;
+}
+.toggle-switch input:checked + .toggle-track {
+  background: var(--orca-accent);
+}
+.toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(16px);
+}
+
+/* Texture Accordion Layer Cards */
+.tex-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.tex-card.enabled {
+  border-color: var(--orca-accent-border);
+}
+
+.tex-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 9px;
+  background: var(--bg-card);
+  cursor: pointer;
+}
+.tex-card.enabled .tex-head {
+  background: var(--orca-accent-soft);
+}
+
+.tex-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.tex-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+.tex-card.expanded .tex-chevron {
+  transform: rotate(90deg);
+}
+
+.tex-body {
+  display: none;
+  padding: 8px 9px 10px;
+  border-top: 1px solid var(--border-subtle);
+  flex-direction: column;
+  gap: 7px;
+}
+.tex-card.expanded .tex-body {
+  display: flex;
+}
+
+/* Center 3D Viewport */
+.viewport-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: radial-gradient(circle at 50% 32%, var(--bg-viewport-top) 0%, var(--bg-viewport-bot) 100%);
+  overflow: hidden;
+}
+
+#gl-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+#gl-canvas:active {
+  cursor: grabbing;
+}
+
+#vp-caliper-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Wall Thickness Quick Presets & Perimeter Hint */
+.wall-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.wall-chip {
+  flex: 1;
+  min-width: 48px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.2px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.14s;
+}
+.wall-chip:hover {
+  color: var(--text-main);
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+.wall-chip.active {
+  background: var(--orca-accent-soft);
+  border-color: var(--orca-accent-hover);
+  color: var(--orca-accent-hover);
+}
+[data-theme="light"] .wall-chip.active {
+  color: var(--orca-accent);
+  border-color: var(--orca-accent);
+}
+
+.wall-perim-hint {
+  font-size: 10.4px;
+  color: var(--orca-accent-hover);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--orca-accent-soft);
+  border: 1px solid var(--orca-accent-border);
+}
+[data-theme="light"] .wall-perim-hint {
+  color: var(--orca-accent);
+}
+
+/* Floating Viewport Overlays */
+.vp-toolbar-left {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 252px);
+  z-index: 10;
+}
+
+.vp-glass {
+  background: var(--bg-hud);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+
+.vp-select {
+  background: var(--bg-hud);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vp-chip {
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hud);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vp-chip:hover {
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+.vp-chip.active {
+  background: var(--orca-accent);
+  border-color: var(--orca-accent);
+  color: #ffffff;
+}
+.vp-chip-xray {
+  border-color: var(--orca-accent-border);
+  color: var(--text-main);
+}
+.vp-chip-xray.active {
+  background: linear-gradient(135deg, #00bfa5 0%, #ff8f00 130%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 191, 165, 0.35);
+}
+
+.spiral-mode-banner {
+  display: none;
+  position: absolute;
+  top: 48px;
+  left: 10px;
+  max-width: calc(100% - 256px);
+  padding: 5px 10px;
+  font-size: 10.6px;
+  font-weight: 600;
+  line-height: 1.3;
+  z-index: 12;
+  border-left: 3px solid var(--orca-accent-hover);
+  color: var(--text-main);
+  pointer-events: none;
+}
+.spiral-mode-banner.visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.spiral-mode-banner.warn {
+  border-left-color: var(--status-warn);
+  background: rgba(45, 34, 14, 0.90);
+}
+[data-theme="light"] .spiral-mode-banner.warn {
+  background: rgba(255, 245, 224, 0.94);
+}
+
+.vp-cam-bar {
+  position: absolute;
+  bottom: 56px;
+  left: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.vp-cut-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  z-index: 10;
+}
+
+.vp-cut-modes {
+  display: inline-flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.vp-cut-mode-btn {
+  padding: 3px 7px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s;
+}
+.vp-cut-mode-btn:hover {
+  color: var(--text-main);
+}
+.vp-cut-mode-btn.active {
+  background: var(--orca-accent);
+  color: #ffffff;
+}
+
+.vp-cut-label {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+/* Printability HUD */
+.vp-hud-right {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 236px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+.hud-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.hud-status-pill {
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.hud-status-pill.ok {
+  background: rgba(0, 200, 83, 0.18);
+  color: var(--status-ok);
+}
+.hud-status-pill.warn {
+  background: rgba(255, 179, 0, 0.20);
+  color: var(--status-warn);
+}
+.hud-status-pill.crit {
+  background: rgba(255, 82, 82, 0.22);
+  color: var(--status-crit);
+}
+
+.hud-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 8px;
+}
+
+.hud-metric {
+  display: flex;
+  flex-direction: column;
+}
+.hud-metric-k {
+  font-size: 9.8px;
+  color: var(--text-dim);
+}
+.hud-metric-v {
+  font-family: var(--font-mono);
+  font-size: 11.2px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.hud-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 92px;
+  overflow-y: auto;
+}
+
+.hud-warn-item {
+  font-size: 10.2px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(255, 179, 0, 0.13);
+  border-left: 2px solid var(--status-warn);
+  color: var(--text-main);
+}
+.hud-warn-item.crit {
+  background: rgba(255, 82, 82, 0.15);
+  border-left-color: var(--status-crit);
+}
+
+.heatmap-legend {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+.heatmap-legend.visible {
+  display: flex;
+}
+.legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.bed-alert-banner {
+  display: none;
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px 6px 14px;
+  border-radius: 99px;
+  background: rgba(213, 0, 0, 0.90);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11.5px;
+  box-shadow: 0 4px 16px rgba(213, 0, 0, 0.45);
+  z-index: 15;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.bed-alert-banner.visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.bed-fit-btn {
+  padding: 2px 9px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.bed-fit-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* Right Action Footer */
+.action-footer {
+  padding: 10px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.btn-hero {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #00bfa5 0%, #00897b 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 191, 165, 0.32);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: filter 0.15s, transform 0.08s;
+}
+.btn-hero:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.btn-hero:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn-hero:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.export-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+}
+
+.helper-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border-left: 2px solid var(--orca-accent);
+  padding: 5px 7px;
+  border-radius: 0 4px 4px 0;
+}
+
+.helper-note.warn {
+  border-left-color: var(--status-warn);
+  background: rgba(255, 179, 0, 0.10);
+}
+
+/* Toast Notification */
+.toast-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--orca-accent);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 999;
+  max-width: 90vw;
+}
+.toast-banner.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast-banner.error {
+  border-color: var(--status-crit);
+}
+
+/* ============================================================================
+   COMPACT SIDE-DOCK MODE (`data-mode="dock"` or narrow viewports <= 960px)
+   ============================================================================ */
+body[data-mode="dock"] .printer-pill,
+body[data-mode="dock"] .brand-title {
+  display: none;
+}
+
+body[data-mode="dock"] .design-name-input {
+  width: 118px;
+}
+
+body[data-mode="dock"] .studio-workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-mode="dock"] .viewport-col {
+  order: -1;
+  height: 245px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+body[data-mode="dock"] .vp-hud-right {
+  width: 172px;
+  padding: 5px 7px;
+  gap: 3px;
+}
+body[data-mode="dock"] .hud-warnings,
+body[data-mode="dock"] .spiral-mode-banner {
+  display: none;
+}
+body[data-mode="dock"] .vp-cam-bar {
+  display: none;
+}
+body[data-mode="dock"] .vp-cut-bar {
+  padding: 4px 6px;
+  bottom: 6px;
+  gap: 4px;
+}
+body[data-mode="dock"] .vp-cut-mode-btn {
+  padding: 2px 5px;
+  font-size: 9.8px;
+}
+
+body[data-mode="dock"] .dock-tabs {
+  display: flex;
+  order: 0;
+}
+
+body[data-mode="dock"] .col-left,
+body[data-mode="dock"] .col-right {
+  border: none;
+  flex: 1;
+  min-height: 0;
+}
+
+body[data-mode="dock"] .col-right .action-footer {
+  display: none;
+}
+
+.dock-global-footer {
+  display: none;
+}
+body[data-mode="dock"] .dock-global-footer {
+  display: flex;
+}
+
+body[data-mode="dock"][data-dock-tab="shape"] .col-right {
+  display: none;
+}
+body[data-mode="dock"][data-dock-tab="shape"] #card-presets {
+  display: none;
+}
+
+body[data-mode="dock"][data-dock-tab="presets"] .col-right {
+  display: none;
+}
+body[data-mode="dock"][data-dock-tab="presets"] #card-silhouette,
+body[data-mode="dock"][data-dock-tab="presets"] #card-resolution {
+  display: none;
+}
+body[data-mode="dock"][data-dock-tab="presets"] .presets-grid {
+  max-height: none;
+}
+
+body[data-mode="dock"][data-dock-tab="textures"] .col-left {
+  display: none;
+}
+body[data-mode="dock"][data-dock-tab="textures"] #card-print-mode,
+body[data-mode="dock"][data-dock-tab="textures"] #card-gardening {
+  display: none;
+}
+
+body[data-mode="dock"][data-dock-tab="print"] .col-left {
+  display: none;
+}
+body[data-mode="dock"][data-dock-tab="print"] #card-envelope,
+body[data-mode="dock"][data-dock-tab="print"] #card-textures {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .printer-pill {
+    display: none;
+  }
+  .studio-workspace {
+    grid-template-columns: 280px minmax(260px, 1fr) 300px;
+  }
+}
+</style>
+    <style>
+      /* Preserve the reference page height when fallback font metrics differ. */
+      body[data-mode="page"] .studio-header {
+        min-height: 43px;
       }
-      [data-theme="light"] {
-        --bg: #edf1f6;
-        --panel: #fff;
-        --card: #f5f7fb;
-        --input: #fff;
-        --border: #d4dce5;
-        --text: #1b222c;
-        --muted: #525e6f;
-        --accent: #00897b;
-        --hover: #00796b;
-        --soft: rgba(0, 137, 123, 0.1);
-      }
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-      }
-      body {
-        font:
-          12px/1.42 "Segoe UI",
-          -apple-system,
-          BlinkMacSystemFont,
-          Ubuntu,
-          sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      button,
-      input,
-      select,
-      textarea {
-        font: inherit;
-        color: inherit;
-      }
-      button {
-        cursor: pointer;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--card);
-        padding: 7px 10px;
-      }
-      button:hover {
-        border-color: var(--accent);
-      }
-      button:disabled {
-        opacity: 0.45;
-        cursor: wait;
-      }
-      button:focus-visible,
-      input:focus-visible,
-      select:focus-visible {
-        outline: 2px solid var(--hover);
-        outline-offset: 2px;
-      }
-      input,
-      select,
-      textarea {
+      .box-select {
         width: 100%;
-        min-width: 0;
-        background: var(--input);
-        border: 1px solid var(--border);
-        border-radius: 5px;
+        max-width: 100%;
+      }
+      .box-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .box-feature {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
         padding: 7px;
-      }
-      input[type="checkbox"] {
-        width: auto;
-        accent-color: var(--accent);
-      }
-      input[type="range"] {
-        padding: 0;
-        accent-color: var(--accent);
-      }
-      input[type="number"] {
-        font-family: Consolas, monospace;
-      }
-      h1,
-      h2,
-      h3,
-      p {
-        margin: 0;
-      }
-      h1 {
-        font-size: 15px;
-        font-weight: 650;
-      }
-      h2 {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      h3 {
-        font-size: 12px;
-      }
-      small,
-      .muted {
-        color: var(--muted);
-      }
-      .shell {
-        height: 100%;
         display: flex;
         flex-direction: column;
+        gap: 7px;
       }
-      .header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 12px;
-        border-bottom: 1px solid var(--border);
-        background: var(--panel);
-      }
-      .brand-icon {
-        width: 34px;
-        height: 34px;
-        color: var(--hover);
-      }
-      .brand {
-        min-width: 170px;
-      }
-      .eyebrow {
-        font-size: 10px;
-        color: var(--accent);
-        letter-spacing: 0.13em;
-      }
-      .design-name {
-        max-width: 190px;
-      }
-      .actions {
-        display: flex;
-        gap: 5px;
-        margin-left: auto;
-      }
-      .printer {
-        border-radius: 20px;
-        background: var(--soft);
-        color: var(--accent);
-        white-space: nowrap;
-        font-size: 11px;
-      }
-      .workspace {
-        display: grid;
-        grid-template-columns: 286px minmax(300px, 1fr) 258px;
-        min-height: 0;
-        flex: 1;
-      }
-      .column {
-        min-height: 0;
-        overflow-y: auto;
-        padding: 10px;
-        background: var(--panel);
-      }
-      .column.left {
-        border-right: 1px solid var(--border);
-      }
-      .column.right {
-        border-left: 1px solid var(--border);
-      }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 9px;
-        margin-bottom: 10px;
-        overflow: hidden;
-      }
-      .cardhead {
+      .box-feature-title {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 11px 12px;
-        border-bottom: 1px solid var(--border);
       }
-      .cardbody {
-        padding: 11px 12px;
-        display: grid;
-        gap: 10px;
+      .box-feature .ctrl-num {
+        max-width: 100%;
       }
-      .pair {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 9px;
-      }
-      .field {
-        display: grid;
-        gap: 5px;
-      }
-      .field span {
-        font-size: 11px;
-        color: var(--muted);
-      }
-      .check {
+      .box-feature .ctrl-row {
         display: flex;
-        gap: 7px;
-        align-items: center;
+        flex-direction: column;
+        gap: 4px;
       }
-      .primary {
-        background: var(--accent);
-        color: white;
-        border-color: var(--accent);
-        font-weight: 600;
-      }
-      .primary:hover {
-        background: var(--hover);
-      }
-      .soft {
-        background: var(--soft);
-        color: var(--accent);
-      }
-      .wide {
-        width: 100%;
-      }
-      .viewport {
-        position: relative;
-        min-height: 220px;
-        background: radial-gradient(ellipse at 50% 25%, #29313d, #111318);
-        overflow: hidden;
-      }
-      .viewport canvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        touch-action: none;
-      }
-      .viewport .tag {
-        position: absolute;
-        top: 15px;
-        left: 16px;
-        color: #b9c7d5;
-        font:
-          11px Consolas,
-          monospace;
-        pointer-events: none;
-      }
-      .viewport .status {
-        position: absolute;
-        bottom: 55px;
-        left: 16px;
-        right: 16px;
-        padding: 9px 11px;
-        background: rgba(20, 24, 30, 0.9);
-        border: 1px solid #35414e;
-        border-radius: 6px;
-        color: #b9c7d5;
-        pointer-events: none;
-        white-space: pre-wrap;
-      }
-      .viewtools {
-        position: absolute;
-        left: 12px;
-        right: 12px;
-        bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .viewtools button {
-        background: rgba(28, 33, 41, 0.9);
-        color: #e4edf6;
-        border-color: #3a4654;
-      }
-      .viewtools input {
-        flex: 1;
-      }
-      .viewtools label {
-        color: #c3d0dc;
-        font-size: 11px;
-      }
-      .metrics {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-      .metric {
-        background: var(--input);
-        border: 1px solid var(--border);
-        padding: 10px;
-        border-radius: 6px;
-      }
-      .metric b {
-        display: block;
-        font:
-          18px Consolas,
-          monospace;
-        margin-bottom: 3px;
-      }
-      .metric span {
-        color: var(--muted);
-        font-size: 10px;
-      }
-      .editor {
-        width: 100%;
-        height: 180px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--input);
-        touch-action: none;
-      }
-      .feature {
-        padding: 8px;
-        background: var(--input);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        display: grid;
-        gap: 7px;
-      }
-      .featuretitle {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 11px;
-      }
-      .featuretitle button {
-        padding: 2px 7px;
-        color: var(--error);
-      }
-      .mini {
-        padding: 4px 7px;
-        font-size: 11px;
-      }
-      .tabs {
-        display: flex;
-        padding: 7px 10px;
-        gap: 5px;
-        border-bottom: 1px solid var(--border);
-        background: var(--panel);
-      }
-      .tab {
-        flex: 1;
-        font-size: 11px;
-      }
-      .tab.active {
-        background: var(--soft);
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-      .preset-list {
-        max-height: 210px;
-        overflow-y: auto;
-        display: grid;
-        gap: 5px;
-      }
-      .preset {
-        width: 100%;
-        text-align: left;
-        padding: 8px;
-      }
-      .preset small {
-        display: block;
-        font-size: 10px;
-      }
-      .help {
-        font-size: 11px;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-      .error {
-        color: var(--error);
-      }
-      .footer {
-        padding: 5px 12px;
-        font-size: 10px;
-        color: var(--muted);
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-      }
-      .badge {
-        font:
-          10px Consolas,
-          monospace;
-        color: var(--accent);
-        background: var(--soft);
-        padding: 2px 5px;
-        border-radius: 3px;
+      .box-feature-title button {
+        padding: 1px 6px;
       }
       .section-hidden {
-        display: none !important;
-      }
-      .dock .workspace {
-        display: flex;
-        flex-direction: column;
-      }
-      .dock .viewport {
-        height: 280px;
-        flex: none;
-        order: -1;
-      }
-      .dock .column {
-        overflow: visible;
-        border: 0 !important;
-      }
-      .dock .workspace {
-        overflow: auto;
-        display: block;
-      }
-      .dock .header {
-        flex-wrap: wrap;
-      }
-      .dock .brand {
-        min-width: 130px;
-      }
-      .dock .printer {
         display: none;
       }
-      .dock .design-name {
-        max-width: 140px;
+      .box-style-controls[hidden] { display: none; }
+      .box-status-error {
+        color: var(--status-crit);
       }
-      .dock .right {
-        padding-top: 0;
+    </style>
+    <style id="orca-box-host-adapter">
+      /* Orca's late, bare element defaults must not replace the studio tokens.
+         Keep this adapter separate from the unchanged canonical design sheet. */
+      html[data-theme],
+      html[data-theme] body {
+        background: var(--bg-app);
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        font-size: 12.5px;
+        line-height: 1.4;
       }
-      .dock .footer {
-        display: none;
+      html[data-theme="dark"] {
+        --orca-accent: #00a896;
+        color-scheme: dark;
       }
-      .dock .column.left {
-        padding-bottom: 0;
+      html[data-theme="light"] {
+        --orca-accent: #00897b;
+        color-scheme: light;
       }
-      ::-webkit-scrollbar {
-        width: 6px;
+      html[data-theme] :is(h1, h2, h3, h4, h5, h6),
+      html[data-theme] .brand-title,
+      html[data-theme] .tex-title-wrap {
+        color: var(--text-main);
       }
-      ::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 9px;
+      html[data-theme] :is(input, select, textarea) {
+        color: var(--text-main);
       }
-      @media (max-width: 1050px) {
-        .workspace {
-          grid-template-columns: 260px minmax(260px, 1fr) 220px;
-        }
-        .printer {
-          display: none;
-        }
-      }
-      @media (max-width: 760px) {
-        .workspace {
-          grid-template-columns: 230px minmax(200px, 1fr);
-        }
-        .right {
-          grid-column: 1/-1;
-          display: flex;
-          gap: 10px;
-          max-height: 220px;
-        }
-        .right .card {
-          flex: 1;
-          min-width: 190px;
-        }
-        .header {
-          flex-wrap: wrap;
-        }
-        .design-name {
-          max-width: 130px;
-        }
-      }
-
-      .dock-views {
-        display: none;
-        gap: 6px;
-        padding: 7px 10px;
-        background: var(--panel);
-        border-bottom: 1px solid var(--border);
-      }
-      .dock .dock-views {
-        display: flex;
-      }
-      .dock-views button {
-        flex: 1;
-      }
-      .dock-views button.active {
-        background: var(--soft);
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-      .dock .workspace {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .dock .column {
-        flex: 1;
-        overflow-y: auto;
+      html[data-theme] input[type="range"].orca-slider {
+        border: 0;
+        padding: 0;
         min-height: 0;
+        box-shadow: none;
       }
-      .dock[data-dock-view="3d"] .column {
-        display: none;
-      }
-      .dock[data-dock-view="3d"] .viewport {
-        height: auto;
-        flex: 1;
-        min-height: 200px;
-      }
-      .dock[data-dock-view="parameters"] .viewport,
-      .dock[data-dock-view="parameters"] .right {
-        display: none;
-      }
-      .dock[data-dock-view="export"] .viewport,
-      .dock[data-dock-view="export"] .left {
-        display: none;
-      }
-      .dock:not([data-dock-view="parameters"]) .tabs {
-        display: none;
+      html[data-theme] .toggle-switch input {
+        border: 0;
+        padding: 0;
+        min-width: 0;
+        min-height: 0;
       }
     </style>
   </head>
-  <body>
-    <div class="shell">
-      <header class="header">
-        <svg class="brand-icon" viewBox="0 0 40 40" fill="none">
-          <path
-            d="M4 14 20 6 36 14 20 22ZM4 14V29L20 37 36 29V14M20 22V37"
-            stroke="currentColor"
-            stroke-width="1.5"
-          />
-          <path d="M4 8 20 1 36 8" stroke="#ffcf77" stroke-width="1.5" />
-        </svg>
-        <div class="brand">
-          <div class="eyebrow">PARAMETRIC ENCLOSURES</div>
-          <h1>Orca Box Studio</h1>
+  <body data-mode="__INITIAL_MODE__" data-dock-tab="shape">
+    <div class="studio-shell">
+      <header class="studio-header">
+        <div class="brand-group">
+          <div class="brand-logo" title="Orca Box Studio">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m3 8 9-5 9 5-9 5Zm0 0v10l9 5 9-5V8M12 13v10" />
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <div class="brand-name-row">
+              <span class="brand-title">Orca Box Studio</span>
+              <input
+                id="name"
+                class="design-name-input"
+                type="text"
+                maxlength="80"
+                value="Caixa de projeto"
+                aria-label="Design Name"
+              />
+            </div>
+          </div>
+          <button
+            id="sync"
+            type="button"
+            class="printer-pill"
+            title="Clique para sincronizar impressora ativa do OrcaSlicer"
+          >
+            <span class="printer-dot"></span>
+            <span id="printer-pill-text" class="printer-pill-text">
+              <span id="printer-pill-name" class="printer-pill-name"
+                >Generic 3D Printer</span
+              >
+              <span id="printer-pill-specs" class="printer-pill-specs"
+                >· 220×220×250 mm · 0.4mm</span
+              >
+            </span>
+            <span
+              id="printer-pill-sync"
+              class="printer-pill-sync"
+              aria-hidden="true"
+              >↻</span
+            >
+          </button>
         </div>
-        <input
-          class="design-name"
-          id="name"
-          aria-label="Design name"
-          maxlength="80"
-        /><button
-          class="printer"
-          id="sync"
-          title="Sincronizar impressora / Sync printer"
-        >
-          ● <span id="printer">OrcaSlicer</span> ↻
-        </button>
-        <div class="actions">
-          <button id="undo" title="Desfazer / Undo">↶</button
-          ><button id="redo" title="Refazer / Redo">↷</button
-          ><button id="reset" title="Restaurar / Reset">↺</button
-          ><button id="lang">PT</button
-          ><button id="theme" title="Tema / Theme">☾</button>
+
+        <div class="header-actions">
+          <button id="undo" class="btn btn-icon" title="Undo (Ctrl+Z)" disabled>
+            ↶
+          </button>
+          <button id="redo" class="btn btn-icon" title="Redo (Ctrl+Y)" disabled>
+            ↷
+          </button>
+          <button id="btn-randomize" class="btn btn-soft">
+            <span>🎲</span>
+            <span data-i18n="btn_surprise">Surpreenda-me</span>
+          </button>
+          <button id="reset" class="btn btn-icon" title="Reset">↺</button>
+          <button id="lang" class="btn btn-icon" title="Português / English">
+            PT
+          </button>
+          <button id="theme" class="btn btn-icon" title="Dark / Light">
+            ☾
+          </button>
         </div>
       </header>
-      <nav class="dock-views" aria-label="Dock sections">
-        <button data-dock-view-button="parameters" data-i="parameters">
-          Parâmetros</button
-        ><button class="active" data-dock-view-button="3d">3D</button
-        ><button data-dock-view-button="export" data-i="export">
-          Exportar
-        </button>
-      </nav>
-      <nav class="tabs">
-        <button class="tab active" data-tab="shape" data-i="shape">Caixa</button
-        ><button class="tab" data-tab="features" data-i="features">
-          Acessórios</button
-        ><button class="tab" data-tab="presets" data-i="presets">
+
+      <nav class="dock-tabs" aria-label="Studio Sections">
+        <button class="dock-tab-btn active" data-tab="shape" data-i18n="shape">
+          Forma</button
+        ><button class="dock-tab-btn" data-tab="textures" data-i18n="features">
+          Recursos</button
+        ><button class="dock-tab-btn" data-tab="print" data-i18n="manufacture">
+          Impressão</button
+        ><button class="dock-tab-btn" data-tab="presets" data-i18n="presets">
           Presets
         </button>
       </nav>
-      <main class="workspace">
-        <aside class="column left">
-          <section data-section="shape">
-            <div class="card">
-              <div class="cardhead">
-                <h2 data-i="construction">Construção</h2>
-                <span class="badge">mm</span>
-              </div>
-              <div class="cardbody">
-                <label class="field"
-                  ><span data-i="style">Estilo de caixa</span
-                  ><select id="style">
-                    <option value="lip_snap">Lip snap · pressão / snap</option>
-                    <option value="rugged_box">
-                      Rugged · dobradiça / hinged
-                    </option>
-                    <option value="sliding_lid">
-                      Sliding · deslizante / sliding
-                    </option>
-                    <option value="screw_corner">
-                      Screw corner · parafusos / screws
-                    </option>
-                  </select></label
+      <main class="studio-workspace">
+        <section class="col-panel col-left">
+          <div class="col-scroll">
+            <div id="card-presets" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="sec_presets"
+                  >sec_presets</span
+                ><button
+                  id="btn-toggle-save-preset"
+                  class="btn btn-soft"
+                  style="padding: 2px 8px; font-size: 10.5px"
+                  data-i18n="btn_save_preset"
                 >
-                <div class="pair">
-                  <label class="field"
-                    ><span data-i="width">Largura X</span
+                  + Salvar
+                </button>
+              </div>
+              <div id="save-preset-bar" class="save-preset-bar">
+                <input
+                  id="inp-save-preset-name"
+                  class="save-preset-input"
+                  type="text"
+                  maxlength="64"
+                /><button
+                  id="savePreset"
+                  class="btn btn-accent"
+                  data-i18n="save"
+                >
+                  Salvar
+                </button>
+              </div>
+              <div id="preset-filters" class="preset-filter-row">
+                <button
+                  class="filter-chip active"
+                  data-cat="all"
+                  data-i18n="cat_all"
+                >
+                  Todos</button
+                ><button class="filter-chip" data-cat="lip_snap">Snap</button
+                ><button class="filter-chip" data-cat="rugged_box">
+                  Rugged</button
+                ><button class="filter-chip" data-cat="sliding_lid">
+                  Sliding</button
+                ><button class="filter-chip" data-cat="screw_corner">
+                  Screw</button
+                ><button class="filter-chip" data-cat="open_bin" data-i18n="openBin">Caixa aberta</button
+                ><button class="filter-chip" data-cat="snap_latch" data-i18n="snapLatch">Travas</button
+                ><button class="filter-chip" data-cat="stackable_bin" data-i18n="stackableBin">Empilhável</button
+                ><button class="filter-chip" data-cat="clamshell_pip" data-i18n="clamshellPip">Articulado PIP</button
+                ><button
+                  class="filter-chip"
+                  data-cat="user"
+                  data-i18n="cat_user"
+                >
+                  Meus
+                </button>
+              </div>
+              <div id="presets-grid" class="presets-grid"></div>
+            </div>
+            <div id="card-silhouette" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="construction"
+                  >construction</span
+                ><span id="poly-badge" class="card-badge">BOX</span>
+              </div>
+              <label class="ctrl-row"
+                ><span class="ctrl-label" data-i18n="style">style</span
+                ><select id="style" class="vp-select box-select">
+                  <option value="lip_snap">Lip Snap</option>
+                  <option value="rugged_box">Rugged Box</option>
+                  <option value="sliding_lid">Sliding Lid</option>
+                  <option value="screw_corner">Screw Corner</option>
+                  <option value="open_bin" data-i18n="openBin">Caixa aberta</option>
+                  <option value="snap_latch" data-i18n="snapLatch">Tampa com travas</option>
+                  <option value="stackable_bin" data-i18n="stackableBin">Caixa empilhável</option>
+                  <option value="clamshell_pip" data-i18n="clamshellPip">Estojo articulado PIP</option>
+                </select></label
+              >
+              <div data-slider="width_x" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Largura X"
+                    data-en="Width X"
+                    >Largura X</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="width_x"
                       type="number"
                       min="20"
                       max="350"
-                      step="1" /></label
-                  ><label class="field"
-                    ><span data-i="depth">Profundidade Y</span
+                      step="1"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="width_x"
+                  type="range"
+                  min="20"
+                  max="350"
+                  step="1"
+                />
+              </div>
+              <div data-slider="depth_y" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Profundidade Y"
+                    data-en="Depth Y"
+                    >Profundidade Y</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="depth_y"
                       type="number"
                       min="20"
                       max="350"
                       step="1"
-                  /></label>
-                </div>
-                <div class="pair">
-                  <label class="field"
-                    ><span data-i="height">Altura Z</span
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="depth_y"
+                  type="range"
+                  min="20"
+                  max="350"
+                  step="1"
+                />
+              </div>
+              <div data-slider="height_z" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Altura Z"
+                    data-en="Height Z"
+                    >Altura Z</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="height_z"
                       type="number"
                       min="10"
                       max="250"
-                      step="1" /></label
-                  ><label class="field"
-                    ><span data-i="radius">Raio de canto</span
+                      step="1"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="height_z"
+                  type="range"
+                  min="10"
+                  max="250"
+                  step="1"
+                />
+              </div>
+              <div data-slider="corner_radius" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Raio de canto"
+                    data-en="Corner radius"
+                    >Raio de canto</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="corner_radius"
                       type="number"
-                      min=".8"
+                      min="0.8"
                       max="30"
-                      step=".2"
-                  /></label>
+                      step="0.2"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="corner_radius"
+                  type="range"
+                  min="0.8"
+                  max="30"
+                  step="0.2"
+                />
+              </div>
+              <div class="ctrl-row">
+                <div class="ctrl-top">
+                  <span class="ctrl-label" data-i18n="open">Abrir</span
+                  ><span class="ctrl-val-wrap"
+                    ><span id="openValue" class="ctrl-num">25%</span></span
+                  >
                 </div>
-                <div class="pair">
-                  <label class="field"
-                    ><span data-i="wall">Parede</span
+                <input
+                  id="open"
+                  class="orca-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="25"
+                />
+              </div>
+              <div class="curve-editor-wrap">
+                <canvas id="curve-canvas" width="500" height="330"></canvas>
+                <div class="curve-overlay-bar">
+                  <span id="curve-coord-readout" class="curve-coord-readout"
+                    >X/Y · mm</span
+                  ><button
+                    id="addPost"
+                    class="btn"
+                    style="padding: 2px 6px; font-size: 10px"
+                  >
+                    + PCB
+                  </button>
+                </div>
+              </div>
+              <div class="curve-hint" data-i18n="planHelp"></div>
+            </div>
+            <div id="card-resolution" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="quality">quality</span>
+              </div>
+              <label class="ctrl-row"
+                ><span class="ctrl-label" data-i18n="quality">quality</span
+                ><select id="quality" class="vp-select box-select">
+                  <option value="standard" data-i18n="qualityStandard">Standard</option>
+                  <option value="fine" data-i18n="qualityFine">Fine</option>
+                </select></label
+              >
+              <p id="surface" class="helper-note"></p>
+            </div>
+          </div>
+        </section>
+        <section class="viewport-col">
+          <canvas id="gl-canvas"></canvas>
+          <canvas id="vp-caliper-canvas"></canvas>
+
+          <!-- Top-Left Material & View Controls -->
+          <div class="vp-toolbar-left">
+            <select id="sel-material" class="vp-select" aria-label="Material">
+              <option value="emerald_silk" data-i18n="mat_emerald">
+                Seda Esmeralda Orca
+              </option>
+              <option value="terracotta" data-i18n="mat_terracotta">
+                Cerâmica Terracota
+              </option>
+              <option value="matte_ceramic" data-i18n="mat_white">
+                Porcelana Branca Mate
+              </option>
+              <option value="copper_bronze" data-i18n="mat_copper">
+                Bronze Cobre Escovado
+              </option>
+              <option value="xray" data-i18n="mat_xray">
+                🔬 Raio-X / Parede (Translúcido)
+              </option>
+              <option value="heatmap" data-i18n="mat_heatmap">
+                Mapa de Overhang (°)
+              </option>
+            </select>
+            <button id="xray" class="vp-chip vp-chip-xray" data-i18n="vp_xray">
+              🔬 Raio-X / Parede
+            </button>
+            <button
+              id="btn-vp-calipers"
+              class="vp-chip"
+              data-i18n="vp_calipers"
+            >
+              📏 Cotas mm
+            </button>
+            <button id="btn-vp-heatmap" class="vp-chip" data-i18n="vp_heatmap">
+              🔥 Overhang
+            </button>
+            <button id="btn-vp-wire" class="vp-chip" data-i18n="vp_wire">
+              ⌗ Malha
+            </button>
+            <button id="play" class="vp-chip" title="Animate lid">▶</button>
+            <button id="btn-vp-spin" class="vp-chip" title="Auto-Rotate">
+              ⟳
+            </button>
+          </div>
+
+          <!-- Out-of-bed live warning -->
+          <div id="bed-alert-banner" class="bed-alert-banner">
+            <span>⚠</span>
+            <span id="bed-alert-text"
+              >Dimensões excedem o volume da impressora!</span
+            >
+            <button
+              id="btn-fit-to-printer"
+              style="display: none"
+              type="button"
+              class="bed-fit-btn"
+              data-i18n="btn_fit_printer"
+            >
+              Ajustar à Mesa
+            </button>
+          </div>
+
+          <!-- Top-Right Live Printability & Dimensions HUD -->
+          <aside id="vp-hud-right" class="vp-hud-right vp-glass">
+            <div class="hud-title-row">
+              <span data-i18n="hud_title">Printabilidade</span>
+              <span id="hud-status-pill" class="hud-status-pill ok">OK</span>
+            </div>
+            <div class="hud-grid">
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_wall_floor"
+                  >Parede / Fundo</span
+                >
+                <span id="hud-wall-floor" class="hud-metric-v">—</span>
+              </div>
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_mouth_hole"
+                  >Folga por lado</span
+                >
+                <span id="hud-clearance" class="hud-metric-v">—</span>
+              </div>
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_dims"
+                  >Dimensões (mm)</span
+                >
+                <span id="hud-dims" class="hud-metric-v">—</span>
+              </div>
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_overhang"
+                  >Overhang Máx</span
+                >
+                <span id="hud-overhang" class="hud-metric-v">—</span>
+              </div>
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_weight"
+                  >Volume sólido</span
+                >
+                <span id="volume" class="hud-metric-v">—</span>
+              </div>
+              <div class="hud-metric">
+                <span class="hud-metric-k" data-i18n="hud_Tris"
+                  >Triângulos</span
+                >
+                <span id="triangles" class="hud-metric-v">—</span>
+              </div>
+            </div>
+            <div id="xray-legend" class="heatmap-legend">
+              <span
+                ><i class="legend-swatch" style="background: #0fd6c2"></i
+                ><span data-i18n="leg_outer">Externa</span></span
+              >
+              <span
+                ><i class="legend-swatch" style="background: #ff8c38"></i
+                ><span data-i18n="leg_inner">Cavidade &amp; Fundo</span></span
+              >
+            </div>
+            <div id="heatmap-legend" class="heatmap-legend">
+              <span
+                ><i class="legend-swatch" style="background: #00c853"></i
+                >≤45°</span
+              >
+              <span
+                ><i class="legend-swatch" style="background: #ffb300"></i
+                >45–55°</span
+              >
+              <span
+                ><i class="legend-swatch" style="background: #ff3d00"></i
+                >&gt;55°</span
+              >
+            </div>
+            <div
+              id="status"
+              class="helper-note"
+              role="status"
+              aria-live="polite"
+            ></div>
+            <div id="hud-warnings" class="hud-warnings"></div>
+          </aside>
+
+          <!-- Camera Preset Pills -->
+          <div class="vp-cam-bar">
+            <button class="vp-chip" data-cam="iso">Iso</button>
+            <button class="vp-chip" data-cam="front" data-i18n="cam_front">
+              Frente
+            </button>
+            <button class="vp-chip" data-cam="top" data-i18n="cam_top">
+              Topo
+            </button>
+            <button class="vp-chip" data-cam="bottom" data-i18n="cam_bottom">
+              Base
+            </button>
+            <button
+              class="vp-chip"
+              id="home"
+              data-cam="fit"
+              data-i18n="cam_fit"
+            >
+              Enquadrar
+            </button>
+          </div>
+
+          <!-- Bottom Dual Section Inspector Slider (Vertical Profile Y + Horizontal Plan Slice Z) -->
+          <div class="vp-cut-bar vp-glass">
+            <div
+              class="vp-cut-modes"
+              role="group"
+              aria-label="Section Cut Mode"
+            >
+              <button
+                id="btn-cut-mode-y"
+                class="vp-cut-mode-btn active"
+                data-i18n="vp_cut_y"
+              >
+                ✂ Corte Vertical (Perfil Y)
+              </button>
+              <button
+                id="btn-cut-mode-z"
+                class="vp-cut-mode-btn"
+                data-i18n="vp_cut_z"
+              >
+                💿 Fatia Horizontal Z (Planta 5%–100%)
+              </button>
+            </div>
+            <input
+              id="cut"
+              class="orca-slider"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="0"
+            />
+            <span
+              id="lbl-cross-cut"
+              class="ctrl-num"
+              style="width: 62px; text-align: center"
+              >Off</span
+            >
+            <button
+              id="btn-cut-half"
+              class="btn"
+              style="padding: 3px 7px; font-size: 10.5px"
+            >
+              50%
+            </button>
+            <button
+              id="btn-cut-off"
+              class="btn"
+              style="padding: 3px 7px; font-size: 10.5px"
+            >
+              Off
+            </button>
+          </div>
+        </section>
+
+        <section class="col-panel col-right">
+          <div class="col-scroll">
+            <div id="card-print-mode" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="wall">wall</span
+                ><span id="wall-mode-badge" class="card-badge">mm</span>
+              </div>
+              <div data-slider="wall_thickness" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span class="ctrl-label" data-pt="Parede" data-en="Wall"
+                    >Parede</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="wall_thickness"
                       type="number"
                       min="1.2"
                       max="12"
-                      step=".2" /></label
-                  ><label class="field"
-                    ><span data-i="floor">Fundo</span
+                      step="0.2"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="wall_thickness"
+                  type="range"
+                  min="1.2"
+                  max="12"
+                  step="0.2"
+                />
+              </div>
+              <div data-slider="floor_thickness" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span class="ctrl-label" data-pt="Fundo" data-en="Floor"
+                    >Fundo</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="floor_thickness"
                       type="number"
                       min="1.2"
                       max="12"
-                      step=".2"
-                  /></label>
-                </div>
-                <div class="pair">
-                  <label class="field"
-                    ><span data-i="lid">Espessura tampa</span
+                      step="0.2"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="floor_thickness"
+                  type="range"
+                  min="1.2"
+                  max="12"
+                  step="0.2"
+                />
+              </div>
+              <div data-slider="lid_height" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Espessura da tampa"
+                    data-en="Lid thickness"
+                    >Espessura da tampa</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="lid_height"
                       type="number"
                       min="1.2"
                       max="12"
-                      step=".2" /></label
-                  ><label class="field"
-                    ><span data-i="clearance">Folga por lado</span
+                      step="0.2"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="lid_height"
+                  type="range"
+                  min="1.2"
+                  max="12"
+                  step="0.2"
+                />
+              </div>
+              <div data-slider="fit_clearance" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Folga por lado"
+                    data-en="Clearance per side"
+                    >Folga por lado</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="fit_clearance"
                       type="number"
-                      min=".10"
-                      max=".40"
-                      step=".01"
+                      min="0.1"
+                      max="0.4"
+                      step="0.01"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="fit_clearance"
+                  type="range"
+                  min="0.1"
+                  max="0.4"
+                  step="0.01"
+                />
+              </div>
+              <div id="wall-preset-chips" class="wall-preset-row">
+                <button class="wall-chip" data-wall-preset="1.2">1.2 mm</button
+                ><button class="wall-chip" data-wall-preset="2.4">2.4 mm</button
+                ><button class="wall-chip" data-wall-preset="4">4 mm</button
+                ><button class="wall-chip" data-wall-preset="8">8 mm</button>
+              </div>
+              <div id="wall-perim-hint" class="wall-perim-hint"></div>
+            </div>
+            <div id="card-textures" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="features">features</span>
+              </div>
+              <div class="tex-card expanded">
+                <div class="tex-head">
+                  <span class="tex-title-wrap" data-i18n="pcb">PCB</span>
+                </div>
+                <div class="tex-body" id="posts"></div>
+              </div>
+              <div class="tex-card expanded">
+                <div class="tex-head">
+                  <span class="tex-title-wrap" data-i18n="ports">Recortes</span
+                  ><button
+                    id="addPort"
+                    class="btn btn-soft"
+                    style="padding: 2px 6px"
+                  >
+                    + USB-C
+                  </button>
+                </div>
+                <div class="tex-body" id="ports"></div>
+              </div>
+              <div class="tex-card expanded">
+                <div class="tex-head">
+                  <span class="tex-title-wrap" data-i18n="dividers"
+                    >Divisórias</span
+                  >
+                </div>
+                <div class="tex-body">
+                  <label class="ctrl-row"
+                    ><span class="ctrl-label" data-i18n="dividerX"></span
+                    ><input
+                      id="dividers_x"
+                      class="save-preset-input"
+                      placeholder="-20, 20" /></label
+                  ><label class="ctrl-row"
+                    ><span class="ctrl-label" data-i18n="dividerY"></span
+                    ><input
+                      id="dividers_y"
+                      class="save-preset-input"
+                      placeholder="0"
                   /></label>
                 </div>
-                <label class="field"
-                  ><span data-i="lip">Profundidade de encaixe</span
-                  ><input
-                    data-p="lip_depth"
-                    type="number"
-                    min="3"
-                    max="10"
-                    step=".5" /></label
-                ><label class="field rugged"
-                  ><span data-i="hinge">Dobradiça</span
-                  ><select id="hinge_mode">
-                    <option value="pin">Pino removível / removable pin</option>
-                    <option value="print_in_place">
-                      Cativa · print-in-place
-                    </option>
+              </div>
+            </div>
+            <div id="card-envelope" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="connections">Encaixes & alças</span>
+              </div>
+              <div data-slider="lip_depth" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Profundidade de encaixe"
+                    data-en="Locating skirt depth"
+                    >Profundidade de encaixe</span
+                  ><span class="ctrl-val-wrap"
+                    ><input
+                      class="ctrl-num"
+                      data-p="lip_depth"
+                      type="number"
+                      min="3"
+                      max="10"
+                      step="0.5"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="lip_depth"
+                  type="range"
+                  min="3"
+                  max="10"
+                  step="0.5"
+                />
+              </div>
+              <div class="rugged">
+                <label class="ctrl-row"
+                  ><span class="ctrl-label" data-i18n="hinge">hinge</span
+                  ><select id="hinge_mode" class="vp-select box-select">
+                    <option value="pin">Pino / Pin</option>
+                    <option value="print_in_place">Print-in-place</option>
                   </select></label
-                ><label class="field rugged"
-                  ><span data-i="pin">Diâmetro do pino</span
+                >
+              </div>
+                <div data-slider="hinge_pin_diameter" class="ctrl-row">
+                  <label class="ctrl-top"
+                    ><span
+                      class="ctrl-label"
+                      data-pt="Diâmetro do pino"
+                      data-en="Pin diameter"
+                      >Diâmetro do pino</span
+                    ><span class="ctrl-val-wrap"
+                      ><input
+                        class="ctrl-num"
+                        data-p="hinge_pin_diameter"
+                        type="number"
+                        min="2"
+                        max="6"
+                        step="0.2"
+                      /><span class="ctrl-unit">mm</span></span
+                    ></label
                   ><input
-                    data-p="hinge_pin_diameter"
-                    type="number"
+                    class="orca-slider"
+                    data-param-range="hinge_pin_diameter"
+                    type="range"
                     min="2"
                     max="6"
-                    step=".2" /></label
-                ><label class="field screw"
-                  ><span data-i="screw">Parafuso de canto</span
-                  ><select id="screw_size">
-                    <option>M2</option>
-                    <option>M2.5</option>
-                    <option>M3</option>
-                  </select></label
-                ><label class="field"
-                  ><span data-i="quality">Resolução da superfície</span
-                  ><select id="quality">
-                    <option value="standard">Standard</option>
-                    <option value="fine">Fine</option>
+                    step="0.2"
+                  />
+                </div>
+
+              <div class="screw">
+                <label class="ctrl-row"
+                  ><span class="ctrl-label" data-i18n="screw">screw</span
+                  ><select id="screw_size" class="vp-select box-select">
+                    <option value="M2">M2</option>
+                    <option value="M2.5">M2.5</option>
+                    <option value="M3">M3</option>
                   </select></label
                 >
               </div>
+<div id="open-bin-handles" class="ctrl-row box-style-controls" hidden>
+  <div class="switch-row">
+    <span class="ctrl-label" data-i18n="handles">Alças de mão</span
+    ><label class="toggle-switch"
+      ><input id="handles_enabled" type="checkbox" /><span
+        class="toggle-track"
+      ></span
+    ></label>
+  </div>
+  <label class="ctrl-row"
+    ><span class="ctrl-label" data-i18n="handleFaces">Par de faces</span
+    ><select id="handle_faces" class="vp-select box-select">
+      <option value="left_right" data-i18n="leftRight">
+        Esquerda / direita
+      </option>
+      <option value="front_back" data-i18n="frontBack">Frente / trás</option>
+    </select></label
+  >
+  <div data-slider="handle_width" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Largura útil da alça"
+        data-en="Grip clear width"
+        >Largura útil da alça</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="handle_width"
+          type="number"
+          min="12"
+          max="160"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="handle_width"
+      type="range"
+      min="12"
+      max="160"
+      step="1"
+    />
+  </div>
+  <div data-slider="handle_height" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Altura útil da alça"
+        data-en="Grip clear height"
+        >Altura útil da alça</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="handle_height"
+          type="number"
+          min="6"
+          max="40"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="handle_height"
+      type="range"
+      min="6"
+      max="40"
+      step="1"
+    />
+  </div>
+  <div data-slider="handle_top_margin" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Distância ao topo"
+        data-en="Distance from top"
+        >Distância ao topo</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="handle_top_margin"
+          type="number"
+          min="3"
+          max="40"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="handle_top_margin"
+      type="range"
+      min="3"
+      max="40"
+      step="1"
+    />
+  </div>
+</div>
+<div id="snap-latch-options" class="ctrl-row box-style-controls" hidden>
+  <div data-slider="lid_wall_height" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Profundidade de encaixe da tampa"
+        data-en="Lid skirt depth"
+        >Profundidade de encaixe da tampa</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="lid_wall_height"
+          type="number"
+          min="3"
+          max="25"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="lid_wall_height"
+      type="range"
+      min="3"
+      max="25"
+      step="1"
+    />
+  </div>
+  <div data-slider="latch_width" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span class="ctrl-label" data-pt="Largura da trava" data-en="Latch width"
+        >Largura da trava</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_width"
+          type="number"
+          min="8"
+          max="30"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_width"
+      type="range"
+      min="8"
+      max="30"
+      step="1"
+    />
+  </div>
+  <div data-slider="latch_thickness" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Espessura do fecho"
+        data-en="Latch body thickness"
+        >Espessura do fecho</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_thickness"
+          type="number"
+          min="1.2"
+          max="4"
+          step="0.1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_thickness"
+      type="range"
+      min="1.2"
+      max="4"
+      step="0.1"
+    />
+  </div>
+  <div data-slider="latch_retention" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Engate do gancho"
+        data-en="Hook engagement"
+        >Engate do gancho</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_retention"
+          type="number"
+          min="0.2"
+          max="1.2"
+          step="0.05"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_retention"
+      type="range"
+      min="0.2"
+      max="1.2"
+      step="0.05"
+    />
+  </div>
+  <div data-slider="latch_pivot_diameter" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Diâmetro do pivô do fecho"
+        data-en="Latch pivot diameter"
+        >Diâmetro do pivô do fecho</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="latch_pivot_diameter"
+          type="number"
+          min="2.4"
+          max="4"
+          step="0.1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="latch_pivot_diameter"
+      type="range"
+      min="2.4"
+      max="4"
+      step="0.1"
+    />
+  </div>
+  <p class="helper-note" data-i18n="twoLatches">
+    Duas travas articuladas na base, com pega e gancho. Solte as travas antes de
+    retirar a tampa.
+  </p>
+  <p id="latch-motion-phase" class="helper-note" aria-live="polite" hidden></p>
+</div>
+<div data-slider="snap_retention" class="ctrl-row">
+  <label class="ctrl-top"
+    ><span
+      class="ctrl-label"
+      data-pt="Retenção do encaixe"
+      data-en="Snap interference"
+      >Retenção do encaixe</span
+    ><span class="ctrl-val-wrap"
+      ><input
+        class="ctrl-num"
+        data-p="snap_retention"
+        type="number"
+        min="0.03"
+        max="0.30"
+        step="0.01"
+      /><span class="ctrl-unit">mm</span></span
+    ></label
+  ><input
+    class="orca-slider"
+    data-param-range="snap_retention"
+    type="range"
+    min="0.03"
+    max="0.30"
+    step="0.01"
+  />
+</div>
+<div id="stackable-bin-options" class="ctrl-row box-style-controls" hidden>
+  <div data-slider="front_access_width" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Largura da abertura frontal"
+        data-en="Front access width"
+        >Largura da abertura frontal</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="front_access_width"
+          type="number"
+          min="12"
+          max="300"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="front_access_width"
+      type="range"
+      min="12"
+      max="300"
+      step="1"
+    />
+  </div>
+  <div data-slider="front_access_drop" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Rebaixo frontal a partir do topo"
+        data-en="Front opening drop from top"
+        >Rebaixo frontal a partir do topo</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="front_access_drop"
+          type="number"
+          min="4"
+          max="150"
+          step="1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="front_access_drop"
+      type="range"
+      min="4"
+      max="150"
+      step="1"
+    />
+  </div>
+  <div data-slider="stack_foot_height" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Altura do pé de empilhamento"
+        data-en="Stacking foot height"
+        >Altura do pé de empilhamento</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="stack_foot_height"
+          type="number"
+          min="1"
+          max="5"
+          step="0.1"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="stack_foot_height"
+      type="range"
+      min="1"
+      max="5"
+      step="0.1"
+    />
+  </div>
+  <div data-slider="stack_clearance" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Folga por lado para empilhar"
+        data-en="Stacking clearance per side"
+        >Folga por lado para empilhar</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="stack_clearance"
+          type="number"
+          min="0.1"
+          max="0.8"
+          step="0.05"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="stack_clearance"
+      type="range"
+      min="0.1"
+      max="0.8"
+      step="0.05"
+    />
+  </div>
+  <p class="helper-note" data-i18n="stackingFamily">
+    A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as
+    dimensões X/Y, cantos, paredes e encaixes iguais.
+  </p>
+</div>
+<div id="clamshell-pip-options" class="ctrl-row box-style-controls" hidden>
+  <div data-slider="pip_clearance" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Folga da dobradiça PIP"
+        data-en="PIP hinge clearance"
+        >Folga da dobradiça PIP</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="pip_clearance"
+          type="number"
+          min="0.2"
+          max="0.6"
+          step="0.05"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="pip_clearance"
+      type="range"
+      min="0.2"
+      max="0.6"
+      step="0.05"
+    />
+  </div>
+  <div data-slider="hinge_separation" class="ctrl-row">
+    <label class="ctrl-top"
+      ><span
+        class="ctrl-label"
+        data-pt="Afastamento da articulação"
+        data-en="Hinge separation"
+        >Afastamento da articulação</span
+      ><span class="ctrl-val-wrap"
+        ><input
+          class="ctrl-num"
+          data-p="hinge_separation"
+          type="number"
+          min="4"
+          max="12"
+          step="0.5"
+        /><span class="ctrl-unit">mm</span></span
+      ></label
+    ><input
+      class="orca-slider"
+      data-param-range="hinge_separation"
+      type="range"
+      min="4"
+      max="12"
+      step="0.5"
+    />
+  </div>
+  <p id="clamshell-closed-height" class="helper-note"></p>
+  <p
+    id="clamshell-feature-warning"
+    class="helper-note warn"
+    data-i18n="clamshellFeatures"
+    hidden
+  >
+    Remova acessórios incompatíveis.
+  </p>
+</div>
+<p id="pipNote" class="helper-note warn"></p>
             </div>
-            <div class="card">
-              <div class="cardhead"><h2 data-i="sealing">Vedação TPU</h2></div>
-              <div class="cardbody">
-                <label class="check"
-                  ><input type="checkbox" id="gasket_enabled" /><span
-                    data-i="enableGasket"
-                    >Canal perimetral e junta</span
-                  ></label
+            <div id="card-gardening" class="studio-card">
+              <div class="card-head">
+                <span class="card-title" data-i18n="manufacture"
+                  >manufacture</span
                 >
-                <div class="pair">
-                  <label class="field"
-                    ><span data-i="gasketWidth">Largura do canal</span
+              </div>
+              <div class="switch-row">
+                <span class="ctrl-label" data-i18n="enableGasket"
+                  >enableGasket</span
+                ><label class="toggle-switch"
+                  ><input id="gasket_enabled" type="checkbox" /><span
+                    class="toggle-track"
+                  ></span
+                ></label>
+              </div>
+              <div data-slider="gasket_width" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Largura do canal TPU"
+                    data-en="TPU channel width"
+                    >Largura do canal TPU</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="gasket_width"
                       type="number"
-                      min=".6"
+                      min="0.6"
                       max="2"
-                      step=".1" /></label
-                  ><label class="field"
-                    ><span data-i="gasketDepth">Profundidade do canal</span
+                      step="0.1"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="gasket_width"
+                  type="range"
+                  min="0.6"
+                  max="2"
+                  step="0.1"
+                />
+              </div>
+              <div data-slider="gasket_depth" class="ctrl-row">
+                <label class="ctrl-top"
+                  ><span
+                    class="ctrl-label"
+                    data-pt="Profundidade do canal"
+                    data-en="Channel depth"
+                    >Profundidade do canal</span
+                  ><span class="ctrl-val-wrap"
                     ><input
+                      class="ctrl-num"
                       data-p="gasket_depth"
                       type="number"
-                      min=".5"
+                      min="0.5"
                       max="2"
-                      step=".1"
-                  /></label>
-                </div>
-                <p class="help" data-i="gasketHelp">
-                  Exporte a junta separadamente e selecione TPU no fatiador.
-                  Vedação física requer teste.
-                </p>
+                      step="0.1"
+                    /><span class="ctrl-unit">mm</span></span
+                  ></label
+                ><input
+                  class="orca-slider"
+                  data-param-range="gasket_depth"
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                />
               </div>
-            </div>
-          </section>
-          <section data-section="features" class="section-hidden">
-            <div class="card">
-              <div class="cardhead">
-                <h2 data-i="pcb">Placa & posicionamento</h2>
-                <button id="addPost" class="mini">+ PCB</button>
+              <div class="switch-row">
+                <span class="ctrl-label" data-i18n="auto">auto</span
+                ><label class="toggle-switch"
+                  ><input id="auto_configure_slicer" type="checkbox" /><span
+                    class="toggle-track"
+                  ></span
+                ></label>
               </div>
-              <div class="cardbody">
-                <canvas
-                  class="editor"
-                  id="plan"
-                  width="500"
-                  height="330"
-                  aria-label="Editor de posição de torres / Standoff placement editor"
-                ></canvas>
-                <p class="help" data-i="planHelp">
-                  Arraste as torres no desenho. Origem no centro; X para a
-                  direita, Y para trás. Cotas são editáveis abaixo.
-                </p>
-                <div id="posts"></div>
-              </div>
-            </div>
-            <div class="card">
-              <div class="cardhead">
-                <h2 data-i="ports">Recortes de painel</h2>
-                <button class="mini" id="addPort">+ USB-C</button>
-              </div>
-              <div class="cardbody">
-                <div id="ports"></div>
-                <p class="help" data-i="portHelp">
-                  Recortes são atravessamentos reais. Preserve cantos, fundo e
-                  encaixe. Dimensões de conectores são pontos de partida
-                  editáveis.
-                </p>
-              </div>
-            </div>
-            <div class="card">
-              <div class="cardhead"><h2 data-i="dividers">Divisórias</h2></div>
-              <div class="cardbody">
-                <label class="field"
-                  ><span data-i="dividerX"
-                    >Posições X, separadas por vírgula</span
-                  ><input id="dividers_x" placeholder="-20, 20" /></label
-                ><label class="field"
-                  ><span data-i="dividerY"
-                    >Posições Y, separadas por vírgula</span
-                  ><input id="dividers_y" placeholder="0"
-                /></label>
-              </div>
-            </div>
-          </section>
-          <section data-section="presets" class="section-hidden">
-            <div class="card">
-              <div class="cardhead">
-                <h2 data-i="library">Biblioteca de projetos</h2>
-                <span class="badge">12</span>
-              </div>
-              <div class="cardbody preset-list" id="presets"></div>
-            </div>
-            <div class="card">
-              <div class="cardhead">
-                <h2 data-i="mine">Meus presets</h2>
-                <button class="mini" id="savePreset" data-i="save">
-                  Salvar
-                </button>
-              </div>
-              <div class="cardbody preset-list" id="userPresets"></div>
-            </div>
-            <p class="help" data-i="presetHelp">
-              Envelopes de placas são referências. Confira o modelo e a revisão
-              da sua PCB antes de perfurar ou imprimir.
-            </p>
-          </section>
-        </aside>
-        <section class="viewport">
-          <canvas
-            id="gl"
-            aria-label="Pré-visualização 3D / 3D preview"
-          ></canvas>
-          <div class="tag">
-            BOX / ENCLOSURE STUDIO <span id="viewLabel">ASSEMBLY</span>
-          </div>
-          <div class="status" id="status" role="status" aria-live="polite">
-            Preparando visualização / Preparing preview…
-          </div>
-          <div class="viewtools">
-            <button id="home" title="Enquadrar / Fit view">⌂</button
-            ><button id="play" title="Animar tampa / Animate lid">▶</button
-            ><label for="open" data-i="open">Abrir</label
-            ><input
-              id="open"
-              type="range"
-              min="0"
-              max="100"
-              value="25"
-              aria-label="Abertura da tampa / Lid opening"
-            /><span id="openValue" style="color: #bcc9d7; font: 11px Consolas"
-              >25%</span
-            >
-          </div>
-        </section>
-        <aside class="column right">
-          <div class="card">
-            <div class="cardhead">
-              <h2 data-i="inspection">Inspeção</h2>
-              <span class="badge">LIVE MESH</span>
-            </div>
-            <div class="cardbody">
-              <div class="metrics">
-                <div class="metric">
-                  <b id="volume">—</b><span data-i="volume">Volume · cm³</span>
-                </div>
-                <div class="metric">
-                  <b id="triangles">—</b
-                  ><span data-i="triangles">Triângulos</span>
-                </div>
-              </div>
-              <label class="check"
-                ><input id="xray" type="checkbox" /><span data-i="xray"
-                  >Raio-X · componentes internos</span
-                ></label
-              ><label class="field"
-                ><span data-i="cut">Corte axial de inspeção</span
-                ><input id="cut" type="range" min="0" max="100" value="0"
-              /></label>
-              <p class="help" id="surface"></p>
-              <p class="help" data-i="sameMesh">
-                Visualização e exportação usam a mesma geometria Python. Curvas
-                são tesselações; a atualização do modelo acontece em segundo
-                plano.
-              </p>
-            </div>
-          </div>
-          <div class="card">
-            <div class="cardhead"><h2 data-i="manufacture">Fabricação</h2></div>
-            <div class="cardbody">
-              <select
-                id="target"
-                aria-label="Peças para exportação / Export parts"
+              <label class="ctrl-row"
+                ><span class="ctrl-label" data-i18n="manufacture"
+                  >manufacture</span
+                ><select id="target" class="vp-select box-select">
+                  <option value="base_and_lid">base_and_lid</option>
+                  <option value="base_only">base_only</option>
+                  <option value="lid_only">lid_only</option>
+                  <option value="gasket">gasket</option>
+                  <option value="fit_test_kit">fit_test_kit</option>
+                  <option value="full_suite">full_suite</option>
+                </select></label
               >
-                <option value="base_and_lid" data-i="both">Base + tampa</option>
-                <option value="base_only" data-i="baseOnly">Apenas base</option>
-                <option value="lid_only" data-i="lidOnly">Apenas tampa</option>
-                <option value="gasket" data-i="gasketOnly">Junta TPU</option>
-                <option value="fit_test_kit" data-i="kit">
-                  Kit de calibração
-                </option>
-                <option value="full_suite" data-i="full">
-                  Conjunto completo
-                </option></select
-              ><button class="primary wide job" id="send" data-i="send">
-                Enviar para a mesa
-              </button>
-              <div class="pair">
-                <button class="job" id="stl">STL ↓</button
-                ><button class="job" id="mf">3MF ↓</button>
-              </div>
-              <label class="check"
-                ><input id="auto_configure_slicer" type="checkbox" /><span
-                  data-i="auto"
-                  >Aplicar fatiamento mecânico</span
-                ></label
-              ><button id="folder" class="wide" data-i="folder">
-                Abrir pasta de exportação
-              </button>
-              <p class="help" data-i="printHelp">
-                Base com fundo na mesa; tampa invertida. Faça o kit de encaixe
-                antes da peça final. O tempo depende da impressora e do perfil.
-              </p>
-              <p class="help" id="pipNote"></p>
+              <p class="helper-note" data-i18n="printHelp"></p>
             </div>
           </div>
-        </aside>
+          <!-- Wide Mode Sticky Action Footer -->
+          <footer class="action-footer">
+            <button class="btn-hero" id="send" data-action="send_to_plater">
+              <span>🚀</span>
+              <span data-i18n="btn_send_plater"
+                >Enviar para a Mesa do OrcaSlicer</span
+              >
+            </button>
+            <div class="export-btn-row">
+              <button class="btn" id="mf" data-action="export_3mf">
+                💾 <span data-i18n="btn_exp_3mf">Exportar .3MF</span>
+              </button>
+              <button class="btn" id="stl" data-action="export_stl">
+                📐 <span data-i18n="btn_exp_stl">Exportar .STL</span>
+              </button>
+              <button
+                class="btn btn-icon"
+                id="folder"
+                data-action="open_folder"
+                title="Open Exports Folder"
+              >
+                📂
+              </button>
+            </div>
+          </footer>
+        </section>
       </main>
-      <footer class="footer">
-        <span>Orca Box Studio 1.0.0 · NumPy / WebGL2 · Offline</span
-        ><span data-i="gesture">Arraste para orbitar · roda para zoom</span>
+      <!-- Compact Dock Mode Sticky Footer -->
+      <footer class="action-footer dock-global-footer">
+        <button
+          class="btn-hero job"
+          data-action="send_to_plater"
+          style="padding: 8px 10px; font-size: 12px"
+        >
+          <span>🚀</span>
+          <span data-i18n="btn_send_plater"
+            >Enviar para a Mesa do OrcaSlicer</span
+          >
+        </button>
+        <div class="export-btn-row">
+          <button class="btn job" data-action="export_3mf">💾 .3MF</button>
+          <button class="btn job" data-action="export_stl">📐 .STL</button>
+          <button
+            class="btn btn-icon"
+            data-action="open_folder"
+            title="Open Exports Folder"
+          >
+            📂
+          </button>
+        </div>
       </footer>
     </div>
+    <div
+      id="toast-banner"
+      class="toast-banner"
+      role="status"
+      aria-live="polite"
+    ></div>
     <script>
-      const INITIAL = __BOX_CONTEXT__;
-      (() => {
-        "use strict";
-        const $ = (id) => document.getElementById(id),
-          clone = (o) => JSON.parse(JSON.stringify(o));
-        let p = clone(INITIAL.params),
-          lang = INITIAL.lang || p.lang || "pt",
-          theme = INITIAL.theme || "dark",
-          tab = "shape",
-          history = [],
-          future = [],
-          meshes = [],
-          serial = 0,
-          latest = 0,
-          timer = null,
-          playing = false,
-          angle = 25,
-          drag = null;
-        const texts = {
-          pt: {
-            shape: "Caixa",
-            features: "Acessórios",
-            presets: "Presets",
-            construction: "Construção",
-            style: "Estilo de caixa",
-            width: "Largura X",
-            depth: "Profundidade Y",
-            height: "Altura Z",
-            radius: "Raio de canto",
-            wall: "Parede",
-            floor: "Fundo",
-            lid: "Espessura tampa",
-            clearance: "Folga por lado",
-            lip: "Profundidade de encaixe",
-            hinge: "Dobradiça",
-            pin: "Diâmetro do pino",
-            screw: "Parafuso de canto",
-            quality: "Resolução da superfície",
-            sealing: "Vedação TPU",
-            enableGasket: "Canal perimetral e junta",
-            gasketWidth: "Largura do canal",
-            gasketDepth: "Profundidade do canal",
-            gasketHelp:
-              "Exporte a junta separadamente e selecione TPU no fatiador. Vedação física requer teste.",
-            pcb: "Placa & posicionamento",
-            planHelp:
-              "Arraste as torres. Origem no centro; X para a direita, Y para trás. Cotas editáveis abaixo.",
-            ports: "Recortes de painel",
-            portHelp:
-              "Atravessamentos reais. Preserve cantos, fundo e encaixe. Dimensões de conectores são pontos de partida editáveis.",
-            dividers: "Divisórias",
-            dividerX: "Posições X, separadas por vírgula",
-            dividerY: "Posições Y, separadas por vírgula",
-            library: "Biblioteca de projetos",
-            mine: "Meus presets",
-            save: "Salvar",
-            presetHelp:
-              "Envelopes de placas são referências. Confira o modelo e a revisão da sua PCB.",
-            open: "Abrir",
-            inspection: "Inspeção",
-            volume: "Volume · cm³",
-            triangles: "Triângulos",
-            xray: "Raio-X · componentes internos",
-            cut: "Corte axial de inspeção",
-            sameMesh:
-              "Visualização e exportação usam a mesma geometria Python. Curvas são tesselações; atualização em segundo plano.",
-            manufacture: "Fabricação",
-            both: "Base + tampa",
-            baseOnly: "Apenas base",
-            lidOnly: "Apenas tampa",
-            gasketOnly: "Junta TPU",
-            kit: "Kit de calibração",
-            full: "Conjunto completo",
-            send: "Enviar para a mesa",
-            auto: "Aplicar fatiamento mecânico",
-            folder: "Abrir pasta de exportação",
-            printHelp:
-              "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
-            gesture: "Arraste para orbitar · roda para zoom",
-            generating: "Gerando malha… você pode continuar editando.",
-            ready: "Malha atualizada · pronta para inspecionar.",
-            noHost:
-              "Pré-visualização de interface. Abra o plugin no OrcaSlicer para gerar malhas.",
-            pip: "Print-in-place: conjunto montado. Avalie pontes/suportes removíveis sob a tampa, sem preencher as folgas da dobradiça. Retire as travas para abrir.",
-            delete: "Remover",
-            heightPost: "Altura torre",
-            outer: "Ø externo",
-            hole: "Ø furo",
-            holeDepth: "Prof. furo",
-            insert: "Inserto",
-            pilot: "Piloto",
-            face: "Face",
-            kind: "Tipo",
-            front: "Frente",
-            back: "Trás",
-            left: "Esquerda",
-            right: "Direita",
-          },
-          en: {
-            shape: "Enclosure",
-            features: "Features",
-            presets: "Presets",
-            construction: "Construction",
-            style: "Enclosure style",
-            width: "Width X",
-            depth: "Depth Y",
-            height: "Height Z",
-            radius: "Corner radius",
-            wall: "Wall",
-            floor: "Floor",
-            lid: "Lid thickness",
-            clearance: "Clearance per side",
-            lip: "Locating skirt depth",
-            hinge: "Hinge",
-            pin: "Pin diameter",
-            screw: "Corner screw",
-            quality: "Surface resolution",
-            sealing: "TPU gasket",
-            enableGasket: "Perimeter channel and gasket",
-            gasketWidth: "Channel width",
-            gasketDepth: "Channel depth",
-            gasketHelp:
-              "Export the gasket separately and select TPU in the slicer. Physical sealing requires testing.",
-            pcb: "PCB & placement",
-            planHelp:
-              "Drag standoffs. Centered origin; X right, Y back. Exact coordinates remain editable below.",
-            ports: "Panel cutouts",
-            portHelp:
-              "Real through-openings. Preserve corners, floor and lid interface. Connector dimensions are editable starting points.",
-            dividers: "Dividers",
-            dividerX: "X positions, comma separated",
-            dividerY: "Y positions, comma separated",
-            library: "Design library",
-            mine: "My presets",
-            save: "Save",
-            presetHelp:
-              "PCB envelopes are references. Check your actual board model and revision.",
-            open: "Open",
-            inspection: "Inspection",
-            volume: "Volume · cm³",
-            triangles: "Triangles",
-            xray: "X-ray · internal components",
-            cut: "Axial inspection cut",
-            sameMesh:
-              "Preview and export share the Python geometry. Curves are tessellated; model updates run in the background.",
-            manufacture: "Manufacture",
-            both: "Base + lid",
-            baseOnly: "Base only",
-            lidOnly: "Lid only",
-            gasketOnly: "TPU gasket",
-            kit: "Fit calibration kit",
-            full: "Complete set",
-            send: "Send to Plater",
-            auto: "Apply mechanical slicing",
-            folder: "Open export folder",
-            printHelp:
-              "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
-            gesture: "Drag to orbit · wheel to zoom",
-            generating: "Generating mesh… you can keep editing.",
-            ready: "Mesh updated · ready to inspect.",
-            noHost:
-              "Interface preview. Open this plugin in OrcaSlicer to generate meshes.",
-            pip: "Print-in-place: assembled set. Assess bridging/removable support below the lid without filling hinge gaps. Remove clips before opening.",
-            delete: "Remove",
-            heightPost: "Post height",
-            outer: "Outer Ø",
-            hole: "Hole Ø",
-            holeDepth: "Hole depth",
-            insert: "Insert",
-            pilot: "Pilot",
-            face: "Face",
-            kind: "Type",
-            front: "Front",
-            back: "Back",
-            left: "Left",
-            right: "Right",
-          },
-        };
-        const tr = (k) => texts[lang][k] || k;
-        function send(m) {
-          if (window.orca && typeof window.orca.postMessage === "function") {
-            window.orca.postMessage(m);
-            return true;
-          }
-          if (window.chrome?.webview) {
-            window.chrome.webview.postMessage(m);
-            return true;
-          }
-          return false;
+const INITIAL = __BOX_CONTEXT__;
+(() => {
+  "use strict";
+  const $ = (id) =>
+      document.getElementById(
+        {
+          gl: "gl-canvas",
+          presets: "presets-grid",
+          printer: "printer-pill-name",
+          plan: "curve-canvas",
+        }[id] || id,
+      ),
+    clone = (o) => JSON.parse(JSON.stringify(o));
+  let p = clone(INITIAL.params),
+    lang = INITIAL.lang || p.lang || "pt",
+    theme = INITIAL.theme || "dark",
+    tab = "shape",
+    history = [],
+    future = [],
+    meshes = [],
+    serial = 0,
+    latest = 0,
+    localDirty = false,
+    meshParams = clone(INITIAL.params),
+    meshRevisionKey = null,
+    openingStyle = null,
+    lastInterfaceError = null,
+    statusTranslationKey = null,
+    timer = null,
+    playing = false,
+    angle = 25,
+    drag = null;
+  let userOverrodeTheme = false;
+  let hostThemeExplicit =
+    INITIAL.theme_explicit ?? INITIAL.host?.theme_explicit ?? true;
+  function detectInjectedOrcaTheme() {
+    if (
+      typeof window === "undefined" ||
+      typeof window.getComputedStyle !== "function"
+    )
+      return null;
+    if (typeof document === "undefined" || !document.documentElement)
+      return null;
+    try {
+      const style = window.getComputedStyle(document.documentElement);
+      if (!style || typeof style.getPropertyValue !== "function") return null;
+      const raw = String(style.getPropertyValue("--orca-bg") || "").trim();
+      if (!raw) return null;
+      let r = NaN,
+        g = NaN,
+        b = NaN;
+      if (raw[0] === "#") {
+        const hex = raw.slice(1).trim();
+        if (hex.length === 3) {
+          r = parseInt(hex[0] + hex[0], 16);
+          g = parseInt(hex[1] + hex[1], 16);
+          b = parseInt(hex[2] + hex[2], 16);
+        } else if (hex.length >= 6) {
+          r = parseInt(hex.slice(0, 2), 16);
+          g = parseInt(hex.slice(2, 4), 16);
+          b = parseInt(hex.slice(4, 6), 16);
         }
-        function status(s, error = false) {
-          $("status").textContent = s;
-          $("status").style.borderColor = error ? "#ff726e" : "#35414e";
-          $("status").style.color = error ? "#ff9b97" : "#b9c7d5";
-        }
-        texts.pt.parameters = "Parâmetros";
-        texts.en.parameters = "Parameters";
-        texts.pt.export = "Exportar";
-        texts.en.export = "Export";
-        document.querySelectorAll("[data-dock-view-button]").forEach(
-          (button) =>
-            (button.onclick = () => {
-              document.body.dataset.dockView = button.dataset.dockViewButton;
-              document
-                .querySelectorAll("[data-dock-view-button]")
-                .forEach((other) =>
-                  other.classList.toggle("active", other === button),
-                );
-              render();
-              drawPlan();
-            }),
+      } else {
+        const m = raw.match(
+          /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i,
         );
-        function translate() {
-          document.documentElement.lang = lang;
-          document.documentElement.dataset.theme = theme;
-          $("lang").textContent = lang.toUpperCase();
-          $("theme").textContent = theme === "dark" ? "☾" : "☀";
-          document
-            .querySelectorAll("[data-i]")
-            .forEach((e) => (e.textContent = tr(e.dataset.i)));
-          presets();
-          features();
-          drawPlan();
+        if (m) {
+          r = parseFloat(m[1]);
+          g = parseFloat(m[2]);
+          b = parseFloat(m[3]);
         }
-        function snapshot() {
-          history.push(clone(p));
-          if (history.length > 40) history.shift();
-          future = [];
-          buttons();
-        }
-        function buttons() {
-          $("undo").disabled = !history.length;
-          $("redo").disabled = !future.length;
-        }
-        function setDesign(next, remember = true) {
-          if (remember) snapshot();
-          p = clone(next);
-          sync();
-          requestPreview();
-        }
-        function sync() {
-          for (const k of ["lid_height", "lip_depth"])
-            document
-              .querySelector("[data-p=" + k + "]")
-              .closest("label").style.display =
-              p.style === "sliding_lid" ? "none" : "grid";
-          $("name").value = p.name;
-          document
-            .querySelectorAll("[data-p]")
-            .forEach((e) => (e.value = p[e.dataset.p]));
-          for (const key of ["style", "hinge_mode", "screw_size", "quality"])
-            $(key).value = p[key];
-          for (const key of ["gasket_enabled", "auto_configure_slicer"])
-            $(key).checked = p[key];
-          $("dividers_x").value = p.dividers_x.join(", ");
-          $("dividers_y").value = p.dividers_y.join(", ");
-          $("target").value = p.export_target;
-          document
-            .querySelectorAll(".rugged")
-            .forEach(
-              (e) =>
-                (e.style.display = p.style === "rugged_box" ? "grid" : "none"),
-            );
-          document
-            .querySelectorAll(".screw")
-            .forEach(
-              (e) =>
-                (e.style.display =
-                  p.style === "screw_corner" ? "grid" : "none"),
-            );
-          $("pipNote").textContent =
-            p.style === "rugged_box" && p.hinge_mode === "print_in_place"
-              ? tr("pip")
-              : "";
-          features();
-          drawPlan();
-          buttons();
-          render();
-        }
-        function requestPreview() {
-          clearTimeout(timer);
-          const request_id = ++serial;
-          latest = request_id;
-          timer = setTimeout(() => {
-            status(tr("generating"));
-            p.lang = lang;
-            p.theme = theme;
-            if (!send({ type: "preview", params: p, request_id }))
-              status(tr("noHost"));
-          }, 350);
-        }
-        function change(key, value) {
-          snapshot();
-          p[key] = value;
-          sync();
-          requestPreview();
-        }
+      }
+      if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b))
+        return null;
+      const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0;
+      return lum > 0.52 ? "light" : "dark";
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function resolveHostTheme(message = {}) {
+    if (typeof message.theme_explicit === "boolean")
+      hostThemeExplicit = message.theme_explicit;
+    else if (typeof message.host?.theme_explicit === "boolean")
+      hostThemeExplicit = message.host.theme_explicit;
+    if (userOverrodeTheme) return;
+    const injected =
+      hostThemeExplicit === false ? detectInjectedOrcaTheme() : null;
+    const resolved = injected || message.theme || message.host?.theme;
+    if ((resolved === "light" || resolved === "dark") && resolved !== theme) {
+      theme = resolved;
+      translate();
+    }
+  }
+  function watchHostTheme() {
+    if (typeof MutationObserver !== "function") return;
+    const apply = () => resolveHostTheme();
+    const rootObserver = new MutationObserver(apply);
+    rootObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-orca-theme"],
+    });
+    if (document.head) {
+      const styleObserver = new MutationObserver(apply);
+      styleObserver.observe(document.head, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    }
+  }
+
+  const texts = {
+    pt: {
+      shape: "Caixa",
+      features: "Acessórios",
+      presets: "Presets",
+      construction: "Construção",
+      style: "Estilo de caixa",
+      openBin: "Caixa aberta",
+      snapLatch: "Tampa com travas",
+      stackableBin: "Caixa empilhável",
+      clamshellPip: "Estojo articulado PIP",
+      hingedAssembly: "Conjunto articulado",
+      equalHalfNote:
+        "Metades iguais · altura fechada: {height} mm. O conjunto é impresso aberto a 180°.",
+      clamshellPrintBounds: "Na mesa, aberto: {size} mm.",
+      clamshellFeatures:
+        "Remova torres, recortes, divisórias e TPU existentes para usar este estilo.",
+      stackingFamily:
+        "A altura total inclui o pé. Para empilhar alturas diferentes, mantenha as dimensões X/Y, cantos, paredes e encaixes iguais.",
+      connections: "Encaixes & alças",
+      handles: "Alças de mão",
+      handleFaces: "Par de faces",
+      leftRight: "Esquerda / direita",
+      frontBack: "Frente / trás",
+      twoLatches:
+        "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
+      releaseAndOpen: "Soltar fechos e abrir",
+      latchesEngaged: "Fechos presos · tampa fechada",
+      releasingLatches: "Soltando os fechos · tampa parada",
+      liftingLid: "Fechos abertos · afastando a tampa",
+      lidRemoved: "Fechos abertos · tampa afastada",
+      latchMotionUnavailable:
+        "Movimento dos fechos indisponível. Gere a prévia novamente.",
+      width: "Largura X",
+      depth: "Profundidade Y",
+      height: "Altura da base Z",
+      radius: "Raio de canto",
+      wall: "Parede",
+      floor: "Fundo",
+      lid: "Espessura tampa",
+      clearance: "Folga por lado",
+      hingeClearance: "Folga da dobradiça",
+      lip: "Profundidade de encaixe",
+      hinge: "Dobradiça",
+      pin: "Diâmetro do pino",
+      screw: "Parafuso de canto",
+      quality: "Resolução da superfície",
+      qualityStandard: "Padrão",
+      qualityFine: "Fina",
+      sealing: "Vedação TPU",
+      enableGasket: "Canal perimetral e junta",
+      gasketWidth: "Largura do canal",
+      gasketDepth: "Profundidade do canal",
+      gasketHelp:
+        "Exporte a junta separadamente e selecione TPU no fatiador. Vedação física requer teste.",
+      pcb: "Placa & posicionamento",
+      planHelp:
+        "Arraste as torres. Origem no centro; X para a direita, Y para trás. Cotas editáveis abaixo.",
+      ports: "Recortes de painel",
+      portHelp:
+        "Atravessamentos reais. Preserve cantos, fundo e encaixe. Dimensões de conectores são pontos de partida editáveis.",
+      dividers: "Divisórias",
+      dividerX: "Posições X, separadas por vírgula",
+      dividerY: "Posições Y, separadas por vírgula",
+      library: "Biblioteca de projetos",
+      mine: "Meus presets",
+      save: "Salvar",
+      presetHelp:
+        "Envelopes de placas são referências. Confira o modelo e a revisão da sua PCB.",
+      open: "Abrir",
+      inspection: "Inspeção",
+      volume: "Volume · cm³",
+      triangles: "Triângulos",
+      xray: "Raio-X · componentes internos",
+      cut: "Corte axial de inspeção",
+      sameMesh:
+        "Visualização e exportação usam a mesma geometria Python. Curvas são tesselações; atualização em segundo plano.",
+      manufacture: "Fabricação",
+      both: "Base + tampa",
+      baseOnly: "Apenas base",
+      lidOnly: "Apenas tampa",
+      gasketOnly: "Junta TPU",
+      kit: "Kit de calibração",
+      full: "Conjunto completo",
+      send: "Enviar para a mesa",
+      auto: "Aplicar fatiamento mecânico",
+      folder: "Abrir pasta de exportação",
+      printHelp:
+        "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+      printHelpClamshell:
+        "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
+      printHelpOpen:
+        "Base com fundo na mesa e abertura para cima. Confira as paredes e as pontes das alças, quando ativadas, na prévia do fatiador.",
+      printHelpStack:
+        "Imprima com o pé apoiado na mesa e a frente aberta. A altura total inclui o pé. Teste o encaixe entre peças da mesma família antes de empilhar.",
+      printHelpLatch:
+        "Conjunto: base, tampa e duas travas. Imprima base e tampa pelas faces externas, e as travas em pé. Monte as travas nos pivôs da base; solte os ganchos antes de retirar a tampa. Teste o encaixe das peças impressas.",
+      gesture: "Arraste para orbitar · roda para zoom",
+      generating: "Gerando malha… você pode continuar editando.",
+      ready: "Malha atualizada · pronta para inspecionar.",
+      noHost:
+        "Pré-visualização de interface. Abra o plugin no OrcaSlicer para gerar malhas.",
+      pip: "Print-in-place: conjunto montado. Avalie pontes/suportes removíveis sob a tampa, sem preencher as folgas da dobradiça. Retire as travas para abrir.",
+      delete: "Remover",
+      heightPost: "Altura torre",
+      outer: "Ø externo",
+      hole: "Ø furo",
+      holeDepth: "Prof. furo",
+      insert: "Inserto",
+      pilot: "Piloto",
+      face: "Face",
+      kind: "Tipo",
+      front: "Frente",
+      back: "Trás",
+      left: "Esquerda",
+      right: "Direita",
+    },
+    en: {
+      shape: "Enclosure",
+      features: "Features",
+      presets: "Presets",
+      construction: "Construction",
+      style: "Enclosure style",
+      openBin: "Open bin",
+      snapLatch: "Latch lid",
+      stackableBin: "Stackable bin",
+      clamshellPip: "PIP clamshell",
+      hingedAssembly: "Hinged assembly",
+      equalHalfNote:
+        "Equal halves · closed height: {height} mm. The assembly prints open at 180°.",
+      clamshellPrintBounds: "Open footprint on the bed: {size} mm.",
+      clamshellFeatures:
+        "Remove existing standoffs, cutouts, dividers and TPU features to use this style.",
+      stackingFamily:
+        "Total height includes the foot. To stack different heights, keep X/Y dimensions, corners, walls and mating features identical.",
+      connections: "Connections & grips",
+      handles: "Hand grips",
+      handleFaces: "Pair of faces",
+      leftRight: "Left / right",
+      frontBack: "Front / back",
+      twoLatches:
+        "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
+      releaseAndOpen: "Release latches & open",
+      latchesEngaged: "Latches engaged · lid closed",
+      releasingLatches: "Releasing latches · lid stationary",
+      liftingLid: "Latches open · lifting the lid",
+      lidRemoved: "Latches open · lid removed",
+      latchMotionUnavailable:
+        "Latch motion unavailable. Regenerate the preview.",
+      width: "Width X",
+      depth: "Depth Y",
+      height: "Base height Z",
+      radius: "Corner radius",
+      wall: "Wall",
+      floor: "Floor",
+      lid: "Lid thickness",
+      clearance: "Clearance per side",
+      hingeClearance: "Hinge clearance",
+      lip: "Locating skirt depth",
+      hinge: "Hinge",
+      pin: "Pin diameter",
+      screw: "Corner screw",
+      quality: "Surface resolution",
+      qualityStandard: "Standard",
+      qualityFine: "Fine",
+      sealing: "TPU gasket",
+      enableGasket: "Perimeter channel and gasket",
+      gasketWidth: "Channel width",
+      gasketDepth: "Channel depth",
+      gasketHelp:
+        "Export the gasket separately and select TPU in the slicer. Physical sealing requires testing.",
+      pcb: "PCB & placement",
+      planHelp:
+        "Drag standoffs. Centered origin; X right, Y back. Exact coordinates remain editable below.",
+      ports: "Panel cutouts",
+      portHelp:
+        "Real through-openings. Preserve corners, floor and lid interface. Connector dimensions are editable starting points.",
+      dividers: "Dividers",
+      dividerX: "X positions, comma separated",
+      dividerY: "Y positions, comma separated",
+      library: "Design library",
+      mine: "My presets",
+      save: "Save",
+      presetHelp:
+        "PCB envelopes are references. Check your actual board model and revision.",
+      open: "Open",
+      inspection: "Inspection",
+      volume: "Volume · cm³",
+      triangles: "Triangles",
+      xray: "X-ray · internal components",
+      cut: "Axial inspection cut",
+      sameMesh:
+        "Preview and export share the Python geometry. Curves are tessellated; model updates run in the background.",
+      manufacture: "Manufacture",
+      both: "Base + lid",
+      baseOnly: "Base only",
+      lidOnly: "Lid only",
+      gasketOnly: "TPU gasket",
+      kit: "Fit calibration kit",
+      full: "Complete set",
+      send: "Send to Plater",
+      auto: "Apply mechanical slicing",
+      folder: "Open export folder",
+      printHelp:
+        "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
+      printHelpClamshell:
+        "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
+      printHelpOpen:
+        "Base floor down, opening upwards. Check the walls and the bridges above hand grips, when enabled, in the slicer preview.",
+      printHelpStack:
+        "Print with the foot on the bed and the front open. Total height includes the foot. Test the fit between bins of the same family before stacking.",
+      printHelpLatch:
+        "Set: base, lid and two latches. Print the shells on their outer faces and the latches upright. Fit the latches onto the base pivots; release the hooks before lifting the lid. Check the fit of the printed parts.",
+      gesture: "Drag to orbit · wheel to zoom",
+      generating: "Generating mesh… you can keep editing.",
+      ready: "Mesh updated · ready to inspect.",
+      noHost:
+        "Interface preview. Open this plugin in OrcaSlicer to generate meshes.",
+      pip: "Print-in-place: assembled set. Assess bridging/removable support below the lid without filling hinge gaps. Remove clips before opening.",
+      delete: "Remove",
+      heightPost: "Post height",
+      outer: "Outer Ø",
+      hole: "Hole Ø",
+      holeDepth: "Hole depth",
+      insert: "Insert",
+      pilot: "Pilot",
+      face: "Face",
+      kind: "Type",
+      front: "Front",
+      back: "Back",
+      left: "Left",
+      right: "Right",
+    },
+  };
+  const tr = (k) => texts[lang][k] || k;
+  function send(m) {
+    if (window.orca && typeof window.orca.postMessage === "function") {
+      window.orca.postMessage(m);
+      return true;
+    }
+    if (window.chrome?.webview) {
+      window.chrome.webview.postMessage(m);
+      return true;
+    }
+    return false;
+  }
+  function status(s, error = false, translationKey = null) {
+    statusTranslationKey = translationKey;
+    $("status").textContent = s;
+    $("status").classList.toggle("warn", error);
+    const banner = $("toast-banner");
+    banner.textContent = s;
+    banner.classList.add("visible");
+    banner.classList.toggle("error", error);
+    clearTimeout(status.timer);
+    status.timer = setTimeout(
+      () => banner.classList.remove("visible"),
+      error ? 6000 : 2500,
+    );
+  }
+  texts.pt.parameters = "Parâmetros";
+  texts.en.parameters = "Parameters";
+  texts.pt.export = "Exportar";
+  texts.en.export = "Export";
+  document.querySelectorAll("[data-dock-view-button]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        document.body.dataset.dockView = button.dataset.dockViewButton;
         document
-          .querySelectorAll("[data-p]")
-          .forEach((e) =>
-            e.addEventListener("change", () =>
-              change(e.dataset.p, Number(e.value)),
-            ),
+          .querySelectorAll("[data-dock-view-button]")
+          .forEach((other) =>
+            other.classList.toggle("active", other === button),
           );
-        for (const key of ["style", "hinge_mode", "screw_size", "quality"])
-          $(key).onchange = () => change(key, $(key).value);
-        for (const key of ["gasket_enabled", "auto_configure_slicer"])
-          $(key).onchange = () => change(key, $(key).checked);
-        for (const key of ["dividers_x", "dividers_y"])
-          $(key).onchange = () =>
-            change(
-              key,
-              $(key)
-                .value.split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map(Number)
-                .filter(Number.isFinite),
-            );
-        $("name").onchange = () => change("name", $("name").value);
-        $("target").onchange = () => change("export_target", $("target").value);
-        $("undo").onclick = () => {
-          if (!history.length) return;
-          future.push(clone(p));
-          p = history.pop();
-          sync();
-          requestPreview();
-        };
-        $("redo").onclick = () => {
-          if (!future.length) return;
-          history.push(clone(p));
-          p = future.pop();
-          sync();
-          requestPreview();
-        };
-        $("reset").onclick = () => setDesign(INITIAL.params);
-        $("lang").onclick = () => {
-          lang = lang === "pt" ? "en" : "pt";
-          translate();
-          sync();
-        };
-        $("theme").onclick = () => {
-          theme = theme === "dark" ? "light" : "dark";
-          translate();
-        };
-        $("sync").onclick = () => send({ type: "sync_printer" });
-        $("folder").onclick = () => send({ type: "open_exports_folder" });
-        document.addEventListener("keydown", (e) => {
-          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-            e.preventDefault();
-            (e.shiftKey ? $("redo") : $("undo")).click();
-          }
-        });
-        document.querySelectorAll("[data-tab]").forEach(
-          (b) =>
-            (b.onclick = () => {
-              tab = b.dataset.tab;
-              document
-                .querySelectorAll("[data-tab]")
-                .forEach((x) => x.classList.toggle("active", x === b));
-              document
-                .querySelectorAll("[data-section]")
-                .forEach((x) =>
-                  x.classList.toggle(
-                    "section-hidden",
-                    x.dataset.section !== tab,
-                  ),
-                );
-              drawPlan();
-            }),
+        render();
+        drawPlan();
+      }),
+  );
+  function updatePrintHelp() {
+    const key =
+      {
+        open_bin: "printHelpOpen",
+        stackable_bin: "printHelpStack",
+        snap_latch: "printHelpLatch",
+        clamshell_pip: "printHelpClamshell",
+      }[p.style] || "printHelp";
+    document.querySelector('[data-i18n="printHelp"]').textContent = tr(key);
+  }
+  function updateClamshellNote() {
+    let note = tr("equalHalfNote").replace(
+      "{height}",
+      (2 * Number(p.height_z) + Number(p.fit_clearance)).toFixed(2),
+    );
+    if (
+      !localDirty &&
+      meshParams.style === "clamshell_pip" &&
+      INITIAL.print_bounds?.size
+    ) {
+      note +=
+        " " +
+        tr("clamshellPrintBounds").replace(
+          "{size}",
+          INITIAL.print_bounds.size
+            .map((value) => Number(value).toFixed(1))
+            .join("×"),
         );
-        function presets() {
-          const list = $("presets");
-          list.replaceChildren();
-          (INITIAL.presets || []).forEach((s) => {
-            const b = document.createElement("button");
-            b.className = "preset";
-            b.textContent = lang === "pt" ? s.name_pt : s.name_en;
-            const small = document.createElement("small");
-            small.textContent = `${s.params.width_x} × ${s.params.depth_y} × ${s.params.height_z} mm · ${s.params.style}`;
-            b.append(small);
-            b.onclick = () => setDesign(s.params);
-            list.append(b);
-          });
-          const user = $("userPresets");
-          user.replaceChildren();
-          (INITIAL.user_presets || []).forEach((s) => {
-            const row = document.createElement("div");
-            row.className = "pair";
-            const b = document.createElement("button");
-            b.textContent = s.name;
-            b.onclick = () => setDesign(s.params);
-            const del = document.createElement("button");
-            del.textContent = "×";
-            del.title = tr("delete");
-            del.onclick = () =>
-              send({ type: "delete_preset", preset_id: s.id });
-            row.append(b, del);
-            user.append(row);
-          });
-        }
-        $("savePreset").onclick = () =>
-          send({ type: "save_preset", params: p, name: p.name });
-        function fieldInput(label, value, onchange, step = ".1") {
-          const lab = document.createElement("label");
-          lab.className = "field";
-          const span = document.createElement("span");
-          span.textContent = label;
-          const inp = document.createElement("input");
-          inp.type = "number";
-          inp.step = step;
-          inp.value = value;
-          inp.onchange = () => onchange(Number(inp.value));
-          lab.append(span, inp);
-          return lab;
-        }
-        function selectInput(label, value, values, onchange) {
-          const lab = document.createElement("label");
-          lab.className = "field";
-          const span = document.createElement("span");
-          span.textContent = label;
-          const sel = document.createElement("select");
-          values.forEach(([v, text]) => {
-            const opt = document.createElement("option");
-            opt.value = v;
-            opt.textContent = text;
-            sel.append(opt);
-          });
-          sel.value = value;
-          sel.onchange = () => onchange(sel.value);
-          lab.append(span, sel);
-          return lab;
-        }
-        function featureChange(list, index, key, value) {
-          snapshot();
-          p[list][index][key] = value;
-          drawPlan();
-          requestPreview();
-        }
-        function features() {
-          const posts = $("posts");
-          posts.replaceChildren();
-          p.standoffs.forEach((s, i) => {
-            const card = document.createElement("div");
-            card.className = "feature";
-            const head = document.createElement("div");
-            head.className = "featuretitle";
-            head.textContent = `PCB ${i + 1}`;
-            const del = document.createElement("button");
-            del.textContent = "×";
-            del.onclick = () => {
-              snapshot();
-              p.standoffs.splice(i, 1);
-              sync();
-              requestPreview();
-            };
-            head.append(del);
-            card.append(head);
-            const pairs = [
-              ["X", "x", "Y", "y"],
-              [tr("heightPost"), "height", tr("outer"), "outer_diameter"],
-              [tr("hole"), "hole_diameter", tr("holeDepth"), "hole_depth"],
-            ];
-            pairs.forEach(([a, ka, b, kb]) => {
-              const row = document.createElement("div");
-              row.className = "pair";
-              row.append(
-                fieldInput(a, s[ka], (v) =>
-                  featureChange("standoffs", i, ka, v),
-                ),
-                fieldInput(b, s[kb], (v) =>
-                  featureChange("standoffs", i, kb, v),
-                ),
-              );
-              card.append(row);
-            });
-            const row = document.createElement("div");
-            row.className = "pair";
-            row.append(
-              selectInput(
-                tr("insert"),
-                s.insert,
-                [
-                  ["M2", "M2"],
-                  ["M2.5", "M2.5"],
-                  ["M3", "M3"],
-                ],
-                (v) => {
-                  featureChange("standoffs", i, "insert", v);
-                },
-              ),
-              selectInput(
-                "Modo / Mode",
-                s.mode,
-                [
-                  ["insert", tr("insert")],
-                  ["pilot", tr("pilot")],
-                ],
-                (v) => {
-                  featureChange("standoffs", i, "mode", v);
-                  p.standoffs[i].hole_diameter =
-                    v === "pilot"
-                      ? { M2: 1.6, "M2.5": 2.1, M3: 2.5 }[s.insert] || 2.5
-                      : { M2: 3.2, "M2.5": 3.8, M3: 4.2 }[s.insert] || 4.2;
-                  features();
-                },
-              ),
-            );
-            card.append(row);
-            posts.append(card);
-          });
-          const ports = $("ports");
-          ports.replaceChildren();
-          p.cutouts.forEach((s, i) => {
-            const card = document.createElement("div");
-            card.className = "feature";
-            const head = document.createElement("div");
-            head.className = "featuretitle";
-            head.textContent = `${tr("ports")} ${i + 1}`;
-            const del = document.createElement("button");
-            del.textContent = "×";
-            del.onclick = () => {
-              snapshot();
-              p.cutouts.splice(i, 1);
-              sync();
-              requestPreview();
-            };
-            head.append(del);
-            card.append(head);
-            const row = document.createElement("div");
-            row.className = "pair";
-            row.append(
-              selectInput(
-                tr("face"),
-                s.face,
-                ["front", "back", "left", "right"].map((x) => [x, tr(x)]),
-                (v) => featureChange("cutouts", i, "face", v),
-              ),
-              selectInput(
-                tr("kind"),
-                s.kind,
-                [
-                  ["usb_c", "USB-C"],
-                  ["hdmi", "HDMI"],
-                  ["dc", "DC Ø8"],
-                  ["slot", "Slot"],
-                  ["hex", "Hex"],
-                ],
-                (v) => {
-                  snapshot();
-                  const spec = {
-                    usb_c: [10, 4, "rounded"],
-                    hdmi: [16, 7, "rounded"],
-                    dc: [8, 8, "circle"],
-                    slot: [20, 3, "rounded"],
-                    hex: [6, 6, "hex"],
-                  }[v];
-                  Object.assign(s, {
-                    kind: v,
-                    width: spec[0],
-                    height: spec[1],
-                    shape: spec[2],
-                  });
-                  features();
-                  requestPreview();
-                },
-              ),
-            );
-            card.append(row);
-            for (const pair of [
-              [
-                ["U", "u"],
-                ["Z", "z"],
-              ],
-              [
-                [tr("width"), "width"],
-                [tr("height"), "height"],
-              ],
-            ]) {
-              const r = document.createElement("div");
-              r.className = "pair";
-              pair.forEach(([label, key]) =>
-                r.append(
-                  fieldInput(label, s[key], (v) =>
-                    featureChange("cutouts", i, key, v),
-                  ),
-                ),
-              );
-              card.append(r);
-            }
-            ports.append(card);
-          });
-        }
-        $("addPost").onclick = () => {
-          snapshot();
-          p.standoffs.push({
-            x: 0,
-            y: 0,
-            height: 8,
-            outer_diameter: 7,
-            hole_diameter: 4.2,
-            hole_depth: 5,
-            insert: "M3",
-            mode: "insert",
-          });
-          sync();
-          requestPreview();
-        };
-        $("addPort").onclick = () => {
-          snapshot();
-          p.cutouts.push({
-            face: "front",
-            kind: "usb_c",
-            shape: "rounded",
-            u: 0,
-            z: Math.max(8, p.height_z / 2),
-            width: 10,
-            height: 4,
-          });
-          sync();
-          requestPreview();
-        };
-        function drawPlan() {
-          const canvas = $("plan"),
-            c = canvas.getContext("2d"),
-            w = canvas.width,
-            h = canvas.height;
-          c.clearRect(0, 0, w, h);
-          const s = Math.min((w - 45) / p.width_x, (h - 45) / p.depth_y);
-          const cx = w / 2,
-            cy = h / 2;
-          c.strokeStyle = theme === "dark" ? "#627282" : "#9baaba";
-          c.lineWidth = 2;
-          c.strokeRect(
-            cx - (p.width_x * s) / 2,
-            cy - (p.depth_y * s) / 2,
-            p.width_x * s,
-            p.depth_y * s,
+    }
+    $("clamshell-closed-height").textContent = note;
+  }
+  function updateClearanceLabels() {
+    const clamshell = p.style === "clamshell_pip";
+    const label = document.querySelector(
+      '[data-slider="fit_clearance"] .ctrl-label',
+    );
+    label.dataset.pt = clamshell ? "Folga entre metades Z" : "Folga por lado";
+    label.dataset.en = clamshell
+      ? "Gap between halves Z"
+      : "Clearance per side";
+    label.textContent = label.dataset[lang];
+    document.querySelector('[data-i18n="hud_mouth_hole"]').textContent = tr(
+      clamshell ? "hingeClearance" : "clearance",
+    );
+    $("hud-clearance").textContent =
+      Number(clamshell ? p.pip_clearance : p.fit_clearance).toFixed(2) + " mm";
+  }
+  function updateOpeningCaption() {
+    document.querySelector('[data-i18n="open"]').textContent = tr(
+      p.style === "snap_latch" ? "releaseAndOpen" : "open",
+    );
+  }
+  function updatePreviewText() {
+    if (Number.isFinite(lastInterfaceError)) {
+      $("surface").textContent =
+        (lang === "pt" ? "Alvo de erro nas interfaces curvas ≤ " : "Curved interface chord-error target ≤ ") +
+        lastInterfaceError.toFixed(3) + " mm";
+    }
+    if (statusTranslationKey === "ready") {
+      $("status").textContent = tr("ready");
+      $("toast-banner").textContent = tr("ready");
+    }
+  }
+  function translate() {
+    p.theme = theme;
+    p.lang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dataset.theme = theme;
+    $("lang").textContent = lang.toUpperCase();
+    $("theme").textContent = theme === "dark" ? "☾" : "☀";
+    document
+      .querySelectorAll("[data-i18n]")
+      .forEach((e) => (e.textContent = tr(e.dataset.i18n)));
+    document
+      .querySelectorAll("[data-pt]")
+      .forEach((e) => (e.textContent = e.dataset[lang]));
+    updatePreviewText();
+    updateClearanceLabels();
+    updateOpeningCaption();
+    updatePrintHelp();
+    updateClamshellNote();
+    const names = {
+      base_and_lid: tr("both"),
+      base_only: tr("baseOnly"),
+      lid_only: tr("lidOnly"),
+      gasket: tr("gasketOnly"),
+      fit_test_kit: tr("kit"),
+      full_suite: tr("full"),
+    };
+    for (const option of $("target").options)
+      option.textContent = names[option.value] || option.value;
+    presets();
+    syncPresetSelection();
+    features();
+    drawPlan();
+    render();
+  }
+  function snapshot() {
+    history.push(clone(p));
+    if (history.length > 40) history.shift();
+    future = [];
+    buttons();
+  }
+  function buttons() {
+    $("undo").disabled = !history.length;
+    $("redo").disabled = !future.length;
+  }
+  function setDesign(next, remember = true) {
+    if (remember) snapshot();
+    p = clone(next);
+    sync();
+    requestPreview();
+  }
+  function sync() {
+    updateClearanceLabels();
+    updateOpeningCaption();
+    updatePrintHelp();
+    const openBin = p.style === "open_bin";
+    const lidless = openBin || p.style === "stackable_bin";
+    const heightLabel = document.querySelector(
+      '[data-slider="height_z"] .ctrl-label',
+    );
+    heightLabel.dataset.pt =
+      p.style === "clamshell_pip"
+        ? "Altura de cada metade Z"
+        : p.style === "stackable_bin"
+          ? "Altura total Z"
+          : "Altura Z";
+    heightLabel.dataset.en =
+      p.style === "clamshell_pip"
+        ? "Height of each half Z"
+        : p.style === "stackable_bin"
+          ? "Total height Z"
+          : "Height Z";
+    heightLabel.textContent = heightLabel.dataset[lang];
+    document.querySelector('[data-slider="snap_retention"]').style.display =
+      p.style === "lip_snap" ? "grid" : "none";
+    $("open-bin-handles").hidden = !openBin;
+    $("snap-latch-options").hidden = p.style !== "snap_latch";
+    $("stackable-bin-options").hidden = p.style !== "stackable_bin";
+    const clamshell = p.style === "clamshell_pip";
+    $("clamshell-pip-options").hidden = !clamshell;
+    updateClamshellNote();
+    $("clamshell-feature-warning").hidden =
+      !clamshell ||
+      !(
+        ["standoffs", "cutouts", "dividers_x", "dividers_y"].some(
+          (key) => p[key]?.length,
+        ) || p.gasket_enabled
+      );
+    $("addPost").disabled = clamshell;
+    $("addPort").disabled = clamshell;
+    const diameterRow = document.querySelector(
+      '[data-slider="hinge_pin_diameter"]',
+    );
+    diameterRow.style.display = ["rugged_box", "clamshell_pip"].includes(
+      p.style,
+    )
+      ? "grid"
+      : "none";
+    const diameterLabel = diameterRow.querySelector(".ctrl-label");
+    diameterLabel.dataset.pt = clamshell
+      ? "Diâmetro do eixo integral"
+      : "Diâmetro do pino";
+    diameterLabel.dataset.en = clamshell
+      ? "Integral axle diameter"
+      : "Pin diameter";
+    diameterLabel.textContent = diameterLabel.dataset[lang];
+    $("open").disabled = lidless || INITIAL.preview_mode === "calibration";
+    $("play").disabled = lidless || INITIAL.preview_mode === "calibration";
+    for (const key of ["lid_height", "lip_depth", "fit_clearance"]) {
+      const row = document.querySelector('[data-slider="' + key + '"]');
+      row.style.display =
+        lidless ||
+        (p.style === "sliding_lid" && key !== "fit_clearance") ||
+        (p.style === "snap_latch" && key === "lip_depth") ||
+        (p.style === "clamshell_pip" && key !== "fit_clearance")
+          ? "none"
+          : "grid";
+    }
+    $("gasket_enabled").closest(".switch-row").style.display =
+      lidless || (clamshell && !p.gasket_enabled) ? "none" : "flex";
+    for (const key of ["gasket_width", "gasket_depth"])
+      document.querySelector('[data-slider="' + key + '"]').style.display =
+        lidless || p.style === "clamshell_pip" ? "none" : "grid";
+    for (const option of $("target").options) {
+      option.disabled =
+        (lidless &&
+          ["lid_only", "gasket", "fit_test_kit"].includes(option.value)) ||
+        (p.style === "snap_latch" && option.value === "fit_test_kit") ||
+        (p.style === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(option.value));
+      if (option.value === "base_and_lid")
+        option.textContent =
+          p.style === "clamshell_pip"
+            ? tr("hingedAssembly")
+            : lidless
+              ? tr("baseOnly")
+              : tr("both");
+    }
+    $("name").value = p.name;
+    document
+      .querySelectorAll("[data-p]")
+      .forEach((e) => (e.value = p[e.dataset.p]));
+    for (const key of [
+      "style",
+      "hinge_mode",
+      "screw_size",
+      "quality",
+      "handle_faces",
+    ])
+      $(key).value = p[key];
+    for (const key of [
+      "gasket_enabled",
+      "auto_configure_slicer",
+      "handles_enabled",
+    ])
+      $(key).checked = p[key];
+    $("dividers_x").value = p.dividers_x.join(", ");
+    $("dividers_y").value = p.dividers_y.join(", ");
+    $("target").value = p.export_target;
+    document
+      .querySelectorAll(".rugged")
+      .forEach(
+        (e) => (e.style.display = p.style === "rugged_box" ? "grid" : "none"),
+      );
+    document
+      .querySelectorAll(".screw")
+      .forEach(
+        (e) => (e.style.display = p.style === "screw_corner" ? "grid" : "none"),
+      );
+    $("pipNote").textContent =
+      p.style === "rugged_box" && p.hinge_mode === "print_in_place"
+        ? tr("pip")
+        : "";
+    document
+      .querySelectorAll("[data-param-range]")
+      .forEach((e) => (e.value = p[e.dataset.paramRange]));
+    syncPresetSelection();
+    features();
+    drawPlan();
+    buttons();
+    render();
+  }
+  function requestPreview(commit = true) {
+    clearTimeout(timer);
+    localDirty = true;
+    const request_id = ++serial;
+    latest = request_id;
+    if (!commit) return;
+    timer = setTimeout(() => {
+      status(tr("generating"));
+      p.lang = lang;
+      p.theme = theme;
+      if (!send({ type: "preview", params: p, request_id }))
+        status(tr("noHost"));
+    }, 350);
+  }
+  function change(key, value) {
+    snapshot();
+    p[key] = value;
+    if (
+      key === "style" &&
+      ((["open_bin", "stackable_bin"].includes(value) &&
+        ["lid_only", "gasket", "fit_test_kit"].includes(p.export_target)) ||
+        (value === "snap_latch" && p.export_target === "fit_test_kit") ||
+        (value === "clamshell_pip" &&
+          !["base_and_lid", "full_suite"].includes(p.export_target)))
+    )
+      p.export_target = "base_and_lid";
+    sync();
+    requestPreview();
+  }
+  document
+    .querySelectorAll("[data-p]")
+    .forEach((e) =>
+      e.addEventListener("change", () => change(e.dataset.p, Number(e.value))),
+    );
+  document
+    .querySelectorAll("[data-p],#name,#dividers_x,#dividers_y")
+    .forEach((element) =>
+      element.addEventListener("input", () => requestPreview(false)),
+    );
+  for (const key of [
+    "style",
+    "hinge_mode",
+    "screw_size",
+    "quality",
+    "handle_faces",
+  ])
+    $(key).onchange = () => change(key, $(key).value);
+  for (const key of [
+    "gasket_enabled",
+    "auto_configure_slicer",
+    "handles_enabled",
+  ])
+    $(key).onchange = () => change(key, $(key).checked);
+  for (const key of ["dividers_x", "dividers_y"])
+    $(key).onchange = () =>
+      change(
+        key,
+        $(key)
+          .value.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map(Number)
+          .filter(Number.isFinite),
+      );
+  $("name").onchange = () => change("name", $("name").value);
+  $("target").onchange = () => change("export_target", $("target").value);
+  $("undo").onclick = () => {
+    if (!history.length) return;
+    future.push(clone(p));
+    p = history.pop();
+    sync();
+    requestPreview();
+  };
+  $("redo").onclick = () => {
+    if (!future.length) return;
+    history.push(clone(p));
+    p = future.pop();
+    sync();
+    requestPreview();
+  };
+  $("reset").onclick = () => setDesign(INITIAL.params);
+  $("lang").onclick = () => {
+    lang = lang === "pt" ? "en" : "pt";
+    translate();
+    sync();
+  };
+  $("theme").onclick = () => {
+    userOverrodeTheme = true;
+    theme = theme === "dark" ? "light" : "dark";
+    translate();
+  };
+  $("sync").onclick = () => send({ type: "sync_printer" });
+  $("folder").onclick = () => send({ type: "open_exports_folder" });
+  document.addEventListener("keydown", (e) => {
+    const tag =
+      e.target && e.target.tagName
+        ? String(e.target.tagName).toUpperCase()
+        : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable)
+      return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      (e.shiftKey ? $("redo") : $("undo")).click();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+      e.preventDefault();
+      $("redo").click();
+    }
+  });
+  document.querySelectorAll("[data-tab]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        tab = b.dataset.tab;
+        document
+          .querySelectorAll("[data-tab]")
+          .forEach((x) => x.classList.toggle("active", x === b));
+        document
+          .querySelectorAll("[data-section]")
+          .forEach((x) =>
+            x.classList.toggle("section-hidden", x.dataset.section !== tab),
           );
-          c.strokeStyle = "#36444f";
-          c.lineWidth = 1;
-          c.beginPath();
-          c.moveTo(10, cy);
-          c.lineTo(w - 10, cy);
-          c.moveTo(cx, 10);
-          c.lineTo(cx, h - 10);
-          c.stroke();
-          c.fillStyle = "#8b9aa8";
-          c.font = "13px Consolas";
-          c.fillText("X →", w - 50, cy - 5);
-          c.fillText("Y ↑", cx + 6, 18);
-          p.dividers_x.forEach((x) => {
-            c.strokeStyle = "#00a896";
-            c.beginPath();
-            c.moveTo(cx + x * s, cy - (p.depth_y * s) / 2);
-            c.lineTo(cx + x * s, cy + (p.depth_y * s) / 2);
-            c.stroke();
-          });
-          p.dividers_y.forEach((y) => {
-            c.beginPath();
-            c.moveTo(cx - (p.width_x * s) / 2, cy - y * s);
-            c.lineTo(cx + (p.width_x * s) / 2, cy - y * s);
-            c.stroke();
-          });
-          p.standoffs.forEach((q, i) => {
-            c.fillStyle = "#00a896";
-            c.beginPath();
-            c.arc(
-              cx + q.x * s,
-              cy - q.y * s,
-              (q.outer_diameter * s) / 2,
-              0,
-              Math.PI * 2,
-            );
-            c.fill();
-            c.fillStyle = theme === "dark" ? "#16181d" : "#fff";
-            c.beginPath();
-            c.arc(
-              cx + q.x * s,
-              cy - q.y * s,
-              (q.hole_diameter * s) / 2,
-              0,
-              Math.PI * 2,
-            );
-            c.fill();
-            c.fillStyle = "#ffcf77";
-            c.fillText(String(i + 1), cx + q.x * s + 8, cy - q.y * s - 8);
-          });
-        }
-        $("plan").onpointerdown = (e) => {
-          const r = $("plan").getBoundingClientRect(),
-            x = ((e.clientX - r.left) * 500) / r.width,
-            y = ((e.clientY - r.top) * 330) / r.height,
-            s = Math.min(455 / p.width_x, 285 / p.depth_y);
-          const i = p.standoffs.findIndex(
-            (q) =>
-              Math.hypot(x - (250 + q.x * s), y - (165 - q.y * s)) <
-              Math.max(12, (q.outer_diameter * s) / 2),
-          );
-          if (i >= 0) {
+        drawPlan();
+      }),
+  );
+  $("savePreset").onclick = () =>
+    send({ type: "save_preset", params: p, name: p.name });
+  function fieldInput(label, value, onchange, step = ".1") {
+    const lab = document.createElement("label");
+    lab.className = "ctrl-row";
+    const span = document.createElement("span");
+    span.textContent = label;
+    const inp = document.createElement("input");
+    inp.className = "ctrl-num";
+    span.className = "ctrl-label";
+    inp.type = "number";
+    inp.step = step;
+    inp.value = value;
+    inp.onchange = () => onchange(Number(inp.value));
+    lab.append(span, inp);
+    return lab;
+  }
+  function selectInput(label, value, values, onchange) {
+    const lab = document.createElement("label");
+    lab.className = "ctrl-row";
+    const span = document.createElement("span");
+    span.textContent = label;
+    const sel = document.createElement("select");
+    sel.className = "vp-select box-select";
+    span.className = "ctrl-label";
+    values.forEach(([v, text]) => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = text;
+      sel.append(opt);
+    });
+    sel.value = value;
+    sel.onchange = () => onchange(sel.value);
+    lab.append(span, sel);
+    return lab;
+  }
+  function featureChange(list, index, key, value) {
+    snapshot();
+    p[list][index][key] = value;
+    drawPlan();
+    requestPreview();
+  }
+  function features() {
+    const posts = $("posts");
+    posts.replaceChildren();
+    p.standoffs.forEach((s, i) => {
+      const card = document.createElement("div");
+      card.className = "box-feature";
+      const head = document.createElement("div");
+      head.className = "box-feature-title";
+      head.textContent = `PCB ${i + 1}`;
+      const del = document.createElement("button");
+      del.textContent = "×";
+      del.onclick = () => {
+        snapshot();
+        p.standoffs.splice(i, 1);
+        sync();
+        requestPreview();
+      };
+      head.append(del);
+      card.append(head);
+      const pairs = [
+        ["X", "x", "Y", "y"],
+        [tr("heightPost"), "height", tr("outer"), "outer_diameter"],
+        [tr("hole"), "hole_diameter", tr("holeDepth"), "hole_depth"],
+      ];
+      pairs.forEach(([a, ka, b, kb]) => {
+        const row = document.createElement("div");
+        row.className = "box-pair";
+        row.append(
+          fieldInput(a, s[ka], (v) => featureChange("standoffs", i, ka, v)),
+          fieldInput(b, s[kb], (v) => featureChange("standoffs", i, kb, v)),
+        );
+        card.append(row);
+      });
+      const row = document.createElement("div");
+      row.className = "box-pair";
+      row.append(
+        selectInput(
+          tr("insert"),
+          s.insert,
+          [
+            ["M2", "M2"],
+            ["M2.5", "M2.5"],
+            ["M3", "M3"],
+          ],
+          (v) => {
+            featureChange("standoffs", i, "insert", v);
+          },
+        ),
+        selectInput(
+          "Modo / Mode",
+          s.mode,
+          [
+            ["insert", tr("insert")],
+            ["pilot", tr("pilot")],
+          ],
+          (v) => {
+            featureChange("standoffs", i, "mode", v);
+            p.standoffs[i].hole_diameter =
+              v === "pilot"
+                ? { M2: 1.6, "M2.5": 2.1, M3: 2.5 }[s.insert] || 2.5
+                : { M2: 3.2, "M2.5": 3.8, M3: 4.2 }[s.insert] || 4.2;
+            features();
+          },
+        ),
+      );
+      card.append(row);
+      posts.append(card);
+    });
+    const ports = $("ports");
+    ports.replaceChildren();
+    p.cutouts.forEach((s, i) => {
+      const card = document.createElement("div");
+      card.className = "box-feature";
+      const head = document.createElement("div");
+      head.className = "box-feature-title";
+      head.textContent = `${tr("ports")} ${i + 1}`;
+      const del = document.createElement("button");
+      del.textContent = "×";
+      del.onclick = () => {
+        snapshot();
+        p.cutouts.splice(i, 1);
+        sync();
+        requestPreview();
+      };
+      head.append(del);
+      card.append(head);
+      const row = document.createElement("div");
+      row.className = "box-pair";
+      row.append(
+        selectInput(
+          tr("face"),
+          s.face,
+          ["front", "back", "left", "right"].map((x) => [x, tr(x)]),
+          (v) => featureChange("cutouts", i, "face", v),
+        ),
+        selectInput(
+          tr("kind"),
+          s.kind,
+          [
+            ["usb_c", "USB-C"],
+            ["hdmi", "HDMI"],
+            ["dc", "DC Ø8"],
+            ["slot", "Slot"],
+            ["hex", "Hex"],
+          ],
+          (v) => {
             snapshot();
-            drag = i;
-            $("plan").setPointerCapture(e.pointerId);
-          }
-        };
-        $("plan").onpointermove = (e) => {
-          if (drag === null) return;
-          const r = $("plan").getBoundingClientRect(),
-            s = Math.min(455 / p.width_x, 285 / p.depth_y);
-          p.standoffs[drag].x =
-            Math.round(
-              ((((e.clientX - r.left) * 500) / r.width - 250) / s) * 10,
-            ) / 10;
-          p.standoffs[drag].y =
-            Math.round(
-              ((165 - ((e.clientY - r.top) * 330) / r.height) / s) * 10,
-            ) / 10;
-          drawPlan();
-        };
-        $("plan").onpointerup = () => {
-          if (drag !== null) {
-            drag = null;
+            const spec = {
+              usb_c: [10, 4, "rounded"],
+              hdmi: [16, 7, "rounded"],
+              dc: [8, 8, "circle"],
+              slot: [20, 3, "rounded"],
+              hex: [6, 6, "hex"],
+            }[v];
+            Object.assign(s, {
+              kind: v,
+              width: spec[0],
+              height: spec[1],
+              shape: spec[2],
+            });
             features();
             requestPreview();
-          }
-        };
-        function busy(on) {
-          document.querySelectorAll(".job").forEach((b) => (b.disabled = on));
-        }
-        function manufacture(type, format) {
-          p.export_target = $("target").value;
-          p.lang = lang;
-          busy(true);
-          status(tr("generating"));
-          if (
-            !send({ type, format, params: p, export_target: p.export_target })
-          ) {
-            busy(false);
-            status(tr("noHost"));
-          }
-        }
-        $("send").onclick = () => manufacture("send_to_plater", "3mf");
-        $("stl").onclick = () => manufacture("export_file", "stl");
-        $("mf").onclick = () => manufacture("export_file", "3mf");
-        function receive(raw) {
-          let m = raw?.data ?? raw;
-          try {
-            if (typeof m === "string") m = JSON.parse(m);
-          } catch (_) {
-            return;
-          }
-          if (!m || typeof m !== "object") return;
-          if (m.type === "design_changed") {
-            p = clone(m.params);
-            sync();
-            requestPreview();
-            return;
-          }
-          if (m.type === "init_state") {
-            if (m.host) {
-              INITIAL.host = m.host;
-              $("printer").textContent =
-                `${m.host.printer_name} · ${m.host.nozzle_mm}mm`;
-            }
-            if (m.user_presets) {
-              INITIAL.user_presets = m.user_presets;
-              presets();
-            }
-            return;
-          }
-          if (m.type === "presets_result") {
-            INITIAL.user_presets = m.user_presets;
-            presets();
-            return;
-          }
-          if (m.type === "preview_result") {
-            if (m.request_id && m.request_id !== latest) return;
-            if (!m.ok) {
-              status(m.message, true);
-              return;
-            }
-            p = clone(m.params);
-            INITIAL.hinge = m.hinge;
-            loadMeshes(m.meshes);
-            $("volume").textContent = m.volume_cm3.toFixed(1);
-            $("triangles").textContent =
-              (
-                m.meshes.reduce((s, x) => s + x.triangle_count, 0) / 1000
-              ).toFixed(0) + "k";
-            const err = Math.max(...m.meshes.map((x) => x.interface_error_mm));
-            $("surface").textContent =
-              (lang === "pt"
-                ? "Alvo de erro nas interfaces curvas ≤ "
-                : "Curved interface chord-error target ≤ ") +
-              err.toFixed(3) +
-              " mm";
-            status(tr("ready"));
-            sync();
-            return;
-          }
-          if (m.type === "action_result") {
-            busy(false);
-            status(m.message || String(m.ok), !m.ok);
-          }
-        }
-        window.addEventListener("message", receive);
-        if (window.chrome?.webview)
-          window.chrome.webview.addEventListener("message", receive);
-        if (window.orca?.onMessage) window.orca.onMessage(receive);
-        window.receiveBoxMessage = receive;
-        // WebGL2: arrays are the exact mesh arrays supplied by the Python exporter.
-        let gl = $("gl").getContext("webgl2", { antialias: true, alpha: true }),
-          program = null,
-          yaw = -0.75,
-          pitch = 0.68,
-          zoom = 1,
-          orbit = null;
-        function shader(type, source) {
-          const s = gl.createShader(type);
-          gl.shaderSource(s, source);
-          gl.compileShader(s);
-          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-            throw Error(gl.getShaderInfoLog(s));
-          return s;
-        }
-        function initializeGL() {
-          if (!gl) {
-            status(
-              "WebGL2 indisponível / unavailable. Export remains available.",
-              true,
-            );
-            return;
-          }
-          program = gl.createProgram();
-          gl.attachShader(
-            program,
-            shader(
-              gl.VERTEX_SHADER,
-              `#version 300 es\nprecision highp float;in vec3 position;in vec3 normal;uniform mat4 vp;uniform mat4 model;out vec3 n;out vec3 world;void main(){vec4 w=model*vec4(position,1.0);world=w.xyz;n=mat3(model)*normal;gl_Position=vp*w;}`.replaceAll(
-                "\\n",
-                "\n",
-              ),
+          },
+        ),
+      );
+      card.append(row);
+      for (const pair of [
+        [
+          ["U", "u"],
+          ["Z", "z"],
+        ],
+        [
+          [tr("width"), "width"],
+          [tr("height"), "height"],
+        ],
+      ]) {
+        const r = document.createElement("div");
+        r.className = "box-pair";
+        pair.forEach(([label, key]) =>
+          r.append(
+            fieldInput(label, s[key], (v) =>
+              featureChange("cutouts", i, key, v),
             ),
-          );
-          gl.attachShader(
-            program,
-            shader(
-              gl.FRAGMENT_SHADER,
-              `#version 300 es\nprecision highp float;in vec3 n;in vec3 world;uniform vec4 color;uniform float cut;out vec4 outColor;void main(){if(world.x>cut)discard;vec3 N=normalize(n);if(!gl_FrontFacing)N=-N;float diffuse=.35+.65*max(0.0,dot(N,normalize(vec3(-.4,-.7,1.0))));outColor=vec4(color.rgb*diffuse,color.a);}`.replaceAll(
-                "\\n",
-                "\n",
-              ),
-            ),
-          );
-          gl.linkProgram(program);
-          if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-            throw Error(gl.getProgramInfoLog(program));
-          gl.enable(gl.DEPTH_TEST);
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        }
-        function decode(s, ctor) {
-          const b = atob(s),
-            a = new Uint8Array(b.length);
-          for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
-          return new ctor(a.buffer);
-        }
-        function loadMeshes(items) {
-          if (!gl) return;
-          meshes.forEach((m) => {
-            gl.deleteBuffer(m.pb);
-            gl.deleteBuffer(m.nb);
-            gl.deleteBuffer(m.ib);
-            gl.deleteVertexArray(m.vao);
-          });
-          meshes = items.map((item) => {
-            const pos = decode(item.vertices, Float32Array),
-              tri = decode(item.triangles, Uint32Array),
-              norm = new Float32Array(pos.length);
-            for (let i = 0; i < tri.length; i += 3) {
-              let a = tri[i] * 3,
-                b = tri[i + 1] * 3,
-                c = tri[i + 2] * 3;
-              const ux = pos[b] - pos[a],
-                uy = pos[b + 1] - pos[a + 1],
-                uz = pos[b + 2] - pos[a + 2],
-                vx = pos[c] - pos[a],
-                vy = pos[c + 1] - pos[a + 1],
-                vz = pos[c + 2] - pos[a + 2];
-              const nx = uy * vz - uz * vy,
-                ny = uz * vx - ux * vz,
-                nz = ux * vy - uy * vx;
-              for (const j of [a, b, c]) {
-                norm[j] += nx;
-                norm[j + 1] += ny;
-                norm[j + 2] += nz;
-              }
-            }
-            for (let i = 0; i < norm.length; i += 3) {
-              const l = Math.hypot(norm[i], norm[i + 1], norm[i + 2]) || 1;
-              norm[i] /= l;
-              norm[i + 1] /= l;
-              norm[i + 2] /= l;
-            }
-            const vao = gl.createVertexArray();
-            gl.bindVertexArray(vao);
-            const pb = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, pb);
-            gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-            const loc = gl.getAttribLocation(program, "position");
-            gl.enableVertexAttribArray(loc);
-            gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
-            const nb = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, nb);
-            gl.bufferData(gl.ARRAY_BUFFER, norm, gl.STATIC_DRAW);
-            const nl = gl.getAttribLocation(program, "normal");
-            gl.enableVertexAttribArray(nl);
-            gl.vertexAttribPointer(nl, 3, gl.FLOAT, false, 0, 0);
-            const ib = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, tri, gl.STATIC_DRAW);
-            return { ...item, vao, pb, nb, ib, count: tri.length };
-          });
-          render();
-        }
-        const I = () =>
-          new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-        function mult(a, b) {
-          const c = new Float32Array(16);
-          for (let col = 0; col < 4; col++)
-            for (let row = 0; row < 4; row++)
-              for (let k = 0; k < 4; k++)
-                c[col * 4 + row] += a[k * 4 + row] * b[col * 4 + k];
-          return c;
-        }
-        function translateM(x, y, z) {
-          const m = I();
-          m[12] = x;
-          m[13] = y;
-          m[14] = z;
-          return m;
-        }
-        function rotateX(a) {
-          const m = I();
-          m[5] = Math.cos(a);
-          m[6] = Math.sin(a);
-          m[9] = -Math.sin(a);
-          m[10] = Math.cos(a);
-          return m;
-        }
-        function normalize(v) {
-          const l = Math.hypot(...v) || 1;
-          return v.map((x) => x / l);
-        }
-        function cross(a, b) {
-          return [
-            a[1] * b[2] - a[2] * b[1],
-            a[2] * b[0] - a[0] * b[2],
-            a[0] * b[1] - a[1] * b[0],
-          ];
-        }
-        function dot(a, b) {
-          return a.reduce((s, x, i) => s + x * b[i], 0);
-        }
-        function camera(aspect) {
-          const size =
-              (Math.max(p.width_x, p.depth_y, p.height_z) * 1.8) /
-              (zoom * Math.max(0.1, Math.min(1, aspect))),
-            target = [0, 0, p.height_z * 0.52],
-            eye = [
-              size * Math.cos(yaw) * Math.cos(pitch),
-              size * Math.sin(yaw) * Math.cos(pitch),
-              target[2] + size * Math.sin(pitch),
-            ],
-            z = normalize(eye.map((x, i) => x - target[i])),
-            x = normalize(cross([0, 0, 1], z)),
-            y = cross(z, x),
-            v = new Float32Array([
-              x[0],
-              y[0],
-              z[0],
-              0,
-              x[1],
-              y[1],
-              z[1],
-              0,
-              x[2],
-              y[2],
-              z[2],
-              0,
-              -dot(x, eye),
-              -dot(y, eye),
-              -dot(z, eye),
-              1,
-            ]),
-            f = 1 / Math.tan(Math.PI / 7),
-            near = 0.1,
-            far = 5000,
-            pr = new Float32Array([
-              f / aspect,
-              0,
-              0,
-              0,
-              0,
-              f,
-              0,
-              0,
-              0,
-              0,
-              (far + near) / (near - far),
-              -1,
-              0,
-              0,
-              (2 * far * near) / (near - far),
-              0,
-            ]);
-          return mult(pr, v);
-        }
-        function render() {
-          if (!gl || !program) return;
-          const cv = $("gl"),
-            r = cv.getBoundingClientRect(),
-            dpr = Math.min(devicePixelRatio || 1, 1.7);
-          cv.width = Math.max(1, Math.round(r.width * dpr));
-          cv.height = Math.max(1, Math.round(r.height * dpr));
-          gl.viewport(0, 0, cv.width, cv.height);
-          gl.depthMask(true);
-          gl.clearColor(0, 0, 0, 0);
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-          gl.depthMask(!$("xray").checked);
-          gl.useProgram(program);
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(program, "vp"),
-            false,
-            camera(cv.width / cv.height),
-          );
-          gl.uniform1f(
-            gl.getUniformLocation(program, "cut"),
-            $("cut").value === "0"
-              ? 10000
-              : p.width_x / 2 - (p.width_x * Number($("cut").value)) / 100,
-          );
-          for (const m of meshes) {
-            let model = I();
-            const opening = Number($("open").value) / 100;
-            if (m.part === "lid") {
-              if (p.style === "rugged_box") {
-                const hinge = INITIAL.hinge || {
-                  y: p.depth_y / 2 + 5,
-                  z: p.height_z - 4,
-                };
-                model = mult(
-                  translateM(0, hinge.y, hinge.z),
-                  mult(
-                    rotateX(-opening * Math.PI),
-                    translateM(0, -hinge.y, -hinge.z),
-                  ),
-                );
-              } else if (p.style === "sliding_lid")
-                model = translateM(0, -opening * (p.depth_y + 10), 0);
-              else model = translateM(0, 0, opening * 50);
-            }
-            if (m.part.startsWith("clip"))
-              model = translateM(0, -opening * 15, 0);
-            const color =
-              m.part === "lid"
-                ? [1, 0.74, 0.34]
-                : m.part === "gasket"
-                  ? [0.7, 0.62, 1]
-                  : m.part === "pin"
-                    ? [0.35, 0.63, 1]
-                    : m.part.startsWith("clip")
-                      ? [0.65, 0.78, 0.86]
-                      : [0, 0.72, 0.61];
-            gl.uniform4fv(gl.getUniformLocation(program, "color"), [
-              ...color,
-              $("xray").checked ? 0.42 : 1,
-            ]);
-            gl.uniformMatrix4fv(
-              gl.getUniformLocation(program, "model"),
-              false,
-              model,
-            );
-            gl.bindVertexArray(m.vao);
-            gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
-          }
-        }
-        $("gl").onpointerdown = (e) => {
-          orbit = [e.clientX, e.clientY];
-          $("gl").setPointerCapture(e.pointerId);
-        };
-        $("gl").onpointermove = (e) => {
-          if (!orbit) return;
-          yaw -= (e.clientX - orbit[0]) * 0.008;
-          pitch = Math.max(
-            0.08,
-            Math.min(1.5, pitch + (e.clientY - orbit[1]) * 0.008),
-          );
-          orbit = [e.clientX, e.clientY];
-          render();
-        };
-        $("gl").onpointerup = () => (orbit = null);
-        $("gl").onwheel = (e) => {
-          e.preventDefault();
-          zoom = Math.max(
-            0.35,
-            Math.min(4, zoom * Math.exp(-e.deltaY * 0.001)),
-          );
-          render();
-        };
-        $("home").onclick = () => {
-          zoom = 1;
-          yaw = -0.75;
-          pitch = 0.68;
-          render();
-        };
-        $("open").oninput = () => {
-          $("openValue").textContent = $("open").value + "%";
-          render();
-        };
-        $("xray").onchange = render;
-        $("cut").oninput = render;
-        $("play").onclick = () => {
-          playing = !playing;
-          $("play").textContent = playing ? "Ⅱ" : "▶";
-          if (playing) requestAnimationFrame(tick);
-        };
-        function tick(t) {
-          if (!playing) return;
-          $("open").value = 50 - 50 * Math.cos(t * 0.0007);
-          $("openValue").textContent = Math.round($("open").value) + "%";
-          render();
-          requestAnimationFrame(tick);
-        }
-        window.addEventListener("resize", render);
-        document.addEventListener("visibilitychange", () => {
-          if (document.hidden) {
-            playing = false;
-            $("play").textContent = "▶";
-          }
-        });
-        if (INITIAL.mode === "dock") {
-          document.body.classList.add("dock");
-          document.body.dataset.dockView = "3d";
-        }
+          ),
+        );
+        card.append(r);
+      }
+      ports.append(card);
+    });
+  }
+  $("addPost").onclick = () => {
+    snapshot();
+    p.standoffs.push({
+      x: 0,
+      y: 0,
+      height: 8,
+      outer_diameter: 7,
+      hole_diameter: 4.2,
+      hole_depth: 5,
+      insert: "M3",
+      mode: "insert",
+    });
+    sync();
+    requestPreview();
+  };
+  $("addPort").onclick = () => {
+    snapshot();
+    p.cutouts.push({
+      face: "front",
+      kind: "usb_c",
+      shape: "rounded",
+      u: 0,
+      z: Math.max(8, p.height_z / 2),
+      width: 10,
+      height: 4,
+    });
+    sync();
+    requestPreview();
+  };
+  function drawPlan() {
+    const canvas = $("plan"),
+      c = canvas.getContext("2d"),
+      w = canvas.width,
+      h = canvas.height;
+    c.clearRect(0, 0, w, h);
+    const s = Math.min((w - 45) / p.width_x, (h - 45) / p.depth_y);
+    const cx = w / 2,
+      cy = h / 2;
+    const rounded = (x, y, width, height, radius) => {
+      c.beginPath();
+      if (typeof c.roundRect === "function")
+        c.roundRect(x, y, width, height, radius);
+      else c.rect(x, y, width, height);
+    };
+    rounded(
+      cx - (p.width_x * s) / 2,
+      cy - (p.depth_y * s) / 2,
+      p.width_x * s,
+      p.depth_y * s,
+      p.corner_radius * s,
+    );
+    c.fillStyle =
+      theme === "dark" ? "rgba(0,168,150,.18)" : "rgba(0,137,123,.12)";
+    c.fill();
+    c.strokeStyle = theme === "dark" ? "#00bfa5" : "#00897b";
+    c.lineWidth = 2;
+    c.stroke();
+    rounded(
+      cx - (p.width_x / 2 - p.wall_thickness) * s,
+      cy - (p.depth_y / 2 - p.wall_thickness) * s,
+      (p.width_x - 2 * p.wall_thickness) * s,
+      (p.depth_y - 2 * p.wall_thickness) * s,
+      Math.max(0, p.corner_radius - p.wall_thickness) * s,
+    );
+    c.fillStyle = theme === "dark" ? "#17191e" : "#ffffff";
+    c.fill();
+    c.lineWidth = 1;
+    c.stroke();
+    c.strokeStyle = theme === "dark" ? "#36444f" : "#cad5dc";
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(10, cy);
+    c.lineTo(w - 10, cy);
+    c.moveTo(cx, 10);
+    c.lineTo(cx, h - 10);
+    c.stroke();
+    c.fillStyle = "#8b9aa8";
+    c.font = "13px Consolas";
+    c.fillText("X →", w - 50, cy - 5);
+    c.fillText("Y ↑", cx + 6, 18);
+    p.dividers_x.forEach((x) => {
+      c.strokeStyle = "#00a896";
+      c.beginPath();
+      c.moveTo(cx + x * s, cy - (p.depth_y * s) / 2);
+      c.lineTo(cx + x * s, cy + (p.depth_y * s) / 2);
+      c.stroke();
+    });
+    p.dividers_y.forEach((y) => {
+      c.beginPath();
+      c.moveTo(cx - (p.width_x * s) / 2, cy - y * s);
+      c.lineTo(cx + (p.width_x * s) / 2, cy - y * s);
+      c.stroke();
+    });
+    p.standoffs.forEach((q, i) => {
+      c.fillStyle = "#00a896";
+      c.beginPath();
+      c.arc(
+        cx + q.x * s,
+        cy - q.y * s,
+        (q.outer_diameter * s) / 2,
+        0,
+        Math.PI * 2,
+      );
+      c.fill();
+      c.fillStyle = theme === "dark" ? "#16181d" : "#fff";
+      c.beginPath();
+      c.arc(
+        cx + q.x * s,
+        cy - q.y * s,
+        (q.hole_diameter * s) / 2,
+        0,
+        Math.PI * 2,
+      );
+      c.fill();
+      c.fillStyle = "#ffcf77";
+      c.fillText(String(i + 1), cx + q.x * s + 8, cy - q.y * s - 8);
+    });
+  }
+  $("plan").onpointerdown = (e) => {
+    const r = $("plan").getBoundingClientRect(),
+      x = ((e.clientX - r.left) * 500) / r.width,
+      y = ((e.clientY - r.top) * 330) / r.height,
+      s = Math.min(455 / p.width_x, 285 / p.depth_y);
+    const i = p.standoffs.findIndex(
+      (q) =>
+        Math.hypot(x - (250 + q.x * s), y - (165 - q.y * s)) <
+        Math.max(12, (q.outer_diameter * s) / 2),
+    );
+    if (i >= 0) {
+      snapshot();
+      drag = i;
+      $("plan").setPointerCapture(e.pointerId);
+    }
+  };
+  $("plan").onpointermove = (e) => {
+    if (drag === null) return;
+    requestPreview(false);
+    const r = $("plan").getBoundingClientRect(),
+      s = Math.min(455 / p.width_x, 285 / p.depth_y);
+    p.standoffs[drag].x =
+      Math.round(((((e.clientX - r.left) * 500) / r.width - 250) / s) * 10) /
+      10;
+    p.standoffs[drag].y =
+      Math.round(((165 - ((e.clientY - r.top) * 330) / r.height) / s) * 10) /
+      10;
+    drawPlan();
+  };
+  $("plan").onpointerup = () => {
+    if (drag !== null) {
+      drag = null;
+      features();
+      requestPreview();
+    }
+  };
+  function busy(on) {
+    document.querySelectorAll("[data-action]").forEach((b) => {
+      if (b.dataset.action !== "open_folder") b.disabled = on;
+    });
+  }
+  function manufacture(type, format) {
+    p.export_target = $("target").value;
+    p.lang = lang;
+    busy(true);
+    status(tr("generating"));
+    if (!send({ type, format, params: p, export_target: p.export_target })) {
+      busy(false);
+      status(tr("noHost"));
+    }
+  }
+  $("send").onclick = () => manufacture("send_to_plater", "3mf");
+  $("stl").onclick = () => manufacture("export_file", "stl");
+  $("mf").onclick = () => manufacture("export_file", "3mf");
+  function receive(raw) {
+    let m = raw?.data ?? raw;
+    try {
+      if (typeof m === "string") m = JSON.parse(m);
+    } catch (_) {
+      return;
+    }
+    if (!m || typeof m !== "object") return;
+    if (m.type === "randomize_result") {
+      if (m.ok) setDesign(m.params);
+      else status(m.message, true);
+      return;
+    }
+    if (m.type === "design_changed") {
+      if (localDirty) return;
+      p = clone(m.params);
+      sync();
+      requestPreview();
+      return;
+    }
+    if (m.type === "init_state") {
+      if (m.host) {
+        INITIAL.host = m.host;
+        updatePrinter();
+      }
+      resolveHostTheme(m);
+      if (m.user_presets) {
+        INITIAL.user_presets = m.user_presets;
+        presets();
+      }
+      return;
+    }
+    if (m.type === "presets_result") {
+      INITIAL.user_presets = m.user_presets;
+      presets();
+      return;
+    }
+    if (m.type === "preview_result") {
+      if (m.request_id && m.request_id !== latest) return;
+      if (!m.ok) {
+        status(m.message, true);
+        return;
+      }
+      if (
+        m.params?.style === "snap_latch" &&
+        (!m.latch_motion?.clip_left || !m.latch_motion?.clip_right)
+      ) {
+        status(tr("latchMotionUnavailable"), true);
+        return;
+      }
+      if (m.params?.style === "snap_latch") {
         try {
-          initializeGL();
-        } catch (e) {
-          status(String(e), true);
+          for (const part of ["clip_left", "clip_right", "lid"])
+            snapLatchTransform(part, 0, m.latch_motion);
+        } catch (_) {
+          status(tr("latchMotionUnavailable"), true);
+          return;
         }
-        translate();
-        sync();
-        if (INITIAL.host)
-          $("printer").textContent =
-            `${INITIAL.host.printer_name} · ${INITIAL.host.nozzle_mm}mm`;
-        if (INITIAL.meshes) loadMeshes(INITIAL.meshes);
-        else requestPreview();
-      })();
-    </script>
+      }
+      localDirty = false;
+      p = clone(m.params);
+      p.lang = lang;
+      p.theme = theme;
+      meshParams = clone(m.params);
+      INITIAL.hinge = m.hinge;
+      INITIAL.print_bounds = m.print_bounds || null;
+      INITIAL.latch_motion = m.latch_motion || null;
+      INITIAL.preview_mode = m.preview_mode || "assembly";
+      if (!m.geometry_key || m.geometry_key !== meshRevisionKey) {
+        loadMeshes(m.meshes);
+        meshRevisionKey = m.geometry_key || null;
+      }
+      $("volume").textContent = m.volume_cm3.toFixed(1);
+      $("triangles").textContent =
+        (m.meshes.reduce((s, x) => s + x.triangle_count, 0) / 1000).toFixed(0) +
+        "k";
+      lastInterfaceError = Math.max(...m.meshes.map((x) => x.interface_error_mm));
+      updatePreviewText();
+      status(tr("ready"), false, "ready");
+      sync();
+      return;
+    }
+    if (m.type === "action_result") {
+      busy(false);
+      status(m.message || String(m.ok), !m.ok);
+    }
+  }
+  window.addEventListener("message", receive);
+  if (window.chrome?.webview)
+    window.chrome.webview.addEventListener("message", receive);
+  if (window.orca?.onMessage) window.orca.onMessage(receive);
+  window.receiveBoxMessage = receive;
+  // Canonical material, three-light shader, bed grid and CAD annotation styling
+  // adapted from the MIT Orca Studio reference. Geometry always comes from Python.
+  let gl = $("gl").getContext("webgl2", {
+      antialias: true,
+      alpha: false,
+      depth: true,
+    }),
+    program = null,
+    lineProg = null,
+    bedBuffer = null,
+    bedVertCount = 0,
+    yaw = -0.75,
+    pitch = 0.68,
+    zoom = 1,
+    orbit = null,
+    material = "emerald_silk",
+    wire = false,
+    calipers = false,
+    spin = false,
+    cutAxis = "y",
+    lastFrame = null;
+  const TWO_PI = Math.PI * 2;
+  const MATERIAL_PRESETS = {
+    emerald_silk: {
+      base: [0.02, 0.72, 0.63],
+      saucer: [0.14, 0.24, 0.25],
+      rough: 0.22,
+      metal: 0.3,
+    },
+    terracotta: {
+      base: [0.79, 0.4, 0.28],
+      saucer: [0.68, 0.34, 0.24],
+      rough: 0.78,
+      metal: 0.02,
+    },
+    matte_ceramic: {
+      base: [0.91, 0.9, 0.87],
+      saucer: [0.8, 0.78, 0.74],
+      rough: 0.66,
+      metal: 0.02,
+    },
+    copper_bronze: {
+      base: [0.76, 0.48, 0.31],
+      saucer: [0.36, 0.25, 0.2],
+      rough: 0.26,
+      metal: 0.72,
+    },
+    xray: {
+      base: [0.04, 0.8, 0.72],
+      saucer: [0.16, 0.48, 0.52],
+      rough: 0.18,
+      metal: 0.15,
+    },
+    heatmap: {
+      base: [0.05, 0.76, 0.45],
+      saucer: [0.05, 0.76, 0.45],
+      rough: 0.55,
+      metal: 0.05,
+    },
+  };
+  function shader(type, source) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, source);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      throw Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  function compileProgram(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, shader(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+      throw Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  function initializeGL() {
+    if (!gl) {
+      status("WebGL2 indisponível / unavailable", true);
+      return;
+    }
+    program = compileProgram(
+      `#version 300 es
+ precision highp float;layout(location=0)in vec3 a_pos;layout(location=1)in vec3 a_nrm;layout(location=2)in float a_role;
+ uniform mat4 u_mvp;uniform mat4 u_model;out vec3 v_pos;out vec3 v_localPos;out vec3 v_nrm;out float v_ovh;out float v_part;out float v_surfaceRole;
+ void main(){vec4 w=u_model*vec4(a_pos,1.0);v_pos=w.xyz;v_localPos=a_pos;v_nrm=mat3(u_model)*a_nrm;v_ovh=degrees(asin(clamp(-normalize(v_nrm).z,0.0,1.0)));v_part=0.0;v_surfaceRole=a_role;gl_Position=u_mvp*w;}`,
+      `#version 300 es
+      precision highp float;
+      in vec3 v_pos;
+      in vec3 v_localPos;
+      in vec3 v_nrm;
+      in float v_ovh;
+      in float v_part;
+      in float v_surfaceRole;
+      uniform vec3 u_eye;
+      uniform mat4 u_model;
+      uniform vec3 u_baseColor;
+      uniform vec3 u_saucerColor;
+      uniform float u_roughness;
+      uniform float u_metallic;
+      uniform float u_heatmap;
+      uniform float u_xrayMode;
+      uniform float u_clipMode;
+      uniform float u_clipVal;
+      uniform float u_passMode;
+      uniform float u_lightTheme;
+      out vec4 outColor;
+
+      vec3 heatmapColor(float deg) {
+        vec3 safeA = vec3(0.02, 0.76, 0.45);
+        vec3 safeB = vec3(0.18, 0.85, 0.42);
+        vec3 warn  = vec3(1.00, 0.68, 0.02);
+        vec3 crit  = vec3(0.98, 0.20, 0.16);
+        if (deg <= 42.0) return mix(safeA, safeB, clamp(deg / 42.0, 0.0, 1.0));
+        if (deg <= 46.0) return mix(safeB, warn, (deg - 42.0) / 4.0);
+        if (deg <= 55.0) return mix(warn, crit, (deg - 46.0) / 9.0);
+        return crit;
+      }
+
+      void main() {
+        // Derivatives precede clipping/discard so every fragment quad is defined.
+        vec3 faceCross = cross(dFdx(v_localPos), dFdy(v_localPos));
+        vec3 localFace = faceCross / max(length(faceCross), 1e-12);
+        float clipRim = 0.0;
+        if (u_clipMode > 0.5 && u_passMode < 0.5) {
+          float dist = (u_clipMode < 1.5) ? (v_pos.y - u_clipVal) : (u_clipVal - v_pos.z);
+          if (dist < 0.0) {
+            discard;
+          }
+          if (dist < 1.45) {
+            clipRim = 1.0 - (dist / 1.45);
+          }
+        } else if (u_clipMode > 0.5 && u_clipMode < 1.5 && u_passMode > 1.5) {
+          if (v_pos.y < u_clipVal) discard;
+        }
+
+        // Special Pass 1: Solid Horizontal Z-Slice CAD Cross-Section Cap
+        if (u_passMode > 0.5 && u_passMode < 1.5) {
+          float hatch = sin((v_pos.x + v_pos.y) * 2.35);
+          vec3 capA = vec3(1.00, 0.76, 0.20);
+          vec3 capB = vec3(0.08, 0.92, 0.80);
+          vec3 cCol = mix(capA, capB, hatch > 0.25 ? 0.65 : 0.12);
+          outColor = vec4(cCol, u_xrayMode > 0.5 ? 0.90 : 1.0);
+          return;
+        }
+
+        // Special Pass 2: Holographic Spiral Mode Top-Cap Indicator Disk
+        if (u_passMode > 1.5) {
+          float r = length(v_pos.xy);
+          float rings = 0.5 + 0.5 * sin(r * 1.45);
+          float diag = step(0.35, fract((v_pos.x - v_pos.y) * 0.14));
+          vec3 holoCol = mix(vec3(1.00, 0.68, 0.18), vec3(0.10, 0.92, 0.82), rings * 0.65);
+          float alpha = 0.18 + 0.20 * diag * rings;
+          outColor = vec4(holoCol, alpha);
+          return;
+        }
+
+        vec3 N = normalize(v_nrm);
+        // Large analytic wall/floor triangles must retain their planar normal.
+        // Test in the canonical part frame so a rotating lid keeps its creases.
+        // Curved triangles retain the interpolated studio normal; no mesh copies.
+        float axial = max(max(abs(localFace.x), abs(localFace.y)), abs(localFace.z));
+        if (axial > 0.99995) {
+          vec3 faceNormal = normalize(mat3(u_model) * localFace);
+          if (dot(faceNormal, N) < 0.0) faceNormal = -faceNormal;
+          N = faceNormal;
+        }
+        bool backFace = !gl_FrontFacing;
+        if (backFace) N = -N;
+
+        vec3 V = normalize(u_eye - v_pos);
+        vec3 L1 = normalize(vec3(-0.52, -0.64, 0.56));
+        vec3 L2 = normalize(vec3(0.68, -0.25, 0.42));
+        vec3 L3 = normalize(vec3(0.05, 0.82, 0.35));
+        float diff1 = max(dot(N, L1), 0.0);
+        float diff2 = max(dot(N, L2), 0.0);
+        float diff3 = max(dot(N, L3), 0.0);
+
+        // Two-Pass Translucent X-Ray / Wall Caliper Shader
+        if (u_xrayMode > 0.5) {
+          float ndv = abs(dot(N, V));
+          float fresnel = pow(1.0 - clamp(ndv, 0.0, 1.0), 2.15);
+          vec3 Hx = normalize(L1 + V);
+          float specX = pow(max(dot(N, Hx), 0.0), 54.0) * 0.45;
+
+          vec3 xCol;
+          float xAlpha;
+          if (v_surfaceRole > 0.5 && v_surfaceRole < 1.5) {
+            // Inner cavity wall, inner floor, and drainage holes -> warm glowing amber/coral!
+            bool isFloorPlane = abs(N.z) > 0.68;
+            vec3 innerBase = isFloorPlane ? vec3(1.00, 0.43, 0.18) : vec3(1.00, 0.58, 0.22);
+            if (u_lightTheme > 0.5) innerBase *= 0.88;
+            xCol = innerBase * (0.48 + 0.55 * diff1 + 0.25 * diff2)
+                 + vec3(1.00, 0.84, 0.46) * (fresnel * 0.65 + specX * 0.5);
+            xAlpha = isFloorPlane ? (0.52 + 0.28 * fresnel) : (0.35 + 0.42 * fresnel);
+          } else if (v_surfaceRole >= 1.5) {
+            // Top mouth lip / rim -> crisp luminous cyan-gold ring
+            xCol = vec3(0.28, 0.96, 0.86) * (0.58 + 0.42 * diff1) + vec3(0.85) * specX;
+            xAlpha = 0.62 + 0.28 * fresnel;
+          } else {
+            // Outer wall -> smoky emerald/cyan glass with Fresnel rim glow
+            vec3 glassBase = (u_lightTheme > 0.5) ? vec3(0.00, 0.56, 0.52) : vec3(0.05, 0.82, 0.74);
+            if (v_part > 0.5) glassBase = (u_lightTheme > 0.5) ? vec3(0.22, 0.42, 0.46) : vec3(0.18, 0.55, 0.58);
+            xCol = glassBase * (0.40 + 0.52 * diff1 + 0.22 * diff2)
+                 + vec3(0.46, 0.98, 0.92) * (fresnel * 0.78)
+                 + vec3(1.0) * specX;
+            xAlpha = 0.15 + 0.48 * fresnel + specX * 0.28;
+          }
+
+          if (backFace) xAlpha *= 0.76;
+          if (clipRim > 0.01) {
+            xCol = mix(xCol, vec3(1.00, 0.82, 0.24), clipRim * 0.88);
+            xAlpha = max(xAlpha, 0.94 * clipRim);
+          }
+          outColor = vec4(clamp(xCol, 0.0, 1.0), clamp(xAlpha, 0.08, 0.95));
+          return;
+        }
+
+        // Standard Opaque PBR-Lite Studio Shading
+        vec3 albedo = v_part > 0.5 ? u_saucerColor : u_baseColor;
+        if (u_heatmap > 0.5) {
+          albedo = heatmapColor(v_ovh);
+        } else if (u_clipMode > 0.5 && v_surfaceRole > 0.5 && v_surfaceRole < 1.5) {
+          albedo = mix(albedo, vec3(0.98, 0.58, 0.24), 0.42);
+        } else if (backFace && u_clipMode > 0.5) {
+          albedo = mix(albedo, vec3(1.0, 0.72, 0.28), 0.45);
+        }
+
+        float layerWave = 0.985 + 0.015 * sin(v_pos.z * 31.4159);
+        albedo *= layerWave;
+
+        vec3 H1 = normalize(L1 + V);
+        float shininess = mix(96.0, 14.0, u_roughness);
+        float spec1 = pow(max(dot(N, H1), 0.0), shininess) * mix(0.28, 0.85, 1.0 - u_roughness);
+
+        float hemi = 0.5 + 0.5 * N.z;
+        vec3 ambient = mix(vec3(0.14, 0.16, 0.20), vec3(0.34, 0.37, 0.42), hemi);
+        float rim = pow(1.0 - max(dot(N, V), 0.0), 3.2) * 0.22;
+
+        vec3 specTint = mix(vec3(1.0), albedo, u_metallic);
+        vec3 color = albedo * (ambient + 0.78 * diff1 + 0.32 * diff2 + 0.22 * diff3)
+                   + specTint * spec1
+                   + vec3(0.55, 0.85, 0.80) * rim;
+
+        if (clipRim > 0.01) {
+          color = mix(color, vec3(1.00, 0.80, 0.22), clipRim * 0.85);
+        }
+
+        color = pow(clamp(color, 0.0, 1.0), vec3(0.92));
+        outColor = vec4(color, 1.0);
+      }
+    `,
+    );
+    lineProg = compileProgram(
+      `#version 300 es
+ precision highp float;layout(location=0)in vec3 a_pos;uniform mat4 u_mvp;void main(){gl_Position=u_mvp*vec4(a_pos,1.0);}`,
+      `#version 300 es
+ precision highp float;uniform vec4 u_color;out vec4 outColor;void main(){outColor=u_color;}`,
+    );
+    bedBuffer = gl.createBuffer();
+    rebuildBedGeometry();
+    gl.enable(gl.DEPTH_TEST);
+  }
+  function currentPrinter() {
+    return (
+      INITIAL.host || {
+        bed_x: 220,
+        bed_y: 220,
+        max_z: 250,
+        nozzle_mm: 0.4,
+        line_width_mm: 0.42,
+      }
+    );
+  }
+  function rebuildBedGeometry() {
+    if (!gl || !bedBuffer) return;
+    const bx = Math.max(80, Number(currentPrinter().bed_x) || 220);
+    const by = Math.max(80, Number(currentPrinter().bed_y) || 220);
+    const hx = 0.5 * bx;
+    const hy = 0.5 * by;
+    const isCircular =
+      String(currentPrinter().bed_shape || "").toLowerCase() === "circular";
+    const verts = [];
+
+    const step = bx > 320 || by > 320 ? 30 : 20;
+    if (isCircular) {
+      const rBed = Math.min(hx, hy);
+      const rSq = rBed * rBed;
+      for (
+        let x = -Math.floor(rBed / step) * step;
+        x <= rBed + 0.01;
+        x += step
+      ) {
+        const spanY = Math.sqrt(Math.max(0.0, rSq - x * x));
+        if (spanY > 1.0) verts.push(x, -spanY, -0.08, x, spanY, -0.08);
+      }
+      for (
+        let y = -Math.floor(rBed / step) * step;
+        y <= rBed + 0.01;
+        y += step
+      ) {
+        const spanX = Math.sqrt(Math.max(0.0, rSq - y * y));
+        if (spanX > 1.0) verts.push(-spanX, y, -0.08, spanX, y, -0.08);
+      }
+      const ringSegs = 72;
+      for (let s = 0; s < ringSegs; s++) {
+        const a0 = (TWO_PI * s) / ringSegs;
+        const a1 = (TWO_PI * (s + 1)) / ringSegs;
+        verts.push(
+          rBed * Math.cos(a0),
+          rBed * Math.sin(a0),
+          0.02,
+          rBed * Math.cos(a1),
+          rBed * Math.sin(a1),
+          0.02,
+        );
+      }
+      verts.push(-16, -rBed - 4, 0.02, 16, -rBed - 4, 0.02);
+    } else {
+      for (let x = -Math.floor(hx / step) * step; x <= hx + 0.01; x += step) {
+        verts.push(x, -hy, -0.08, x, hy, -0.08);
+      }
+      for (let y = -Math.floor(hy / step) * step; y <= hy + 0.01; y += step) {
+        verts.push(-hx, y, -0.08, hx, y, -0.08);
+      }
+      verts.push(
+        -hx,
+        -hy,
+        0.02,
+        hx,
+        -hy,
+        0.02,
+        hx,
+        -hy,
+        0.02,
+        hx,
+        hy,
+        0.02,
+        hx,
+        hy,
+        0.02,
+        -hx,
+        hy,
+        0.02,
+        -hx,
+        hy,
+        0.02,
+        -hx,
+        -hy,
+        0.02,
+      );
+      verts.push(-18, -hy - 4, 0.02, 18, -hy - 4, 0.02);
+    }
+
+    const arr = new Float32Array(verts);
+    bedVertCount = arr.length / 3;
+    gl.bindBuffer(gl.ARRAY_BUFFER, bedBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+  }
+
+  const I = () =>
+    new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  function mult(a, b) {
+    const c = new Float32Array(16);
+    for (let col = 0; col < 4; col++)
+      for (let row = 0; row < 4; row++)
+        for (let k = 0; k < 4; k++)
+          c[col * 4 + row] += a[k * 4 + row] * b[col * 4 + k];
+    return c;
+  }
+  function translateM(x, y, z) {
+    const m = I();
+    m[12] = x;
+    m[13] = y;
+    m[14] = z;
+    return m;
+  }
+  function rotateX(a) {
+    const m = I();
+    m[5] = Math.cos(a);
+    m[6] = Math.sin(a);
+    m[9] = -Math.sin(a);
+    m[10] = Math.cos(a);
+    return m;
+  }
+  function normalize(v) {
+    const l = Math.hypot(...v) || 1;
+    return v.map((x) => x / l);
+  }
+  function cross(a, b) {
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
+  }
+  function dot(a, b) {
+    return a.reduce((s, x, i) => s + x * b[i], 0);
+  }
+  function openingFraction(value = Number($("open").value)) {
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    return value / (shape.style === "clamshell_pip" ? 180 : 100);
+  }
+  function openingLabel() {
+    const suffix = meshParams.style === "clamshell_pip" ? "°" : "%";
+    $("openValue").textContent = Math.round(Number($("open").value)) + suffix;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+  }
+  function configureOpening() {
+    const nextStyle = meshParams.style;
+    const isClamshell = nextStyle === "clamshell_pip";
+    $("open").max = isClamshell ? "180" : "100";
+    if (isClamshell && openingStyle !== nextStyle) $("open").value = "180";
+    else if (nextStyle === "snap_latch" && openingStyle !== nextStyle)
+      $("open").value = "0";
+    else if (
+      !isClamshell &&
+      nextStyle !== "snap_latch" &&
+      ["clamshell_pip", "snap_latch"].includes(openingStyle)
+    )
+      $("open").value = "25";
+    openingStyle = nextStyle;
+    openingLabel();
+  }
+  function snapLatchTransform(part, opening, motion) {
+    if (part !== "lid" && !part.startsWith("clip")) return I();
+    const left = motion?.clip_left;
+    const right = motion?.clip_right;
+    if (!left || !right) throw Error("Missing latch motion metadata");
+    for (const info of [left, right]) {
+      if (!info.pivot || ![info.pivot.x, info.pivot.y, info.pivot.z, info.release_fraction, info.release_angle, info.lid_lift_mm].every(Number.isFinite) || info.release_fraction <= 0 || info.release_fraction >= 1 || info.release_angle <= 0 || info.lid_lift_mm <= 0)
+        throw Error("Invalid latch motion metadata");
+    }
+    const phase = Math.max(0, Math.min(1, opening));
+    const releaseFraction = Math.max(
+      left.release_fraction,
+      right.release_fraction,
+    );
+    if (part === "lid") {
+      const liftPhase = Math.max(
+        0,
+        Math.min(1, (phase - releaseFraction) / (1 - releaseFraction)),
+      );
+      return translateM(0, 0, liftPhase * left.lid_lift_mm);
+    }
+    const info = motion[part];
+    if (!info) throw Error("Unknown latch part: " + part);
+    const angle =
+      (Math.min(1, phase / info.release_fraction) *
+        info.release_angle *
+        Math.PI) /
+      180;
+    const pivot = info.pivot;
+    return mult(
+      translateM(pivot.x, pivot.y, pivot.z),
+      mult(rotateX(angle), translateM(-pivot.x, -pivot.y, -pivot.z)),
+    );
+  }
+  function updateLatchMotionStatus() {
+    const label = $("latch-motion-phase");
+    const info = INITIAL.latch_motion?.clip_left;
+    label.hidden = !info;
+    if (!info) return;
+    const phase = openingFraction();
+    const key =
+      phase <= 0
+        ? "latchesEngaged"
+        : phase < info.release_fraction
+          ? "releasingLatches"
+          : phase < 1
+            ? "liftingLid"
+            : "lidRemoved";
+    const message = tr(key);
+    if (label.textContent !== message) label.textContent = message;
+  }
+  function partTransform(part, opening = openingFraction(), offset = null) {
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    const frame = translateM(...(offset || [0, 0, 0]));
+    if (INITIAL.preview_mode === "calibration") return frame;
+    if (shape.style === "snap_latch")
+      return mult(
+        frame,
+        snapLatchTransform(part, opening, INITIAL.latch_motion),
+      );
+    let model = I();
+    if (part === "lid") {
+      if (shape.style === "rugged_box" || shape.style === "clamshell_pip") {
+        const h = INITIAL.hinge || {
+          y: shape.depth_y / 2 + 5,
+          z: shape.height_z - 4,
+        };
+        model = mult(
+          translateM(0, h.y, h.z),
+          mult(rotateX(-opening * Math.PI), translateM(0, -h.y, -h.z)),
+        );
+      } else if (shape.style === "sliding_lid")
+        model = translateM(0, -opening * (shape.depth_y + 10), 0);
+      else model = translateM(0, 0, opening * 50);
+    }
+    if (shape.style === "rugged_box" && part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
+    return mult(frame, model);
+  }
+  function transformPoint(m, x, y, z) {
+    return [
+      m[0] * x + m[4] * y + m[8] * z + m[12],
+      m[1] * x + m[5] * y + m[9] * z + m[13],
+      m[2] * x + m[6] * y + m[10] * z + m[14],
+    ];
+  }
+  function sceneBounds(opening = openingFraction()) {
+    if (!meshes.length) return null;
+    const lo = [Infinity, Infinity, Infinity],
+      hi = [-Infinity, -Infinity, -Infinity];
+    for (const mesh of meshes) {
+      const m = partTransform(mesh.part, opening, mesh.preview_offset),
+        b = mesh.bounds;
+      for (const x of [b.min[0], b.max[0]])
+        for (const y of [b.min[1], b.max[1]])
+          for (const z of [b.min[2], b.max[2]]) {
+            const q = transformPoint(m, x, y, z);
+            for (let a = 0; a < 3; a++) {
+              lo[a] = Math.min(lo[a], q[a]);
+              hi[a] = Math.max(hi[a], q[a]);
+            }
+          }
+    }
+    return {
+      min: lo,
+      max: hi,
+      size: hi.map((x, i) => x - lo[i]),
+      center: hi.map((x, i) => (x + lo[i]) / 2),
+    };
+  }
+  function camera(aspect) {
+    const b = sceneBounds() || {
+        min: [-0.5, -0.5, -0.5],
+        max: [0.5, 0.5, 0.5],
+        center: [0, 0, 0],
+        size: [1, 1, 1],
+      },
+      target = b.center;
+    const radius = Math.max(0.1, Math.hypot(...b.size) / 2),
+      fov = (38 * Math.PI) / 180,
+      fitAngle = Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * aspect)),
+      distance = ((radius / Math.sin(fitAngle / 2)) * 1.12) / zoom;
+    const eye = [
+        target[0] + distance * Math.cos(yaw) * Math.cos(pitch),
+        target[1] + distance * Math.sin(yaw) * Math.cos(pitch),
+        target[2] + distance * Math.sin(pitch),
+      ],
+      z = normalize(eye.map((x, i) => x - target[i])),
+      x = normalize(cross([0, 0, 1], z)),
+      y = cross(z, x),
+      view = new Float32Array([
+        x[0],
+        y[0],
+        z[0],
+        0,
+        x[1],
+        y[1],
+        z[1],
+        0,
+        x[2],
+        y[2],
+        z[2],
+        0,
+        -dot(x, eye),
+        -dot(y, eye),
+        -dot(z, eye),
+        1,
+      ]),
+      near = Math.max(0.01, distance - radius * 1.7),
+      far = Math.max(100, distance + radius * 3),
+      f = 1 / Math.tan(fov / 2),
+      projection = new Float32Array([
+        f / aspect,
+        0,
+        0,
+        0,
+        0,
+        f,
+        0,
+        0,
+        0,
+        0,
+        (far + near) / (near - far),
+        -1,
+        0,
+        0,
+        (2 * far * near) / (near - far),
+        0,
+      ]);
+    return {
+      mvp: mult(projection, view),
+      eye,
+      bounds: b,
+      distance,
+      target,
+    };
+  }
+  function decode(s, ctor) {
+    const b = atob(s),
+      a = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+    return new ctor(a.buffer);
+  }
+  function loadMeshes(items) {
+    configureOpening();
+    const calibration = INITIAL.preview_mode === "calibration";
+    $("open").disabled =
+      calibration || ["open_bin", "stackable_bin"].includes(meshParams.style);
+    $("play").disabled =
+      calibration || ["open_bin", "stackable_bin"].includes(meshParams.style);
+    if (
+      calibration ||
+      ["open_bin", "stackable_bin"].includes(meshParams.style)
+    ) {
+      playing = false;
+      $("play").textContent = "▶";
+    }
+    if (!gl) return;
+    for (const m of meshes) {
+      for (const b of [m.pb, m.nb, m.rb, m.ib, m.wireBuffer])
+        if (b) gl.deleteBuffer(b);
+      gl.deleteVertexArray(m.vao);
+    }
+    meshes = items.map((item) => {
+      const pos = decode(item.vertices, Float32Array),
+        tri = decode(item.triangles, Uint32Array),
+        norm = new Float32Array(pos.length),
+        roles = new Float32Array(pos.length / 3);
+      const lo = [Infinity, Infinity, Infinity],
+        hi = [-Infinity, -Infinity, -Infinity];
+      let maxOverhang = 0;
+      for (let i = 0; i < pos.length; i += 3)
+        for (let a = 0; a < 3; a++) {
+          lo[a] = Math.min(lo[a], pos[i + a]);
+          hi[a] = Math.max(hi[a], pos[i + a]);
+        }
+      for (let i = 0; i < tri.length; i += 3) {
+        const a = tri[i] * 3,
+          b = tri[i + 1] * 3,
+          c = tri[i + 2] * 3,
+          ux = pos[b] - pos[a],
+          uy = pos[b + 1] - pos[a + 1],
+          uz = pos[b + 2] - pos[a + 2],
+          vx = pos[c] - pos[a],
+          vy = pos[c + 1] - pos[a + 1],
+          vz = pos[c + 2] - pos[a + 2],
+          nx = uy * vz - uz * vy,
+          ny = uz * vx - ux * vz,
+          nz = ux * vy - uy * vx,
+          l = Math.hypot(nx, ny, nz) || 1;
+        if (Math.max(pos[a + 2], pos[b + 2], pos[c + 2]) > lo[2] + 0.02)
+          maxOverhang = Math.max(
+            maxOverhang,
+            (Math.asin(Math.max(0, Math.min(1, -nz / l))) * 180) / Math.PI,
+          );
+        for (const j of [a, b, c]) {
+          norm[j] += nx;
+          norm[j + 1] += ny;
+          norm[j + 2] += nz;
+        }
+      }
+      for (let i = 0; i < norm.length; i += 3) {
+        const l = Math.hypot(norm[i], norm[i + 1], norm[i + 2]) || 1;
+        norm[i] /= l;
+        norm[i + 1] /= l;
+        norm[i + 2] /= l;
+        const inner = norm[i] * pos[i] + norm[i + 1] * pos[i + 1] < 0,
+          innerFloor =
+            norm[i + 2] > 0.7 &&
+            Math.abs(pos[i + 2] - meshParams.floor_thickness) < 0.03;
+        roles[i / 3] =
+          inner || innerFloor
+            ? 1
+            : pos[i + 2] > meshParams.height_z - 0.03 && norm[i + 2] > 0.6
+              ? 2
+              : 0;
+      }
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const upload = (loc, data, size) => {
+        const b = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+        return b;
+      };
+      const pb = upload(0, pos, 3),
+        nb = upload(1, norm, 3),
+        rb = upload(2, roles, 1),
+        ib = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, tri, gl.STATIC_DRAW);
+      return {
+        ...item,
+        bounds: { min: lo, max: hi, size: hi.map((x, i) => x - lo[i]) },
+        vao,
+        pb,
+        nb,
+        rb,
+        ib,
+        count: tri.length,
+        indices: tri,
+        maxOverhang,
+        positions: pos,
+      };
+    });
+    zoom = 1;
+    render();
+  }
+  function drawLines(buffer, count, mvp, color) {
+    gl.useProgram(lineProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(lineProg, "u_mvp"), false, mvp);
+    gl.uniform4fv(gl.getUniformLocation(lineProg, "u_color"), color);
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.LINES, 0, count);
+  }
+  function updateHud(b) {
+    if (!b) return;
+    if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+    const h = currentPrinter(),
+      printSize =
+        meshParams.style === "clamshell_pip" && INITIAL.print_bounds?.size
+          ? INITIAL.print_bounds.size
+          : b.size,
+      fits =
+        printSize[0] <= h.bed_x &&
+        printSize[1] <= h.bed_y &&
+        printSize[2] <= h.max_z;
+    $("hud-dims").textContent = b.size.map((x) => x.toFixed(1)).join("×");
+    $("hud-wall-floor").textContent =
+      `${p.wall_thickness.toFixed(1)} / ${p.floor_thickness.toFixed(1)} mm`;
+    $("hud-clearance").textContent =
+      Number(
+        p.style === "clamshell_pip" ? p.pip_clearance : p.fit_clearance,
+      ).toFixed(2) + " mm";
+    $("hud-overhang").textContent =
+      Math.max(0, ...meshes.map((m) => m.maxOverhang)).toFixed(1) + "°";
+    $("hud-status-pill").textContent = fits ? "OK" : "⚠";
+    $("hud-status-pill").className =
+      "hud-status-pill " + (fits ? "ok" : "warn");
+    $("bed-alert-banner").classList.toggle("visible", !fits);
+    $("wall-perim-hint").textContent =
+      `≈ ${Math.ceil(p.wall_thickness / (h.line_width_mm || 0.42))} ${lang === "pt" ? "perímetros de" : "walls of"} ${(h.line_width_mm || 0.42).toFixed(2)} mm`;
+  }
+  function render() {
+    if (!gl || !program) return;
+    const cv = $("gl"),
+      r = cv.getBoundingClientRect(),
+      dpr = Math.min(devicePixelRatio || 1, 2),
+      w = Math.max(1, Math.floor(r.width * dpr)),
+      h = Math.max(1, Math.floor(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) {
+      cv.width = w;
+      cv.height = h;
+    }
+    gl.viewport(0, 0, w, h);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+    if (theme === "light") gl.clearColor(0.84, 0.88, 0.92, 1);
+    else gl.clearColor(0.095, 0.11, 0.138, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const cam = camera(w / h);
+    lastFrame = { ...cam, cssW: r.width, cssH: r.height };
+    drawLines(
+      bedBuffer,
+      bedVertCount,
+      cam.mvp,
+      theme === "light" ? [0.35, 0.45, 0.52, 0.45] : [0, 0.72, 0.62, 0.34],
+    );
+    const value = Number($("cut").value),
+      b = cam.bounds,
+      clipMode = value === 0 ? 0 : cutAxis === "y" ? 1 : 2,
+      clipValue =
+        cutAxis === "y"
+          ? b.min[1] + b.size[1] * (1 - value / 100)
+          : b.min[2] + b.size[2] * (1 - value / 100);
+    const mat =
+      MATERIAL_PRESETS[$("xray").checked ? "xray" : material] ||
+      MATERIAL_PRESETS.emerald_silk;
+    for (const m of meshes) {
+      const model = partTransform(m.part, openingFraction(), m.preview_offset);
+      gl.useProgram(program);
+      gl.uniformMatrix4fv(
+        gl.getUniformLocation(program, "u_mvp"),
+        false,
+        cam.mvp,
+      );
+      gl.uniformMatrix4fv(
+        gl.getUniformLocation(program, "u_model"),
+        false,
+        model,
+      );
+      gl.uniform3fv(gl.getUniformLocation(program, "u_eye"), cam.eye);
+      gl.uniform3fv(
+        gl.getUniformLocation(program, "u_baseColor"),
+        m.part === "lid" ? mat.saucer : mat.base,
+      );
+      gl.uniform3fv(
+        gl.getUniformLocation(program, "u_saucerColor"),
+        mat.saucer,
+      );
+      for (const [key, v] of Object.entries({
+        u_roughness: mat.rough,
+        u_metallic: mat.metal,
+        u_heatmap: material === "heatmap" && !$("xray").checked ? 1 : 0,
+        u_xrayMode: $("xray").checked ? 1 : 0,
+        u_clipMode: clipMode,
+        u_clipVal: clipValue,
+        u_passMode: 0,
+        u_lightTheme: theme === "light" ? 1 : 0,
+      }))
+        gl.uniform1f(gl.getUniformLocation(program, key), v);
+      gl.bindVertexArray(m.vao);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ib);
+      if ($("xray").checked) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(false);
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.FRONT);
+        gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+        gl.cullFace(gl.BACK);
+        gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+        gl.disable(gl.CULL_FACE);
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      } else gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+      if (wire && clipMode === 0) {
+        if (!m.wireBuffer) {
+          const edges = new Uint32Array(m.indices.length * 2);
+          for (let i = 0, k = 0; i < m.indices.length; i += 3) {
+            const a = m.indices[i],
+              b = m.indices[i + 1],
+              c = m.indices[i + 2];
+            for (const e of [a, b, b, c, c, a]) edges[k++] = e;
+          }
+          m.wireBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.wireBuffer);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, edges, gl.STATIC_DRAW);
+          m.wireCount = edges.length;
+        }
+        gl.useProgram(lineProg);
+        gl.uniformMatrix4fv(
+          gl.getUniformLocation(lineProg, "u_mvp"),
+          false,
+          mult(cam.mvp, model),
+        );
+        gl.uniform4fv(
+          gl.getUniformLocation(lineProg, "u_color"),
+          [0, 0, 0, 0.32],
+        );
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.wireBuffer);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.drawElements(gl.LINES, m.wireCount, gl.UNSIGNED_INT, 0);
+        gl.disable(gl.BLEND);
+      }
+    }
+    updateHud(sceneBounds());
+    renderCalipers();
+  }
+  function projectWorldToScreen(wx, wy, wz, mvp, cssW, cssH) {
+    const cx = mvp[0] * wx + mvp[4] * wy + mvp[8] * wz + mvp[12];
+    const cy = mvp[1] * wx + mvp[5] * wy + mvp[9] * wz + mvp[13];
+    const cz = mvp[2] * wx + mvp[6] * wy + mvp[10] * wz + mvp[14];
+    const cw = mvp[3] * wx + mvp[7] * wy + mvp[11] * wz + mvp[15];
+    if (cw <= 0.1) return null;
+    const ndcX = cx / cw;
+    const ndcY = cy / cw;
+    return {
+      x: (ndcX * 0.5 + 0.5) * cssW,
+      y: (0.5 - ndcY * 0.5) * cssH,
+      ndcZ: cz / cw,
+    };
+  }
+
+  function drawCadArrowHead(ctx, tipX, tipY, dirX, dirY, len) {
+    const nx = -dirY;
+    const ny = dirX;
+    const w = len * 0.44;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - dirX * len + nx * w, tipY - dirY * len + ny * w);
+    ctx.lineTo(tipX - dirX * len - nx * w, tipY - dirY * len - ny * w);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawCadDoubleArrow(ctx, x1, y1, x2, y2, color, dashed) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 4.0) return;
+    const ux = dx / dist;
+    const uy = dy / dist;
+    const arrowLen = Math.min(7.5, dist * 0.28);
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.65;
+    if (dashed) ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    drawCadArrowHead(ctx, x1, y1, -ux, -uy, arrowLen);
+    drawCadArrowHead(ctx, x2, y2, ux, uy, arrowLen);
+    ctx.restore();
+  }
+
+  function drawCadPill(
+    ctx,
+    cx,
+    cy,
+    text,
+    borderColor,
+    cssW,
+    cssH,
+    placedBoxes,
+  ) {
+    ctx.save();
+    ctx.font = "700 10.8px 'Cascadia Code', Consolas, 'Segoe UI', monospace";
+    const padX = 7;
+    const boxH = 20;
+    const tw = ctx.measureText(text).width;
+    const boxW = tw + padX * 2;
+
+    let x = Math.max(10, Math.min(cssW - boxW - 10, cx - boxW * 0.5));
+    let y = Math.max(44, Math.min(cssH - boxH - 46, cy - boxH * 0.5));
+
+    // Gentle vertical collision avoidance so pills never overlap each other
+    if (Array.isArray(placedBoxes)) {
+      for (let pass = 0; pass < 4; pass++) {
+        let hit = false;
+        for (let k = 0; k < placedBoxes.length; k++) {
+          const b = placedBoxes[k];
+          const overlapX = x < b.x + b.w + 4 && x + boxW + 4 > b.x;
+          const overlapY = y < b.y + b.h + 3 && y + boxH + 3 > b.y;
+          if (overlapX && overlapY) {
+            y =
+              y >= b.y
+                ? Math.min(cssH - boxH - 46, b.y + b.h + 4)
+                : Math.max(44, b.y - boxH - 4);
+            hit = true;
+          }
+        }
+        if (!hit) break;
+      }
+      placedBoxes.push({ x: x, y: y, w: boxW, h: boxH });
+    }
+
+    const r = 5;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, boxW, boxH, r);
+    } else {
+      ctx.rect(x, y, boxW, boxH);
+    }
+    ctx.fillStyle =
+      theme === "light"
+        ? "rgba(250, 252, 255, 0.94)"
+        : "rgba(15, 18, 24, 0.90)";
+    ctx.fill();
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = borderColor;
+    ctx.stroke();
+
+    ctx.fillStyle = theme === "light" ? "#141a22" : "#f3f7fb";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x + padX, y + boxH * 0.5 + 0.5);
+    ctx.restore();
+    return { cx: x + boxW * 0.5, cy: y + boxH * 0.5 };
+  }
+
+  function renderCalipers() {
+    const cv = $("vp-caliper-canvas"),
+      ctx = cv.getContext("2d"),
+      r = cv.getBoundingClientRect(),
+      dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, r.width * dpr);
+    cv.height = Math.max(1, r.height * dpr);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, r.width, r.height);
+    if (!calipers || !lastFrame || !meshes.length) return;
+    const b = sceneBounds(),
+      lo = b.min,
+      hi = b.max,
+      placed = [],
+      color = theme === "light" ? "#007f74" : "#6cffe8";
+    for (const [a, bpoint, text] of [
+      [
+        [lo[0], lo[1], lo[2]],
+        [hi[0], lo[1], lo[2]],
+        b.size[0].toFixed(2) + " mm",
+      ],
+      [
+        [hi[0], lo[1], lo[2]],
+        [hi[0], hi[1], lo[2]],
+        b.size[1].toFixed(2) + " mm",
+      ],
+      [
+        [lo[0], lo[1], lo[2]],
+        [lo[0], lo[1], hi[2]],
+        b.size[2].toFixed(2) + " mm",
+      ],
+    ]) {
+      const aa = projectWorldToScreen(...a, lastFrame.mvp, r.width, r.height),
+        bb = projectWorldToScreen(...bpoint, lastFrame.mvp, r.width, r.height);
+      if (aa && bb) {
+        drawCadDoubleArrow(ctx, aa.x, aa.y, bb.x, bb.y, color, false);
+        drawCadPill(
+          ctx,
+          (aa.x + bb.x) / 2,
+          (aa.y + bb.y) / 2,
+          text,
+          color,
+          r.width,
+          r.height,
+          placed,
+        );
+      }
+    }
+  }
+
+  $("gl").onpointerdown = (e) => {
+    orbit = [e.clientX, e.clientY];
+    $("gl").setPointerCapture(e.pointerId);
+  };
+  $("gl").onpointermove = (e) => {
+    if (!orbit) return;
+    yaw -= (e.clientX - orbit[0]) * 0.008;
+    pitch = Math.max(
+      0.08,
+      Math.min(1.5, pitch + (e.clientY - orbit[1]) * 0.008),
+    );
+    orbit = [e.clientX, e.clientY];
+    render();
+  };
+  $("gl").onpointerup = () => (orbit = null);
+  $("gl").onwheel = (e) => {
+    e.preventDefault();
+    zoom = Math.max(0.35, Math.min(4, zoom * Math.exp(-e.deltaY * 0.001)));
+    render();
+  };
+  $("home").onclick = () => {
+    zoom = 1;
+    yaw = -0.75;
+    pitch = 0.68;
+    render();
+  };
+  $("open").oninput = () => {
+    openingLabel();
+    render();
+  };
+  $("xray").onchange = render;
+  $("cut").oninput = render;
+  $("play").onclick = () => {
+    playing = !playing;
+    $("play").textContent = playing ? "Ⅱ" : "▶";
+    if (playing) requestAnimationFrame(tick);
+  };
+  function tick(t) {
+    if (!playing) return;
+    const extent = Number($("open").max) || 100;
+    $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+    openingLabel();
+    render();
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener("resize", render);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      playing = false;
+      $("play").textContent = "▶";
+    }
+  });
+  Object.assign(texts.pt, {
+    sec_presets: "Galeria de Modelos",
+    btn_save_preset: "+ Salvar",
+    cat_all: "Todos",
+    cat_user: "Meus",
+    shape: "Forma",
+    features: "Recursos",
+    manufacture: "Impressão",
+    hud_title: "Inspeção da malha",
+    hud_wall_floor: "Parede / Fundo",
+    hud_mouth_hole: "Folga por lado",
+    hud_dims: "Cena atual (mm)",
+    hud_overhang: "Overhang da malha",
+    hud_weight: "Volume sólido (cm³)",
+    hud_Tris: "Triângulos",
+    mat_emerald: "Seda Esmeralda Orca",
+    mat_terracotta: "Cerâmica Terracota",
+    mat_white: "Porcelana Branca Mate",
+    mat_copper: "Bronze Cobre Escovado",
+    mat_xray: "🔬 Raio-X / Parede (Translúcido)",
+    mat_heatmap: "Mapa de Overhang (°)",
+    vp_xray: "🔬 Raio-X / Parede",
+    vp_calipers: "📏 Cotas mm",
+    vp_heatmap: "🔥 Overhang",
+    vp_wire: "⌗ Malha",
+    cam_front: "Frente",
+    cam_top: "Topo",
+    cam_bottom: "Base",
+    cam_fit: "Enquadrar",
+    vp_cut_y: "✂ Corte Vertical (Perfil Y)",
+    vp_cut_z: "💿 Fatia Horizontal Z",
+    leg_outer: "Externa",
+    leg_inner: "Cavidade & Fundo",
+    btn_send_plater: "Enviar para a Mesa do OrcaSlicer",
+    btn_exp_3mf: "Exportar .3MF",
+    btn_exp_stl: "Exportar .STL",
+    btn_surprise: "Surpreenda-me",
+  });
+  Object.assign(texts.en, {
+    sec_presets: "Model Gallery",
+    btn_save_preset: "+ Save",
+    cat_all: "All",
+    cat_user: "Mine",
+    shape: "Shape",
+    features: "Features",
+    manufacture: "Print",
+    hud_title: "Mesh inspection",
+    hud_wall_floor: "Wall / Floor",
+    hud_mouth_hole: "Clearance per side",
+    hud_dims: "Current scene (mm)",
+    hud_overhang: "Mesh overhang",
+    hud_weight: "Solid volume (cm³)",
+    hud_Tris: "Triangles",
+    mat_emerald: "Orca Emerald Silk",
+    mat_terracotta: "Terracotta Ceramic",
+    mat_white: "Matte White Porcelain",
+    mat_copper: "Brushed Copper Bronze",
+    mat_xray: "🔬 X-Ray / Wall (Translucent)",
+    mat_heatmap: "Overhang Map (°)",
+    vp_xray: "🔬 X-Ray / Wall",
+    vp_calipers: "📏 Calipers mm",
+    vp_heatmap: "🔥 Overhang",
+    vp_wire: "⌗ Mesh",
+    cam_front: "Front",
+    cam_top: "Top",
+    cam_bottom: "Bottom",
+    cam_fit: "Fit",
+    vp_cut_y: "✂ Vertical Cut Y",
+    vp_cut_z: "💿 Horizontal Slice Z",
+    leg_outer: "Outer",
+    leg_inner: "Cavity & Floor",
+    btn_send_plater: "Send to OrcaSlicer Plater",
+    btn_exp_3mf: "Export .3MF",
+    btn_exp_stl: "Export .STL",
+    btn_surprise: "Surprise me",
+  });
+  let presetFilter = "all",
+    activePreset = null;
+  function presetSignature(params) {
+    const ignored = new Set([
+      "name",
+      "lang",
+      "theme",
+      "export_target",
+      "auto_configure_slicer",
+    ]);
+    return JSON.stringify(
+      Object.fromEntries(
+        Object.keys(params)
+          .filter((k) => !ignored.has(k))
+          .sort()
+          .map((k) => [k, params[k]]),
+      ),
+    );
+  }
+  function syncPresetSelection() {
+    const all = [...(INITIAL.user_presets || []), ...(INITIAL.presets || [])];
+    const selected = all.find((item) => item.id === activePreset);
+    const signature = presetSignature(p);
+    if (!selected || presetSignature(selected.params) !== signature)
+      activePreset =
+        all.find((item) => presetSignature(item.params) === signature)?.id ||
+        null;
+    presets();
+  }
+  function presetThumb(params) {
+    if (params.style === "clamshell_pip") {
+      const shell = (x, y) =>
+        `<path d="M${x} ${y}l16 -8h44l-16 8Z" fill="#00a896" fill-opacity=".55" stroke="#80ffea"/><path d="M${x} ${y}v14h44v-14M${x + 44} ${y}l16 -8v14l-16 8" fill="#00796b" fill-opacity=".45" stroke="#55cfbb"/>`;
+      return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true">${shell(43, 24)}<path d="M37 44l17 -8M65 44l17 -8" stroke="#ffcf77" stroke-width="3"/>${shell(12, 51)}</svg>`;
+    }
+
+    const w = params.width_x || 90,
+      d = params.depth_y || 65,
+      h = params.height_z || 35,
+      sx = Math.min(52 / w, 34 / d, 38 / h),
+      ww = w * sx,
+      dd = d * sx * 0.48,
+      hh = h * sx,
+      ox = 62 - ww / 2,
+      oy = 70 - hh;
+    const lid = ["open_bin", "stackable_bin"].includes(params.style)
+      ? ""
+      : `<path d="M${ox} ${oy - 8}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#26363e" stroke="#ffcf77"/>`;
+    const accessWidth = Math.min(
+      ww * 0.85,
+      (params.front_access_width || w * 0.6) * sx,
+    );
+    const accessDrop = Math.min(
+      hh * 0.8,
+      (params.front_access_drop || h * 0.35) * sx,
+    );
+    const details =
+      params.style === "stackable_bin"
+        ? `<path d="M${ox + (ww - accessWidth) / 2} ${oy - 1}v${accessDrop}h${accessWidth}v${-accessDrop}Z" fill="#172126" stroke="#80ffea"/><path d="M${ox + 2} ${oy + hh - 2}h${ww - 4}" stroke="#80ffea"/>`
+        : params.style === "open_bin" && params.handles_enabled
+          ? params.handle_faces === "front_back"
+            ? `<rect x="${ox + ww * 0.28}" y="${oy + hh * 0.3}" width="${ww * 0.44}" height="5" rx="2.5" fill="#172126" stroke="#80ffea"/>`
+            : `<path d="M${ox + ww + dd * 0.2} ${oy + hh * 0.25 - dd * 0.1}l${dd * 0.6} ${-dd * 0.3}v5l${-dd * 0.6} ${dd * 0.3}Z" fill="#172126" stroke="#80ffea"/>`
+          : params.style === "snap_latch"
+            ? [0.2, 0.7]
+                .map(
+                  (x) =>
+                    `<rect x="${ox + ww * x}" y="${oy - 5}" width="${ww * 0.1}" height="12" rx="1" fill="#ffb74d" stroke="#ffe0a3"/>`,
+                )
+                .join("")
+            : "";
+    return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true"><path d="M${ox} ${oy}l${dd} ${-dd * 0.5} ${ww} 0 ${-dd} ${dd * 0.5}Z" fill="#00a896" fill-opacity=".6" stroke="#80ffea"/><path d="M${ox} ${oy}v${hh}h${ww}v${-hh}M${ox + ww} ${oy}l${dd} ${-dd * 0.5}v${hh}l${-dd} ${dd * 0.5}" fill="#00796b" fill-opacity=".4" stroke="#55cfbb"/>${lid}${details}</svg>`;
+  }
+  function presets() {
+    const grid = $("presets");
+    grid.replaceChildren();
+    const combined = [
+      ...(INITIAL.user_presets || []).map((x) => ({ ...x, user: true })),
+      ...(INITIAL.presets || []),
+    ];
+    for (const item of combined) {
+      if (presetFilter === "user" && !item.user) continue;
+      if (
+        !["all", "user"].includes(presetFilter) &&
+        item.params.style !== presetFilter
+      )
+        continue;
+      const card = document.createElement("div");
+      card.className =
+        "preset-card" + (activePreset === item.id ? " active" : "");
+      card.dataset.presetId = item.id;
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.innerHTML =
+        '<div class="preset-thumb">' +
+        presetThumb(item.params) +
+        '</div><div class="preset-meta"><div class="preset-name"></div><div class="preset-sub"></div></div>';
+      card.querySelector(".preset-name").textContent = item.user
+        ? item.name
+        : lang === "pt"
+          ? item.name_pt
+          : item.name_en;
+      card.querySelector(".preset-sub").textContent =
+        `${item.params.width_x}×${item.params.depth_y}×${item.params.height_z} mm`;
+      const apply = () => {
+        activePreset = item.id;
+        setDesign(item.params);
+        presets();
+      };
+      card.onclick = apply;
+      card.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          apply();
+        }
+      };
+      if (item.user) {
+        const del = document.createElement("button");
+        del.className = "preset-del-btn";
+        del.textContent = "×";
+        del.title = tr("delete");
+        del.onclick = (e) => {
+          e.stopPropagation();
+          send({ type: "delete_preset", preset_id: item.id });
+        };
+        card.append(del);
+      }
+      grid.append(card);
+    }
+  }
+  function updatePrinter() {
+    const h = currentPrinter();
+    $("printer").textContent = h.printer_name || "OrcaSlicer";
+    $("printer-pill-specs").textContent =
+      `· ${h.bed_x}×${h.bed_y}×${h.max_z} mm · ${h.nozzle_mm}mm`;
+    $("sync").classList.remove("syncing");
+    if (gl && program) rebuildBedGeometry();
+    render();
+  }
+  document.querySelectorAll("[data-cat]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        presetFilter = button.dataset.cat;
+        document
+          .querySelectorAll("[data-cat]")
+          .forEach((x) => x.classList.toggle("active", x === button));
+        presets();
+      }),
+  );
+  $("btn-toggle-save-preset").onclick = () =>
+    $("save-preset-bar").classList.toggle("open");
+  $("savePreset").onclick = () =>
+    send({
+      type: "save_preset",
+      params: p,
+      name: $("inp-save-preset-name").value.trim() || p.name,
+    });
+  $("btn-randomize").onclick = () => {
+    const bytes = new Uint32Array(1);
+    if (window.crypto?.getRandomValues) window.crypto.getRandomValues(bytes);
+    else bytes[0] = Date.now() >>> 0;
+    status(tr("generating"));
+    if (!send({ type: "randomize", seed: bytes[0], params: clone(p) }))
+      status(tr("noHost"));
+  };
+  $("sync").onclick = () => {
+    $("sync").classList.add("syncing");
+    send({ type: "sync_printer" });
+    setTimeout(() => $("sync").classList.remove("syncing"), 1200);
+  };
+  document.querySelectorAll("[data-tab]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        document.body.dataset.dockTab = button.dataset.tab;
+        document
+          .querySelectorAll("[data-tab]")
+          .forEach((x) => x.classList.toggle("active", x === button));
+        drawPlan();
+        render();
+      }),
+  );
+  document.querySelectorAll("[data-param-range]").forEach((range) => {
+    let gesture = false;
+    range.onpointerdown = () => {
+      snapshot();
+      gesture = true;
+    };
+    range.oninput = () => {
+      requestPreview(false);
+      if (!gesture) {
+        snapshot();
+        gesture = true;
+      }
+      p[range.dataset.paramRange] = Number(range.value);
+      document.querySelector(
+        '[data-p="' + range.dataset.paramRange + '"]',
+      ).value = range.value;
+      drawPlan();
+    };
+    range.onchange = () => {
+      if (!gesture) snapshot();
+      gesture = false;
+      sync();
+      requestPreview();
+    };
+  });
+  document
+    .querySelectorAll("[data-wall-preset]")
+    .forEach(
+      (button) =>
+        (button.onclick = () =>
+          change("wall_thickness", Number(button.dataset.wallPreset))),
+    );
+  document.querySelectorAll("[data-action]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        const a = button.dataset.action;
+        if (a === "open_folder") send({ type: "open_exports_folder" });
+        else
+          manufacture(
+            a === "send_to_plater" ? a : "export_file",
+            a === "export_stl" ? "stl" : "3mf",
+          );
+      }),
+  );
+  function viewButtons() {
+    for (const [id, on] of [
+      ["xray", $("xray").checked],
+      ["btn-vp-calipers", calipers],
+      ["btn-vp-wire", wire],
+      ["btn-vp-spin", spin],
+      ["btn-vp-heatmap", material === "heatmap"],
+    ])
+      $(id).classList.toggle("active", !!on);
+    $("xray-legend").classList.toggle("visible", !!$("xray").checked);
+    $("heatmap-legend").classList.toggle(
+      "visible",
+      material === "heatmap" && !$("xray").checked,
+    );
+  }
+  $("xray").onclick = () => {
+    $("xray").checked = !$("xray").checked;
+    viewButtons();
+    render();
+  };
+  $("btn-vp-calipers").onclick = () => {
+    calipers = !calipers;
+    viewButtons();
+    render();
+  };
+  $("btn-vp-wire").onclick = () => {
+    wire = !wire;
+    viewButtons();
+    render();
+  };
+  $("sel-material").onchange = () => {
+    const choice = $("sel-material").value;
+    $("xray").checked = choice === "xray";
+    if (choice !== "xray") material = choice;
+    viewButtons();
+    render();
+  };
+  $("btn-vp-heatmap").onclick = () => {
+    material = material === "heatmap" ? "emerald_silk" : "heatmap";
+    $("xray").checked = false;
+    $("sel-material").value = material;
+    viewButtons();
+    render();
+  };
+  document.querySelectorAll("[data-cam]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        zoom = 1;
+        switch (button.dataset.cam) {
+          case "front":
+            yaw = -Math.PI / 2;
+            pitch = 0.02;
+            break;
+          case "top":
+            yaw = -Math.PI / 2;
+            pitch = Math.PI / 2 - 0.0001;
+            break;
+          case "bottom":
+            yaw = -Math.PI / 2;
+            pitch = -Math.PI / 2 + 0.0001;
+            break;
+          case "iso":
+            yaw = -0.75;
+            pitch = 0.68;
+            break;
+        }
+        render();
+      }),
+  );
+  $("btn-cut-mode-y").onclick = () => {
+    cutAxis = "y";
+    $("btn-cut-mode-y").classList.add("active");
+    $("btn-cut-mode-z").classList.remove("active");
+    render();
+  };
+  $("btn-cut-mode-z").onclick = () => {
+    cutAxis = "z";
+    $("btn-cut-mode-z").classList.add("active");
+    $("btn-cut-mode-y").classList.remove("active");
+    render();
+  };
+  $("cut").oninput = () => {
+    $("lbl-cross-cut").textContent =
+      $("cut").value === "0" ? "Off" : $("cut").value + "%";
+    render();
+  };
+  $("btn-cut-half").onclick = () => {
+    $("cut").value = 50;
+    $("cut").oninput();
+  };
+  $("btn-cut-off").onclick = () => {
+    $("cut").value = 0;
+    $("cut").oninput();
+  };
+  let scheduledAnimation = 0,
+    lastAnimationTime = 0;
+  function animate(t) {
+    scheduledAnimation = 0;
+    if (document.hidden) {
+      playing = false;
+      spin = false;
+      return;
+    }
+    const dt = lastAnimationTime ? Math.min(t - lastAnimationTime, 50) : 16;
+    lastAnimationTime = t;
+    if (playing) {
+      const extent = Number($("open").max) || 100;
+      $("open").value = extent / 2 - (extent / 2) * Math.cos(t * 0.0007);
+      openingLabel();
+    }
+    if (spin) yaw += dt * 0.00025;
+    render();
+    if (playing || spin) scheduledAnimation = requestAnimationFrame(animate);
+  }
+  function scheduleAnimation() {
+    if (!scheduledAnimation)
+      scheduledAnimation = requestAnimationFrame(animate);
+  }
+  $("play").onclick = () => {
+    playing = !playing;
+    $("play").textContent = playing ? "Ⅱ" : "▶";
+    scheduleAnimation();
+  };
+  $("btn-vp-spin").onclick = () => {
+    spin = !spin;
+    viewButtons();
+    scheduleAnimation();
+  };
+  window.OrcaBoxStudio = {
+    handleHostMessage: receive,
+    getState: () => clone(p),
+    getSceneBounds: sceneBounds,
+    fitCamera: () => {
+      zoom = 1;
+      render();
+      return lastFrame
+        ? {
+            distance: lastFrame.distance,
+            target: lastFrame.target,
+            bounds: lastFrame.bounds,
+          }
+        : null;
+    },
+  };
+  updatePrinter();
+  viewButtons();
+
+  if (INITIAL.mode === "dock") {
+    document.body.dataset.mode = "dock";
+    document.body.dataset.dockTab = "shape";
+  }
+  if (hostThemeExplicit === false) {
+    const injectedTheme = detectInjectedOrcaTheme();
+    if (injectedTheme) theme = injectedTheme;
+  }
+  configureOpening();
+  try {
+    initializeGL();
+  } catch (e) {
+    status(String(e), true);
+  }
+  translate();
+  sync();
+  if (INITIAL.host) updatePrinter();
+  if (INITIAL.meshes) loadMeshes(INITIAL.meshes);
+  else requestPreview();
+  watchHostTheme();
+})();
+</script>
   </body>
 </html>
 """
@@ -4501,20 +10174,36 @@ _BOX_HTML = r"""<!doctype html>
 def get_studio_html(
     mode: str = "page", initial_context: dict[str, Any] | None = None
 ) -> str:
-    pass  # [bundled] resolved intra-package import
-    pass  # [bundled] resolved intra-package import
-
-    ctx = dict(initial_context or {})
-    ctx.setdefault("params", normalize_params())
+    ctx = copy.deepcopy(initial_context) if isinstance(initial_context, dict) else {}
+    ctx["params"] = normalize_params(ctx.get("params"))
     ctx.setdefault("presets", BUILTIN_PRESETS)
-    ctx["mode"] = mode
+    ctx["mode"] = "dock" if str(mode).strip().lower() == "dock" else "page"
+    lang = (
+        "en"
+        if str(ctx.get("lang") or ctx["params"].get("lang", "pt"))
+        .lower()
+        .startswith("en")
+        else "pt"
+    )
+    theme = (
+        "light"
+        if str(ctx.get("theme") or ctx["params"].get("theme", "dark")).lower()
+        == "light"
+        else "dark"
+    )
+    ctx.update(lang=lang, theme=theme)
     payload = (
         json.dumps(ctx, ensure_ascii=False, separators=(",", ":"))
         .replace("</", "<\\/")
         .replace("\u2028", "\\u2028")
         .replace("\u2029", "\\u2029")
     )
-    return _BOX_HTML.replace("__BOX_CONTEXT__", payload)
+    return (
+        _BOX_HTML.replace("__INITIAL_LANG__", lang)
+        .replace("__INITIAL_THEME__", theme)
+        .replace("__INITIAL_MODE__", ctx["mode"])
+        .replace("__BOX_CONTEXT__", payload)
+    )
 
 # ===========================================================================
 # MODULE: box_studio.linux_ipc
@@ -4718,7 +10407,8 @@ def send_linux_plater_request(
 
 pass  # [bundled] hoisted __future__ import
 from collections.abc import Sequence
-import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64
+from collections import OrderedDict
+import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64, hashlib
 from pathlib import Path
 from typing import Any, Callable
 pass  # [bundled] resolved intra-package import
@@ -5694,7 +11384,13 @@ class BoxStudioController:
         self._current_params = normalize_params()
         self._preview_serial = 0
         self._last_worker = None
-        self._mesh_cache = {}
+        self._mesh_cache = OrderedDict()
+        self._mesh_cache_bytes = 0
+        self._mesh_cache_limit = 128 * 1024 * 1024
+        self._encoded_cache = OrderedDict()
+        self._encoded_cache_bytes = 0
+        self._encoded_cache_limit = 48 * 1024 * 1024
+        self._inflight_geometry = {}
         self._subscriptions = {}
         self._preview_waiters = {}
 
@@ -5947,59 +11643,196 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.0.0",
+            "version": "1.2.0",
         }
 
-    def _geometry(self, p, assembled=True, target="full_suite"):
-        geometry = {
-            k: v
-            for k, v in p.items()
-            if k
-            not in ("name", "lang", "theme", "export_target", "auto_configure_slicer")
-        }
-        key = json.dumps([geometry, assembled, target], sort_keys=True)
+    @staticmethod
+    def _geometry_key(p):
+        """Presentation preferences do not change a manufacturing surface."""
+        return json.dumps(
+            {
+                k: v
+                for k, v in p.items()
+                if k
+                not in (
+                    "name",
+                    "lang",
+                    "theme",
+                    "export_target",
+                    "auto_configure_slicer",
+                )
+            },
+            sort_keys=True,
+        )
+
+    @staticmethod
+    def _mesh_bytes(value):
+        if isinstance(value, list):
+            return sum(BoxStudioController._mesh_bytes(mesh) for _, mesh in value)
+        return sum(
+            array.nbytes
+            for array in (value.vertices, value.triangles, value.face_normals)
+        )
+
+    @staticmethod
+    def _validate_mesh(mesh, name):
+        report = topology_report(mesh)
+        if not report["closed"] or not report["oriented"]:
+            raise ValueError(
+                f"{name}: invalid surface topology; choose fine quality or adjust geometry."
+            )
+        return mesh
+
+    def _cached_geometry(self, key, compute):
+        """Byte-bounded LRU with one in-flight computation per immutable key.
+
+        Collection entries conservatively count their arrays again, even when
+        shared with a canonical part. The budget therefore bounds retained memory.
+        """
         with self._lock:
             if key in self._mesh_cache:
-                return self._mesh_cache[key]
-        items = collect_target_meshes(
-            p, target=target, lang=p["lang"], assembled=assembled
-        )
-        for name, mesh in items:
-            report = topology_report(mesh)
-            if not report["closed"] or not report["oriented"]:
-                raise ValueError(
-                    f"{name}: invalid surface topology; choose fine quality or adjust geometry."
-                )
-        with self._lock:
-            self._mesh_cache = {key: items}
-        return items
+                value, size = self._mesh_cache.pop(key)
+                self._mesh_cache[key] = (value, size)
+                return value
+            slot = self._inflight_geometry.get(key)
+            owner = slot is None
+            if owner:
+                slot = {"ready": threading.Event()}
+                self._inflight_geometry[key] = slot
+        if not owner:
+            slot["ready"].wait()
+            if "error" in slot:
+                raise slot["error"]
+            return slot["result"]
+        try:
+            result = compute()
+            size = self._mesh_bytes(result)
+            with self._lock:
+                if size <= self._mesh_cache_limit:
+                    self._mesh_cache[key] = (result, size)
+                    self._mesh_cache_bytes += size
+                    while self._mesh_cache_bytes > self._mesh_cache_limit:
+                        _, (_, removed_size) = self._mesh_cache.popitem(last=False)
+                        self._mesh_cache_bytes -= removed_size
+                slot["result"] = result
+            return result
+        except Exception as exc:
+            slot["error"] = exc
+            raise
+        finally:
+            with self._lock:
+                self._inflight_geometry.pop(key, None)
+                slot["ready"].set()
+
+    def _geometry(self, p, assembled=True, target="full_suite"):
+        shape_key = self._geometry_key(p)
+
+        def factory(raw, part, print_orientation=False):
+            mesh = self._cached_geometry(
+                ("part", shape_key, part),
+                lambda: self._validate_mesh(generate_box_mesh(raw, part, False), part),
+            )
+            return orient_mesh_for_print(mesh, raw, part) if print_orientation else mesh
+
+        def collect():
+            items = collect_target_meshes(
+                p,
+                target=target,
+                lang=p["lang"],
+                assembled=assembled,
+                mesh_factory=factory,
+            )
+            # The kit uses its own manufacturing primitives, outside the factory.
+            if target == "fit_test_kit":
+                for name, mesh in items:
+                    self._validate_mesh(mesh, name)
+            return items
+
+        if assembled or target == "fit_test_kit":
+            return self._cached_geometry(
+                ("collection", shape_key, target, p["lang"]), collect
+            )
+        return collect()
 
     def _preview_payload(self, p):
-        items = self._geometry(p)
-        encoded = []
-        for name, mesh in items:
-            encoded.append(
-                {
-                    "name": name,
-                    "part": mesh.part,
-                    "vertices": base64.b64encode(
-                        mesh.vertices.astype("<f4").tobytes()
-                    ).decode("ascii"),
-                    "triangles": base64.b64encode(
-                        mesh.triangles.astype("<u4").tobytes()
-                    ).decode("ascii"),
-                    "bounds": mesh.bounds_mm,
-                    "volume_cm3": mesh.volume_cm3,
-                    "interface_error_mm": mesh.interface_error_mm,
-                    "triangle_count": len(mesh.triangles),
-                }
+        target = p["export_target"]
+        items = self._geometry(p, assembled=True, target=target)
+        latch_motion = None
+        if p["style"] == "snap_latch":
+            pass  # [bundled] resolved intra-package import
+
+            latch_motion = {
+                part: latch_geometry(p, part) for part in ("clip_left", "clip_right")
+            }
+        calibration = target == "fit_test_kit"
+        offsets = [[0.0, 0.0, 0.0] for _ in items]
+        if calibration:
+            cursor = 0.0
+            for index, (_, mesh) in enumerate(items):
+                lower, upper = mesh.bounds_mm["min"], mesh.bounds_mm["max"]
+                offsets[index] = [
+                    cursor - lower[0],
+                    -(lower[1] + upper[1]) / 2,
+                    -lower[2],
+                ]
+                cursor += upper[0] - lower[0] + 6.0
+            center = (cursor - 6.0) / 2
+            for offset in offsets:
+                offset[0] -= center
+        encoded_key = (self._geometry_key(p), target, p["lang"])
+        with self._lock:
+            entry = self._encoded_cache.pop(encoded_key, None)
+            if entry is not None:
+                self._encoded_cache[encoded_key] = entry
+        if entry is not None:
+            encoded = entry[0]
+        else:
+            encoded = []
+            for (name, mesh), offset in zip(items, offsets):
+                encoded.append(
+                    {
+                        "name": name,
+                        "part": mesh.part,
+                        "preview_offset": offset,
+                        "vertices": base64.b64encode(
+                            mesh.vertices.astype("<f4").tobytes()
+                        ).decode("ascii"),
+                        "triangles": base64.b64encode(
+                            mesh.triangles.astype("<u4").tobytes()
+                        ).decode("ascii"),
+                        "bounds": mesh.bounds_mm,
+                        "volume_cm3": mesh.volume_cm3,
+                        "interface_error_mm": mesh.interface_error_mm,
+                        "triangle_count": len(mesh.triangles),
+                    }
+                )
+            size = sum(
+                len(item["vertices"]) + len(item["triangles"]) for item in encoded
             )
+            with self._lock:
+                previous = self._encoded_cache.pop(encoded_key, None)
+                if previous is not None:
+                    self._encoded_cache_bytes -= previous[1]
+                if size <= self._encoded_cache_limit:
+                    self._encoded_cache[encoded_key] = (encoded, size)
+                    self._encoded_cache_bytes += size
+                    while self._encoded_cache_bytes > self._encoded_cache_limit:
+                        _, (_, removed_size) = self._encoded_cache.popitem(last=False)
+                        self._encoded_cache_bytes -= removed_size
         return {
             "type": "preview_result",
             "ok": True,
             "params": p,
+            "preview_mode": "calibration" if calibration else "assembly",
+            "print_bounds": clamshell_print_bounds(p)
+            if p["style"] == "clamshell_pip"
+            else None,
+            "geometry_key": hashlib.sha256(
+                (self._geometry_key(p) + "|" + target).encode("utf-8")
+            ).hexdigest(),
             "meshes": encoded,
             "hinge": hinge_geometry(p),
+            "latch_motion": latch_motion,
             "volume_cm3": sum(m.volume_cm3 for _, m in items),
             "surface_note": "Curved surfaces are tessellated; fit-interface chord target is shown in mm.",
         }
@@ -6144,6 +11977,27 @@ class BoxStudioController:
                 raise ValueError("Invalid plugin message.")
             self._subscriptions[default_mode] = send_fn
             action = msg.get("type", "")
+            if action == "randomize":
+                previous = normalize_params(msg.get("params") or self.current_params())
+                candidate = generate_random_printable_params(
+                    previous, msg.get("seed"), self.read_host_context()
+                )
+                self.set_current_params(candidate)
+                for mode, post in list(self._subscriptions.items()):
+                    if mode != default_mode:
+                        try:
+                            post({"type": "design_changed", "params": candidate})
+                        except Exception:
+                            pass
+                send_fn(
+                    {
+                        "type": "randomize_result",
+                        "ok": True,
+                        "params": candidate,
+                        "seed": msg.get("seed"),
+                    }
+                )
+                return
             if action in ("get_initial_state", "init", "sync_printer"):
                 send_fn(
                     {"type": "init_state", **self.build_initial_context(default_mode)}

@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 from collections.abc import Sequence
-import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64
+from collections import OrderedDict
+import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64, hashlib
 from pathlib import Path
 from typing import Any, Callable
 from .schema import DEFAULT_PARAMS, normalize_params, validate_params
-from .mesh_generator import collect_target_meshes, topology_report, hinge_geometry, np
+from .mesh_generator import (
+    collect_target_meshes,
+    topology_report,
+    hinge_geometry,
+    orient_mesh_for_print,
+    clamshell_print_bounds,
+    generate_box_mesh,
+    np,
+)
 from .exporters import write_binary_stl, write_orca_3mf
 from .presets_catalog import (
     BUILTIN_PRESETS,
     load_user_presets,
     save_user_preset,
     delete_user_preset,
+    generate_random_printable_params,
 )
 from .studio_ui import get_studio_html
 from .linux_ipc import send_linux_plater_request
@@ -983,7 +993,13 @@ class BoxStudioController:
         self._current_params = normalize_params()
         self._preview_serial = 0
         self._last_worker = None
-        self._mesh_cache = {}
+        self._mesh_cache = OrderedDict()
+        self._mesh_cache_bytes = 0
+        self._mesh_cache_limit = 128 * 1024 * 1024
+        self._encoded_cache = OrderedDict()
+        self._encoded_cache_bytes = 0
+        self._encoded_cache_limit = 48 * 1024 * 1024
+        self._inflight_geometry = {}
         self._subscriptions = {}
         self._preview_waiters = {}
 
@@ -1236,59 +1252,196 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.0.0",
+            "version": "1.2.0",
         }
 
-    def _geometry(self, p, assembled=True, target="full_suite"):
-        geometry = {
-            k: v
-            for k, v in p.items()
-            if k
-            not in ("name", "lang", "theme", "export_target", "auto_configure_slicer")
-        }
-        key = json.dumps([geometry, assembled, target], sort_keys=True)
+    @staticmethod
+    def _geometry_key(p):
+        """Presentation preferences do not change a manufacturing surface."""
+        return json.dumps(
+            {
+                k: v
+                for k, v in p.items()
+                if k
+                not in (
+                    "name",
+                    "lang",
+                    "theme",
+                    "export_target",
+                    "auto_configure_slicer",
+                )
+            },
+            sort_keys=True,
+        )
+
+    @staticmethod
+    def _mesh_bytes(value):
+        if isinstance(value, list):
+            return sum(BoxStudioController._mesh_bytes(mesh) for _, mesh in value)
+        return sum(
+            array.nbytes
+            for array in (value.vertices, value.triangles, value.face_normals)
+        )
+
+    @staticmethod
+    def _validate_mesh(mesh, name):
+        report = topology_report(mesh)
+        if not report["closed"] or not report["oriented"]:
+            raise ValueError(
+                f"{name}: invalid surface topology; choose fine quality or adjust geometry."
+            )
+        return mesh
+
+    def _cached_geometry(self, key, compute):
+        """Byte-bounded LRU with one in-flight computation per immutable key.
+
+        Collection entries conservatively count their arrays again, even when
+        shared with a canonical part. The budget therefore bounds retained memory.
+        """
         with self._lock:
             if key in self._mesh_cache:
-                return self._mesh_cache[key]
-        items = collect_target_meshes(
-            p, target=target, lang=p["lang"], assembled=assembled
-        )
-        for name, mesh in items:
-            report = topology_report(mesh)
-            if not report["closed"] or not report["oriented"]:
-                raise ValueError(
-                    f"{name}: invalid surface topology; choose fine quality or adjust geometry."
-                )
-        with self._lock:
-            self._mesh_cache = {key: items}
-        return items
+                value, size = self._mesh_cache.pop(key)
+                self._mesh_cache[key] = (value, size)
+                return value
+            slot = self._inflight_geometry.get(key)
+            owner = slot is None
+            if owner:
+                slot = {"ready": threading.Event()}
+                self._inflight_geometry[key] = slot
+        if not owner:
+            slot["ready"].wait()
+            if "error" in slot:
+                raise slot["error"]
+            return slot["result"]
+        try:
+            result = compute()
+            size = self._mesh_bytes(result)
+            with self._lock:
+                if size <= self._mesh_cache_limit:
+                    self._mesh_cache[key] = (result, size)
+                    self._mesh_cache_bytes += size
+                    while self._mesh_cache_bytes > self._mesh_cache_limit:
+                        _, (_, removed_size) = self._mesh_cache.popitem(last=False)
+                        self._mesh_cache_bytes -= removed_size
+                slot["result"] = result
+            return result
+        except Exception as exc:
+            slot["error"] = exc
+            raise
+        finally:
+            with self._lock:
+                self._inflight_geometry.pop(key, None)
+                slot["ready"].set()
+
+    def _geometry(self, p, assembled=True, target="full_suite"):
+        shape_key = self._geometry_key(p)
+
+        def factory(raw, part, print_orientation=False):
+            mesh = self._cached_geometry(
+                ("part", shape_key, part),
+                lambda: self._validate_mesh(generate_box_mesh(raw, part, False), part),
+            )
+            return orient_mesh_for_print(mesh, raw, part) if print_orientation else mesh
+
+        def collect():
+            items = collect_target_meshes(
+                p,
+                target=target,
+                lang=p["lang"],
+                assembled=assembled,
+                mesh_factory=factory,
+            )
+            # The kit uses its own manufacturing primitives, outside the factory.
+            if target == "fit_test_kit":
+                for name, mesh in items:
+                    self._validate_mesh(mesh, name)
+            return items
+
+        if assembled or target == "fit_test_kit":
+            return self._cached_geometry(
+                ("collection", shape_key, target, p["lang"]), collect
+            )
+        return collect()
 
     def _preview_payload(self, p):
-        items = self._geometry(p)
-        encoded = []
-        for name, mesh in items:
-            encoded.append(
-                {
-                    "name": name,
-                    "part": mesh.part,
-                    "vertices": base64.b64encode(
-                        mesh.vertices.astype("<f4").tobytes()
-                    ).decode("ascii"),
-                    "triangles": base64.b64encode(
-                        mesh.triangles.astype("<u4").tobytes()
-                    ).decode("ascii"),
-                    "bounds": mesh.bounds_mm,
-                    "volume_cm3": mesh.volume_cm3,
-                    "interface_error_mm": mesh.interface_error_mm,
-                    "triangle_count": len(mesh.triangles),
-                }
+        target = p["export_target"]
+        items = self._geometry(p, assembled=True, target=target)
+        latch_motion = None
+        if p["style"] == "snap_latch":
+            from .mesh_generator import latch_geometry
+
+            latch_motion = {
+                part: latch_geometry(p, part) for part in ("clip_left", "clip_right")
+            }
+        calibration = target == "fit_test_kit"
+        offsets = [[0.0, 0.0, 0.0] for _ in items]
+        if calibration:
+            cursor = 0.0
+            for index, (_, mesh) in enumerate(items):
+                lower, upper = mesh.bounds_mm["min"], mesh.bounds_mm["max"]
+                offsets[index] = [
+                    cursor - lower[0],
+                    -(lower[1] + upper[1]) / 2,
+                    -lower[2],
+                ]
+                cursor += upper[0] - lower[0] + 6.0
+            center = (cursor - 6.0) / 2
+            for offset in offsets:
+                offset[0] -= center
+        encoded_key = (self._geometry_key(p), target, p["lang"])
+        with self._lock:
+            entry = self._encoded_cache.pop(encoded_key, None)
+            if entry is not None:
+                self._encoded_cache[encoded_key] = entry
+        if entry is not None:
+            encoded = entry[0]
+        else:
+            encoded = []
+            for (name, mesh), offset in zip(items, offsets):
+                encoded.append(
+                    {
+                        "name": name,
+                        "part": mesh.part,
+                        "preview_offset": offset,
+                        "vertices": base64.b64encode(
+                            mesh.vertices.astype("<f4").tobytes()
+                        ).decode("ascii"),
+                        "triangles": base64.b64encode(
+                            mesh.triangles.astype("<u4").tobytes()
+                        ).decode("ascii"),
+                        "bounds": mesh.bounds_mm,
+                        "volume_cm3": mesh.volume_cm3,
+                        "interface_error_mm": mesh.interface_error_mm,
+                        "triangle_count": len(mesh.triangles),
+                    }
+                )
+            size = sum(
+                len(item["vertices"]) + len(item["triangles"]) for item in encoded
             )
+            with self._lock:
+                previous = self._encoded_cache.pop(encoded_key, None)
+                if previous is not None:
+                    self._encoded_cache_bytes -= previous[1]
+                if size <= self._encoded_cache_limit:
+                    self._encoded_cache[encoded_key] = (encoded, size)
+                    self._encoded_cache_bytes += size
+                    while self._encoded_cache_bytes > self._encoded_cache_limit:
+                        _, (_, removed_size) = self._encoded_cache.popitem(last=False)
+                        self._encoded_cache_bytes -= removed_size
         return {
             "type": "preview_result",
             "ok": True,
             "params": p,
+            "preview_mode": "calibration" if calibration else "assembly",
+            "print_bounds": clamshell_print_bounds(p)
+            if p["style"] == "clamshell_pip"
+            else None,
+            "geometry_key": hashlib.sha256(
+                (self._geometry_key(p) + "|" + target).encode("utf-8")
+            ).hexdigest(),
             "meshes": encoded,
             "hinge": hinge_geometry(p),
+            "latch_motion": latch_motion,
             "volume_cm3": sum(m.volume_cm3 for _, m in items),
             "surface_note": "Curved surfaces are tessellated; fit-interface chord target is shown in mm.",
         }
@@ -1433,6 +1586,27 @@ class BoxStudioController:
                 raise ValueError("Invalid plugin message.")
             self._subscriptions[default_mode] = send_fn
             action = msg.get("type", "")
+            if action == "randomize":
+                previous = normalize_params(msg.get("params") or self.current_params())
+                candidate = generate_random_printable_params(
+                    previous, msg.get("seed"), self.read_host_context()
+                )
+                self.set_current_params(candidate)
+                for mode, post in list(self._subscriptions.items()):
+                    if mode != default_mode:
+                        try:
+                            post({"type": "design_changed", "params": candidate})
+                        except Exception:
+                            pass
+                send_fn(
+                    {
+                        "type": "randomize_result",
+                        "ok": True,
+                        "params": candidate,
+                        "seed": msg.get("seed"),
+                    }
+                )
+                return
             if action in ("get_initial_state", "init", "sync_printer"):
                 send_fn(
                     {"type": "init_state", **self.build_initial_context(default_mode)}
