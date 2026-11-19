@@ -2,9 +2,11 @@
 
 <p align="center"><img src="assets/icon.jpg" alt="Orca Box Studio — parametric enclosures" width="240"></p>
 
-Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.2.1 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
+Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.2.2 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
 
 A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, galeria com filtros, cartões de parâmetros, sliders com valores numéricos, ferramentas flutuantes de inspeção e exportação fixa. Veja a [referência visual e sua origem](docs/UI_TEMPLATE.md).
+
+A galeria começa com caixas básicas, sem placas, portas, divisórias ou juntas TPU pré-configuradas. Os presets de ESP32, Raspberry Pi, Arduino, sensores e eletrônica ventilada foram retirados para facilitar os testes das caixas.
 
 ## Recursos
 
@@ -17,7 +19,7 @@ A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, gal
 - **Empilhável (`stackable_bin`):** base aberta com frente rebaixada, apoio nos dois lados e atrás, e pé de indexação. Caixas da mesma família podem ter alturas diferentes. O pé orienta o encaixe; os ombros da base superior apoiam no aro inferior.
 - **Estojo articulado (`clamshell_pip`):** duas metades de mesma profundidade, duas dobradiças cativas com eixos integrados e apoios desde o fundo. Exporta aberto a 180°, com os dois fundos em Z=0, como um objeto de duas cascas. Este estilo inicial não inclui trava frontal.
 - Torres de PCB posicionadas pelo editor 2D ou por coordenadas, com diâmetro e profundidade de inserto/piloto editáveis; divisórias nos eixos X/Y; portas USB-C, HDMI, DC e ventilação em fendas ou hexágonos. A largura e a altura definem independentemente o envelope dos recortes hexagonais; proporções diferentes podem produzir um hexágono alongado.
-- Canal perimetral e junta TPU exportável para tampas que levantam; 17 presets editáveis e biblioteca pessoal salva fora do projeto.
+- Canal perimetral e junta TPU exportável para tampas que levantam; oito modelos padrão editáveis (um por estilo) e biblioteca pessoal salva fora do projeto.
 - Visualização WebGL2 da mesma geometria usada na exportação, animação de abertura, raio-X e corte axial. O cálculo do modelo roda em segundo plano; o tempo de regeneração depende das dimensões e dos acessórios.
 - Exportação STL binário e 3MF multiobjeto, organização na mesa sem escala automática e envio à instância atual do OrcaSlicer.
 

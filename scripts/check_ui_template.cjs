@@ -257,8 +257,8 @@ async function featureChecks(page,slug,url,passed){
     const pipExportBefore=await page.evaluate(()=>window.__hostMessages.length);await clickAction(page,'3mf');
     await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='action_result'&&m.ok===true),pipExportBefore,{timeout:180000});passed.push('PIP case exports as a preserved open assembly');
     await page.locator('[data-cam="fit"]').click();await page.screenshot({path:path.join(output,'box-clamshell-pip-open.png')});
-    n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="clamshell_pip_deep"]').click();await waitGeometry(page,n,{style:'clamshell_pip',height_z:25});
-    passed.push('Deep PIP preset keeps equal halves');
+    n=await geometryCount(page);const deepHeight=page.locator('input[type="number"][data-p="height_z"]');await deepHeight.fill('25');await deepHeight.press('Tab');await waitGeometry(page,n,{style:'clamshell_pip',height_z:25});
+    passed.push('Custom PIP depth keeps equal halves');
     n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="everyday"]').click();await waitGeometry(page,n,{style:'lip_snap'});
     if(Number(await page.locator('#open').getAttribute('max'))!==100||!await page.locator('input[type="number"][data-p="lid_height"]').isVisible())throw Error('Normal lid controls did not return after PIP mode');
     passed.push('Leaving PIP mode restores standard lid and percentage controls');

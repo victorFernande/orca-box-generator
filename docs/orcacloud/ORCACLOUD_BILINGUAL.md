@@ -2,7 +2,7 @@
 
 **Boxes for your projects. Storage in your size.**
 
-Design offline inside OrcaSlicer. Adjust width, depth, height and walls, start from 17 editable presets and save your own designs.
+Design offline inside OrcaSlicer. Adjust width, depth, height and walls, start from 8 standard presets and save your own designs.
 
 ![Parametric open bin with actual hand openings](https://raw.githubusercontent.com/victorFernande/orca-box-generator/main/assets/marketplace/01-box-studio-en.png)
 
@@ -32,7 +32,7 @@ Install and activate in **OrcaSlicer 2.5.1+**, then restart. PT/EN, light/dark, 
 
 **Caixas para seus projetos. Organização na sua medida.**
 
-Projete offline no OrcaSlicer. Ajuste largura, profundidade, altura e paredes, comece com 17 presets editáveis e salve seus modelos.
+Projete offline no OrcaSlicer. Ajuste largura, profundidade, altura e paredes, comece com oito modelos padrão editáveis e salve seus modelos.
 
 ![Caixa aberta paramétrica com aberturas reais para as mãos](https://raw.githubusercontent.com/victorFernande/orca-box-generator/main/assets/marketplace/01-box-studio-pt-BR.png)
 

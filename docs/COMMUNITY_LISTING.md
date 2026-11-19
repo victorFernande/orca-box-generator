@@ -4,7 +4,7 @@
 
 **Orca Box Studio — oito estilos de caixas e gabinetes no OrcaSlicer**
 
-Gerador paramétrico offline em PT/EN para OrcaSlicer 2.5.1+, com 17 presets editáveis: tampa por pressão, caixa reforçada com dobradiça, tampa deslizante, quatro parafusos, caixa aberta com duas alças de mão, tampa removível com dois fechos de alavanca presos à base, caixa empilhável com acesso frontal e estojo articulado print-in-place. Ajuste as medidas em milímetros, acrescente torres de PCB, divisórias e recortes compatíveis, inspecione a malha WebGL2 e exporte STL/3MF ou transmita um pedido para a mesa.
+Gerador paramétrico offline em PT/EN para OrcaSlicer 2.5.1+, com 8 presets editáveis: tampa por pressão, caixa reforçada com dobradiça, tampa deslizante, quatro parafusos, caixa aberta com duas alças de mão, tampa removível com dois fechos de alavanca presos à base, caixa empilhável com acesso frontal e estojo articulado print-in-place. Ajuste as medidas em milímetros, acrescente torres de PCB, divisórias e recortes compatíveis, inspecione a malha WebGL2 e exporte STL/3MF ou transmita um pedido para a mesa.
 
 A folga dimensional e a retenção Lip Snap têm controles separados. A tampa com travas é plana, com saia abaixo da placa. São quatro peças impressas: base, tampa e duas alavancas com pinos integrados. Os pinos encaixam nos apoios da base; os fechos giram primeiro e a tampa sobe depois, sem retirar as alavancas. A exportação reutiliza superfícies validadas; [medições](PERFORMANCE.md) mostram o comportamento das configurações testadas, sem prometer o mesmo tempo em qualquer máquina.
 
@@ -18,7 +18,7 @@ Código MIT, Python e NumPy. O redesenho dos fechos passou em 17 testes independ
 
 **Orca Box Studio — eight enclosure and storage styles inside OrcaSlicer**
 
-An offline PT/EN parametric generator for OrcaSlicer 2.5.1+, with 17 editable presets: snap lid, rugged hinge, sliding lid, four corner screws, open bin with two hand openings, a removable flat lid with two base-mounted lever latches, an open-access stackable bin, and a print-in-place articulated case. Enter custom dimensions in millimetres, add compatible PCB supports, partitions and ports, inspect the WebGL2 surface, then export STL/3MF or transmit an import request to the Plater.
+An offline PT/EN parametric generator for OrcaSlicer 2.5.1+, with 8 standard presets: snap lid, rugged hinge, sliding lid, four corner screws, open bin with two hand openings, a removable flat lid with two base-mounted lever latches, an open-access stackable bin, and a print-in-place articulated case. Enter custom dimensions in millimetres, add compatible PCB supports, partitions and ports, inspect the WebGL2 surface, then export STL/3MF or transmit an import request to the Plater.
 
 Dimensional clearance and Lip Snap interference have separate controls. The lever lid has its locating skirt below the flat cap. Four pieces are printed: base, lid and two levers with integral pins. The pins snap into the base sockets; both latches rotate before the lid lifts, while the levers stay on the base. Export reuses validated surfaces; the [measurements](PERFORMANCE.md) describe tested configurations rather than guaranteed timing on every machine.
 

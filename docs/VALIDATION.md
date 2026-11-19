@@ -1,5 +1,11 @@
 # Validation status
 
+## Standard box gallery — 1.2.2, 2026-11-19
+
+The built-in gallery now has eight standard designs, one per existing box style. Board-specific/IoT examples and duplicate accessory variants were removed. No PCB posts, ports, partitions or TPU gasket are enabled in these starting designs. Box geometry and the optional feature controls are unchanged. Personal presets remain separate. The 1.2.1 results below describe the previous seventeen-preset catalog; assess 1.2.2 using its own reports and CI revision.
+
+The targeted local gallery/page/dock run passed 53 checks, with 25 export actions and 35 independently verified files, zero failures and zero console errors. It covered only `presets,general,dock`, not the complete E2E scope. The eight geometry cases and eleven cache/local-edit cases passed with `-B -W error`; standalone bundle/wheel smoke checks and four runner-correlation regressions also passed. Rugged captive export remains covered explicitly through its hinge control in the full runner, without reintroducing an extra preset. Generic-printer PT/EN workspace captures and their fourth presentation image were regenerated for the eight-model catalog. These checks do not constitute new native-application or physical-print acceptance.
+
 ## Complete Box E2E review — 1.2.1, 2026-11-19
 
 This revision adds a real-browser/real-backend E2E runner for all eight styles, seventeen presets, enabled export targets, resources, page and dock. It reopens actual STL/3MF bytes and checks them independently against the delivered preview and print snapshot. Native IPC is deliberately disabled only in that development environment. See [reproduction and exact scope](E2E.md); native Windows observations below are separate evidence.

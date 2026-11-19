@@ -135,39 +135,20 @@ class CanonicalCacheTests(unittest.TestCase):
         self.assertIs(controller._cached_geometry("retry", lambda: mesh), mesh)
         self.assertFalse(controller._inflight_geometry)
 
-    def test_seventeen_presets_keep_the_originals_and_add_storage_and_clamshell_styles(
-        self,
-    ):
-        self.assertEqual(len(BUILTIN_PRESETS), 17)
+    def test_standard_presets_cover_each_style_without_preconfigured_accessories(self):
+        self.assertEqual(len(BUILTIN_PRESETS), 8)
+        self.assertEqual(len({item["id"] for item in BUILTIN_PRESETS}), 8)
         self.assertEqual(
-            [item["id"] for item in BUILTIN_PRESETS[:12]],
-            [
-                "everyday",
-                "esp32",
-                "raspberry_pi",
-                "arduino",
-                "mini_lip",
-                "sensor",
-                "tool_rugged",
-                "rugged_pip",
-                "pencil",
-                "parts",
-                "gasket",
-                "vented",
-            ],
+            {item["params"]["style"] for item in BUILTIN_PRESETS},
+            {"lip_snap", "screw_corner", "rugged_box", "sliding_lid",
+             "open_bin", "snap_latch", "stackable_bin", "clamshell_pip"},
         )
-        self.assertEqual(
-            [item["params"]["style"] for item in BUILTIN_PRESETS[12:]],
-            [
-                "open_bin",
-                "snap_latch",
-                "stackable_bin",
-                "clamshell_pip",
-                "clamshell_pip",
-            ],
-        )
-        for item in BUILTIN_PRESETS[12:]:
+        for item in BUILTIN_PRESETS:
             self.assertEqual(validate_params(item["params"]), [])
+            for key in ("standoffs", "cutouts", "dividers_x", "dividers_y", "gasket_enabled"):
+                self.assertFalse(item["params"][key], (item["id"], key))
+            self.assertTrue(item["name_pt"])
+            self.assertTrue(item["name_en"])
 
     def test_stackable_surprise_preserves_the_mating_family(self):
         original = next(
