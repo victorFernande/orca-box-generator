@@ -27,6 +27,12 @@ junit*.xml
 /.secrets/
 /.private/
 /local/
+*.local.json
+*.local.toml
+*.local.yaml
+*.local.yml
+/config.local.*
+/settings.local.*
 /exports/
 /test-output/
 /logs/

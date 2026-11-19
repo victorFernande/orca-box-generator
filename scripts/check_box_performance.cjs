@@ -322,6 +322,7 @@ async function runSession(chromium,config,report,mode,target=null) {
     session.process_ready_and_open_ms=session.process_startup_ms+session.browser_launch_ms+session.open_time_ms;
     session.boot=metrics(boot.frame);session.bootstrap_requests=boot.requests;
     session.browser_version=browser.version();
+    session.native_base64_decoder=await page.evaluate(()=>typeof Uint8Array.fromBase64==='function');
     session.gpu=await page.evaluate(()=>{
       const gl=document.querySelector('#gl-canvas').getContext('webgl2'),ext=gl.getExtension('WEBGL_debug_renderer_info');
       const renderer=ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);

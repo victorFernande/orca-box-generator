@@ -223,18 +223,19 @@ class LocalEditTests(unittest.TestCase):
             )
         ]
         setup = "let lang='pt',p={style:'open_bin'};const label={};const document={querySelector:()=>label};"
-        checks = """
+        checks = r"""
         for(lang of ['pt','en']) {
-          for(p.style of ['open_bin','stackable_bin','snap_latch','clamshell_pip']) {
+          for(p.style of ['open_bin','stackable_bin','snap_latch','clamshell_pip','rugged_box']) {
             updatePrintHelp();
             if(/kit/i.test(label.textContent))throw Error('unavailable kit advice: '+p.style);
             if(p.style==='stackable_bin'&&!/pé|foot/.test(label.textContent))throw Error('stacking foot omitted');
             if(p.style==='snap_latch'&&!/duas travas|two latches/.test(label.textContent))throw Error('latches omitted');
             if(p.style==='clamshell_pip'&&(!/180°/.test(label.textContent)||/kit/i.test(label.textContent)))throw Error('clamshell open assembly advice missing');
+            if(p.style==='rugged_box'&&(!/quatro peças|four parts/i.test(label.textContent)||!/travas deitadas|latches flat/i.test(label.textContent)||/\b(?:pino|pin|print-in-place)\b/i.test(label.textContent)))throw Error('rugged four-part assembly and flat latch print advice missing');
           }
           p.style='lip_snap';updatePrintHelp();
           if(!/kit/i.test(label.textContent))throw Error('original fit kit advice missing');
-          for(p.style of ['sliding_lid','rugged_box']) {
+          for(p.style of ['sliding_lid']) {
             updatePrintHelp();
             if(!/orienta|orientation/i.test(label.textContent)||/invertida|flipped/i.test(label.textContent))throw Error('generic instructions contradict the exported lid pose');
           }
@@ -292,6 +293,24 @@ class LocalEditTests(unittest.TestCase):
         check = """
         const m=partTransform('lid',1);
         if(m[14]!==50||m[5]!==1)throw Error('draft rugged hinge applied to removable displayed lid');
+        """
+        self.run_js(setup + script[start:end] + check)
+
+        # Conversely, edits to another style cannot replace the displayed
+        # Rugged pivots or detach its open clips from the moving lid.
+        setup = """
+        const p={style:'snap_latch',height_z:90,depth_y:120};
+        const meshParams={style:'rugged_box',height_z:35,depth_y:95,rugged_lid_height:20};
+        const latch={pivot:{x:-47.25,y:-50.5,z:45},release_angle:90,release_fraction:.25,open_sign:-1,attachment:'lid'};
+        const INITIAL={preview_mode:'assembly',hinge:{y:52.25,z:35,open_sign:-1},latch_motion:{clip_left:latch,clip_right:{...latch,pivot:{...latch.pivot,x:47.25}}}};
+        const $=()=>({value:'100'}),meshes=[];let zoom=1,yaw=0,pitch=.5;
+        """
+        check = """
+        const m=partTransform('clip_left',1);
+        const moved=transformPoint(m,-47.25,-50.5,27);
+        if(moved.some((x,i)=>Math.abs(x-[-47.25,173,25][i])>1e-6))throw Error('draft style replaced the displayed Rugged latch/lid composition');
+        const atRelease=partTransform('lid',.25);
+        if(atRelease.some((x,i)=>Math.abs(x-I()[i])>1e-6))throw Error('lid moved before both displayed latches released');
         """
         self.run_js(setup + script[start:end] + check)
 

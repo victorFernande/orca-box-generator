@@ -151,14 +151,14 @@ def main():
               right_text(1510,795,tr('ACTUAL PLUGIN GEOMETRY','GEOMETRIA REAL DO PLUGIN'),16)]
         write('03-stackable-container-'+LANG,p)
 
-        p = frame(tr('04 / PRINT-IN-PLACE','04 / PRINT-IN-PLACE'))
-        p += [text(64,245,tr('PRINT OPEN.','IMPRIMA'),tr(65,74),weight=750),
-              text(64,339,tr('FOLD','JÁ'),74,ACCENT,750),
-              text(64,432,tr('CLOSED.','ARTICULADO.'),tr(74,63),ACCENT,750),
-              text(64,529,tr('Equal base and lid heights.','Base e tampa da mesma altura.'),tr(29,27)),
-              text(64,581,tr('180° open layout preserves both hinge halves.','Abertura de 180° preserva a articulação.'),tr(23,24),'#9cb8af'),
-              text(64,680,tr('STL / 3MF AS ONE OPEN ASSEMBLY','STL / 3MF EM CONJUNTO ABERTO'),tr(22,21),ACCENT,600),
-              text(64,784,tr('Calibrate hinge clearance before final use.','Calibre a folga antes do uso final.'),tr(23,25),'#9cb8af'),
+        p = frame(tr('04 / RUGGED SNAPLOCK','04 / RUGGED SNAPLOCK'))
+        p += [text(64,245,tr('RUGGED.','CAIXA'),tr(65,74),weight=750),
+              text(64,339,tr('SNAPLOCK.','SNAPLOCK.'),74,ACCENT,750),
+              text(64,432,tr('RESIZE IT.','AJUSTÁVEL.'),tr(74,63),ACCENT,750),
+              text(64,529,tr('160 × 95 mm · base 35 + lid 20 mm.','160 × 95 mm · base 35 + tampa 20 mm.'),tr(29,27)),
+              text(64,581,tr('Rear snap hinge. Latches on the lid.','Dobradiça traseira. Travas na tampa.'),tr(23,24),'#9cb8af'),
+              text(64,680,tr('4 PARTS · STL / 3MF EXPORT','4 PEÇAS · EXPORTAÇÃO STL / 3MF'),tr(22,21),ACCENT,600),
+              text(64,784,tr('Calibrate fit for your printer and material.','Calibre o encaixe para seu material.'),tr(23,25),'#9cb8af'),
               '<rect x="704" y="172" width="832" height="584" rx="14" fill="#1d2528" stroke="#496057"/>',
               f'<image href="data:image/png;base64,{screenshot}" x="716" y="184" width="808" height="560" preserveAspectRatio="xMidYMid meet"/>',
               right_text(1510,795,tr('ACTUAL PLUGIN SCREENSHOT','CAPTURA REAL DO PLUGIN'),16)]

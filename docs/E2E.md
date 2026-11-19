@@ -1,5 +1,9 @@
 # Verificação completa pela interface / Full UI verification
 
+## Novo Rugged SnapLock
+
+A revisão 1.3.0 tem quatro peças Rugged, sem pino separado nem modo cativo. O controle de abertura gira as travas presas à tampa e depois abre a dobradiça traseira. A rodada completa pela interface passou em **211 verificações**, com **102 ações de exportação** e **145 arquivos reabertos e conferidos**, sem falhas ou erros de console. Uma ação verifica a rejeição esperada de um 3MF acima da mesa. Foram incluídos os oito modelos, todos os estilos/alvos habilitados, página e painel. Veja [escopo e hashes da rodada](validation/1.3.0-ui-e2e.json) e [medidas e montagem](RUGGED_SNAPLOCK.md). Os resultados históricos abaixo pertencem às suas próprias revisões.
+
 O runner `scripts/check_box_e2e.cjs` exercita a interface real do Box com Playwright/Chromium e o controlador Python real. A versão 1.2.2 simplifica a galeria para oito modelos padrão, um por estilo, sem acessórios pré-configurados. Este documento descreve o método; avalie o resultado da execução correspondente a cada revisão. Consulte os resultados por revisão no [histórico da CI](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml).
 
 ## Escopo
@@ -14,9 +18,9 @@ O comando completo percorre os oito estilos e os 8 presets, alterando os control
 - Abas do painel lateral e um preset de cada estilo no painel, com edição e exportação 3MF.
 - Recuperação de uma combinação incompatível de junta/estilo sem apagar silenciosamente os acessórios solicitados.
 
-A abertura Rugged libera os clips antes de girar a tampa. No modo cativo Rugged, base/tampa não são exportadas individualmente; os alvos legítimos de junta e kit continuam separados da montagem. O estojo `clamshell_pip` exporta as duas metades abertas como um objeto com duas cascas. A junta TPU usa a compressão geométrica de 0,15 mm definida no código; a verificação computacional não determina a compressão real do material nem sua vedação.
+A abertura Rugged gira as travas presas à tampa antes de abrir a dobradiça traseira. Base e tampa podem ser exportadas individualmente; não há pino solto, modo cativo, junta TPU ou kit genérico neste estilo. O estojo `clamshell_pip` exporta as duas metades abertas como um objeto com duas cascas. Nos estilos compatíveis, a junta TPU usa a compressão geométrica de 0,15 mm definida no código; a verificação computacional não determina a compressão real do material nem sua vedação.
 
-O kit genérico contém um par base/tampa Lip Snap, uma lingueta de encaixe e o furo da primeira torre configurada, ou uma torre de amostra quando nenhuma foi configurada. Mesmo quando solicitado a partir de outro estilo compatível, ele não reproduz a dobradiça Rugged nem os trilhos Sliding. Não é um certificado de encaixe, tempo de impressão ou desempenho. Caixa aberta, Snap com alavancas, empilhável e estojo articulado exigem ensaios das próprias peças, com parede, folgas e recursos relevantes preservados.
+O kit genérico contém um par base/tampa Lip Snap, uma lingueta de encaixe e o furo da primeira torre configurada, ou uma torre de amostra quando nenhuma foi configurada. Mesmo quando solicitado a partir de outro estilo compatível, ele não reproduz os trilhos Sliding. Não é um certificado de encaixe, tempo de impressão ou desempenho. Rugged, caixa aberta, Snap com alavancas, empilhável e estojo articulado exigem ensaios das próprias peças, com parede, folgas e recursos relevantes preservados.
 
 ## Arquivos reais e isolamento
 

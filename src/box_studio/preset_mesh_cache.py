@@ -1,4 +1,4 @@
-"""Lossless, source-bound canonical surfaces for the three slow standard boxes.
+"""Lossless, source-bound canonical surfaces for the three standard boxes.
 
 Only exact manufacturing parameters may use these reviewed package resources.
 Every other design, or an unavailable/stale/damaged resource, uses the generator.
@@ -23,7 +23,7 @@ from .preset_mesh_index import PRESET_MESH_SOURCE_HASH, PRESET_MESH_INDEX
 _BUNDLED_PRESET_DATA = {}
 _BUNDLED_PRESET_RAW_HASH = ""
 _BUNDLED_PRESET_CODE_HASH = ""
-_PRESET_DEPENDENCIES = ("schema.py", "mesh_generator.py", "presets_catalog.py")
+_PRESET_DEPENDENCIES = ("schema.py", "mesh_generator.py", "presets_catalog.py", "rugged_geometry.py", "rugged_latch_geometry.py", "rugged_front_geometry.py", "rugged_front_mesh.py")
 _PRESET_SOURCE_CHECK = None
 
 
@@ -69,13 +69,15 @@ def _preset_sources_match():
         return False
 
 
-def load_standard_preset_mesh(raw, part):
+def load_standard_preset_mesh(raw, part, reuse_from=None):
     """Return an exact, already validated package surface, or None on a miss.
 
     A digest is checked both before decompression and after reconstructing each
     original array. XOR on float bits and integer deltas are reversible, without
     quantization, smoothing, triangle removal or a change of coordinate order.
     No trust decision is accepted from a UI message or a user-preset file.
+    A caller-owned immutable mesh may share exactly hash-matching index/normal
+    arrays. This function retains no decoded array after returning.
     """
     key = hashlib.sha256(preset_parameter_key(raw).encode("utf-8")).hexdigest()
     design = PRESET_MESH_INDEX.get(key)
@@ -106,15 +108,30 @@ def load_standard_preset_mesh(raw, part):
         arrays = {}
         with np.load(io.BytesIO(blob), allow_pickle=False) as archive:
             for name, (count, dtype) in expected.items():
+                attribute = {"triangles": "triangles", "normals": "face_normals"}.get(name)
+                reusable = getattr(reuse_from, attribute, None) if attribute else None
+                decoded_dtype = "<i4" if name == "triangles" else "<f4"
+                if (isinstance(reusable, np.ndarray) and reusable.shape == (count, 3)
+                        and reusable.dtype == np.dtype(decoded_dtype)
+                        and reusable.flags.c_contiguous and not reusable.flags.writeable
+                        and hashlib.sha256(memoryview(reusable).cast("B")).hexdigest()
+                        == entry["array_sha256"][name]):
+                    arrays[name] = reusable
+                    continue
                 encoded = archive[name]
                 shape = (count * 3,) if name == "triangles" else (count, 3)
-                if encoded.shape != shape or encoded.dtype != np.dtype(dtype):
+                if (encoded.shape != shape or encoded.dtype != np.dtype(dtype)
+                        or not encoded.flags.c_contiguous):
                     return None
                 if name == "triangles":
-                    array = np.cumsum(encoded, dtype=np.int64).astype("<i4").reshape(-1, 3)
+                    # Indices are bounded below 5M. Modular int32 accumulation
+                    # reconstructs the same bits without an int64 temporary.
+                    np.cumsum(encoded, dtype="<i4", out=encoded)
+                    array = encoded.reshape(-1, 3)
                 else:
-                    array = np.bitwise_xor.accumulate(encoded, axis=0).view("<f4")
-                if hashlib.sha256(array.tobytes()).hexdigest() != entry["array_sha256"][name]:
+                    np.bitwise_xor.accumulate(encoded, axis=0, out=encoded)
+                    array = encoded.view("<f4")
+                if hashlib.sha256(memoryview(array).cast("B")).hexdigest() != entry["array_sha256"][name]:
                     return None
                 arrays[name] = array
         vertices, triangles, normals = (arrays[name] for name in ("vertices", "triangles", "normals"))

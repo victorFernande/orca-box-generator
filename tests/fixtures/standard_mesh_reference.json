@@ -19,51 +19,6 @@
         "normals": "4f95cf285fbebcaa073f6a0c5d188789322eba28d09ce50398cdd7053cd35958"
       }
     },
-    "tool_rugged-base": {
-      "vertices": 416438,
-      "triangles": 832880,
-      "array_sha256": {
-        "vertices": "ad5a256565d5cdf057578a210386d518889d1afd52e8ec5824e07662b5e6ef41",
-        "triangles": "10ea823c59089b6de15d27dac39926be8c3e919605cc47caee72b75eee184909",
-        "normals": "b05808779a72d9931b9d29c07514dbf2228c6e329a44e9032f6039f1fd69e610"
-      }
-    },
-    "tool_rugged-lid": {
-      "vertices": 180550,
-      "triangles": 361100,
-      "array_sha256": {
-        "vertices": "796a0633aa653f7ba85a51ebf2da5d80bac422a25cac301633c5823e646f2ee3",
-        "triangles": "b9f6dc73c814e43f6517e747357e65d291a8370f27e10df663aed4b29a23b63c",
-        "normals": "4d02a795a7f8d98020b934bfa27502c32fc5d7b1724f9b81ce22b7c7b337dec0"
-      }
-    },
-    "tool_rugged-pin": {
-      "vertices": 34870,
-      "triangles": 69736,
-      "array_sha256": {
-        "vertices": "14269d79b3900e9ceea4d239f68188e9cfce8bf5ae356ed72ed2feae2371f211",
-        "triangles": "c9feab97513b0fcba216d2aaffaa17b98cda6ee3aba4c343dd7db3c0db019f71",
-        "normals": "a388a677f87ce6a38cca0f7c3d8458ae8a935115739c2539ff7556850a8add18"
-      }
-    },
-    "tool_rugged-clip_left": {
-      "vertices": 3091,
-      "triangles": 6178,
-      "array_sha256": {
-        "vertices": "a60deefad77dbb81875e4659daa4f0dc19cf1846f63a6dfe5817d4051f303215",
-        "triangles": "49eff40d108d6cf7acbd5fccabd2ae6966a16f4f0222611e5a4e22e52f3bd957",
-        "normals": "e43baca7b74b72e94426ae7526a0c5720da635d837824557442ab5512b7c6de8"
-      }
-    },
-    "tool_rugged-clip_right": {
-      "vertices": 3091,
-      "triangles": 6178,
-      "array_sha256": {
-        "vertices": "9735c12e0d85cb23fa154cba7503f32da7ab908af06d8263b5f0760229d52693",
-        "triangles": "49eff40d108d6cf7acbd5fccabd2ae6966a16f4f0222611e5a4e22e52f3bd957",
-        "normals": "5c8b9ab9ce58ba883ad8bf786b469049c93513f35094c32abf6b1e8f0a5064dd"
-      }
-    },
     "pencil-base": {
       "vertices": 174969,
       "triangles": 349934,
@@ -80,6 +35,48 @@
         "vertices": "4aca63c4d2adb669e91c58c027b82d922a38fba657ef6972012fba2b7b429a56",
         "triangles": "72cbae0390b99db1328c9d4b97aae15b115672d062366a037054e7a86f7b85d2",
         "normals": "d3883143b2865809cc1bf18d6be75fe0f4ede44af97774304b85551b9ae967dc"
+      }
+    }
+  },
+  "rugged_reference": {
+    "approved_candidate_commit": "13ee968e3ecaba2a498fbd8ce13eab60901ea397",
+    "geometry_source_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "parts": {
+      "tool_rugged-base": {
+        "vertices": 236661,
+        "triangles": 473318,
+        "array_sha256": {
+          "vertices": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+          "triangles": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+          "normals": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0"
+        }
+      },
+      "tool_rugged-lid": {
+        "vertices": 226460,
+        "triangles": 452916,
+        "array_sha256": {
+          "vertices": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+          "triangles": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+          "normals": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef"
+        }
+      },
+      "tool_rugged-clip_left": {
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "tool_rugged-clip_right": {
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
       }
     }
   }

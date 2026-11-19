@@ -1,0 +1,478 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "verified_utc": "2026-11-19T17:29:19.606317+00:00",
+  "status": "pass",
+  "scope": "Independent reopening of original files produced by the installed native Orca interface, compared with the current controller manufacturing surfaces. This does not claim a captured native preview-to-export identity.",
+  "native_context": {
+    "application": "OrcaSlicer",
+    "version": null,
+    "ui_execution_observed_by": "Parent agent; this audit reads saved export bytes without controlling Orca.",
+    "installed_bundle_sha256": "7d7e0778f34cb3a4206d916dbd4b1f8dd32959cd75e9edec7968b02c9c944ec0",
+    "page_observations_by_parent": [
+      "Default Rugged 160 x 95 / H35 / lid20 page loaded.",
+      "Latch release followed by lid opening observed near the 0%, 25% and near-100% control positions.",
+      "Four STL files exported from the default design.",
+      "Custom 140 x 80 / H40 / lid20 design exported as 3MF."
+    ],
+    "plater_import": {
+      "status": "confirmed_by_user",
+      "independently_observed_by_this_auditor": false
+    },
+    "user_reported_model_approved": true,
+    "native_dock_rugged_1_3_observed": false,
+    "version_note": "Application version number was not independently rechecked in this session."
+  },
+  "source_sha256": {
+    "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+    "src/box_studio/linux_ipc.py": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+    "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+    "src/box_studio/plugin_main.py": "3234d812fcebbd30d4919ab0f2972a9d1cb1740e5a1f44596d4210d21a080ec7",
+    "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+    "src/box_studio/preset_mesh_cache.py": "5f70ed680befe0360acc81b676f45ed8c8e1e0686dcb4477393484fbc9f94844",
+    "src/box_studio/preset_mesh_index.py": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+    "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+    "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+    "src/box_studio/rugged_geometry.py": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+    "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+    "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+    "src/box_studio/studio_ui.py": "c58d4b0e3c407db301affbedeb697e363982dc7f9022099851767e9bc6ff0b26",
+    "src/box_studio/__init__.py": "8e97275d20248b34e99448e283f6574f7bf933051269b31979669c03a9e3ced4",
+    "dist/orca_box_generator.py": "7d7e0778f34cb3a4206d916dbd4b1f8dd32959cd75e9edec7968b02c9c944ec0"
+  },
+  "files": [
+    {
+      "name": "Caixa_de_projeto_1795108848126253300_Base.stl",
+      "sha256": "fbc3417fe7bc1f310cdec0dec00260ab3a985a54ba8f7ec617874fedaa578990",
+      "bytes": 23665984
+    },
+    {
+      "name": "Caixa_de_projeto_1795108848126253300_Lid.stl",
+      "sha256": "af509eda3f10deb1ea770581b4728b87f278ccc5ca28f3e3a8361a0d261de21e",
+      "bytes": 22645884
+    },
+    {
+      "name": "Caixa_de_projeto_1795108848126253300_Left_clip.stl",
+      "sha256": "26fcf2111b1d4395ea3deb63693f05a9dbed5022922bcd7a88f986bd4ebf0bd9",
+      "bytes": 56366784
+    },
+    {
+      "name": "Caixa_de_projeto_1795108848126253300_Right_clip.stl",
+      "sha256": "289c33ee63beee6b9b077908a6a43de97e56a5b89e8896bfa7771762de324828",
+      "bytes": 56366784
+    },
+    {
+      "name": "Caixa_de_projeto_1795109201769234700.3mf",
+      "sha256": "d6d33b928f3a23f6e7cc020df553c56708fd19dab34389e215526ef0a44b122c",
+      "bytes": 42454025
+    }
+  ],
+  "cases": [
+    {
+      "format": "binary_stl",
+      "configuration": {
+        "style": "rugged_box",
+        "width_x": 160.0,
+        "depth_y": 95.0,
+        "height_z": 35.0,
+        "rugged_lid_height": 20.0,
+        "corner_radius": 12.0,
+        "wall_thickness": 2.5,
+        "floor_thickness": 2.5,
+        "fit_clearance": 0.15
+      },
+      "part_count": 4,
+      "parts": [
+        {
+          "vertices": 236661,
+          "triangles": 473318,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 78092.70112323486,
+          "shell_volumes_mm3": [
+            78092.70112323486
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -80.0,
+              -55.5,
+              0.0
+            ],
+            "max": [
+              80.0,
+              56.74773406982422,
+              39.49943542480469
+            ]
+          },
+          "part": "base"
+        },
+        {
+          "vertices": 226460,
+          "triangles": 452916,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 62982.88825164284,
+          "shell_volumes_mm3": [
+            62982.88825164284
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -80.0,
+              -55.5,
+              0.0
+            ],
+            "max": [
+              80.0,
+              56.75,
+              24.5
+            ]
+          },
+          "part": "lid"
+        },
+        {
+          "vertices": 563669,
+          "triangles": 1127334,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 3681.0477784139703,
+          "shell_volumes_mm3": [
+            3681.0477784139703
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              33.250003814697266,
+              15.067469596862793,
+              0.0
+            ],
+            "max": [
+              61.249996185302734,
+              48.0,
+              6.0
+            ]
+          },
+          "part": "clip_left"
+        },
+        {
+          "vertices": 563669,
+          "triangles": 1127334,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 3681.0477784139703,
+          "shell_volumes_mm3": [
+            3681.0477784139703
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -61.249996185302734,
+              15.067469596862793,
+              0.0
+            ],
+            "max": [
+              -33.250003814697266,
+              48.0,
+              6.0
+            ]
+          },
+          "part": "clip_right"
+        }
+      ],
+      "exact_actual_facets_equal_current_controller_print_mesh": true,
+      "facet_normals_match_winding": true,
+      "minimum_z_tolerance_mm": 0.001,
+      "snapshot_role": "Original files preserved before import into Orca; not a later Orca re-save.",
+      "duration_seconds": 11.015
+    },
+    {
+      "format": "3mf",
+      "configuration": {
+        "style": "rugged_box",
+        "width_x": 140.0,
+        "depth_y": 80.0,
+        "height_z": 40.0,
+        "rugged_lid_height": 20.0,
+        "corner_radius": 12.0,
+        "wall_thickness": 2.5,
+        "floor_thickness": 2.5,
+        "fit_clearance": 0.15
+      },
+      "part_count": 4,
+      "parts": [
+        {
+          "vertices": 236661,
+          "triangles": 473318,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 68269.98069038737,
+          "shell_volumes_mm3": [
+            68269.98069038737
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -70.0,
+              -48.0,
+              0.0
+            ],
+            "max": [
+              70.0,
+              49.24773406982422,
+              44.49943542480469
+            ]
+          },
+          "part": "base"
+        },
+        {
+          "vertices": 226460,
+          "triangles": 452916,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 50541.76811672225,
+          "shell_volumes_mm3": [
+            50541.76811672225
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -70.0,
+              -48.0,
+              0.0
+            ],
+            "max": [
+              70.0,
+              49.25,
+              24.5
+            ]
+          },
+          "part": "lid"
+        },
+        {
+          "vertices": 563669,
+          "triangles": 1127334,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 3681.047782172806,
+          "shell_volumes_mm3": [
+            3681.047782172806
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              23.250003814697266,
+              20.06747055053711,
+              0.0
+            ],
+            "max": [
+              51.249996185302734,
+              53.0,
+              6.0
+            ]
+          },
+          "part": "clip_left"
+        },
+        {
+          "vertices": 563669,
+          "triangles": 1127334,
+          "components": 1,
+          "euler": 2,
+          "volume_mm3": 3681.047782172806,
+          "shell_volumes_mm3": [
+            3681.047782172806
+          ],
+          "closed": true,
+          "oriented": true,
+          "manifold_vertex_links": true,
+          "bounds": {
+            "min": [
+              -51.249996185302734,
+              20.06747055053711,
+              0.0
+            ],
+            "max": [
+              -23.250003814697266,
+              53.0,
+              6.0
+            ]
+          },
+          "part": "clip_right"
+        }
+      ],
+      "exact_actual_float32_vertices_and_triangle_indices_equal_current_controller_print_mesh": true,
+      "build_transform_scale_and_rotation": "identity; XY translation only",
+      "all_build_objects_rest_on_z0": true,
+      "all_build_objects_within_observed_bed": true,
+      "separate_object_xy_envelopes_do_not_overlap": true,
+      "bed_mm": [
+        220.0,
+        220.0,
+        250.0
+      ],
+      "bed_provenance": "220 x 220 x 250 observed in the native session by parent agent; no personal printer name retained.",
+      "placements": [
+        {
+          "min": [
+            40.0,
+            8.751100000000001,
+            0.0
+          ],
+          "max": [
+            180.0,
+            105.99883406982423,
+            44.49943542480469
+          ]
+        },
+        {
+          "min": [
+            4.0,
+            113.99889999999999,
+            0.0
+          ],
+          "max": [
+            144.0,
+            211.2489,
+            24.5
+          ]
+        },
+        {
+          "min": [
+            152.00000381469727,
+            146.15757055053712,
+            0.0
+          ],
+          "max": [
+            179.99999618530273,
+            179.0901,
+            6.0
+          ]
+        },
+        {
+          "min": [
+            188.00000381469727,
+            146.15757055053712,
+            0.0
+          ],
+          "max": [
+            215.99999618530273,
+            179.0901,
+            6.0
+          ]
+        }
+      ],
+      "verified_process_settings": {
+        "spiral_mode": "0",
+        "spiral_mode_smooth": "0",
+        "wall_loops": "4",
+        "top_shell_layers": "5",
+        "bottom_shell_layers": "5",
+        "sparse_infill_density": "35%",
+        "sparse_infill_pattern": "gyroid",
+        "elefant_foot_compensation": "0.15"
+      },
+      "object_names_ids_and_model_settings_match": true,
+      "zip_crc_check": "pass",
+      "snapshot_role": "Original file preserved before import into Orca; not a later Orca re-save.",
+      "duration_seconds": 40.54,
+      "build_transforms": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          110.0,
+          56.7511,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          74.0,
+          161.9989,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          128.75,
+          126.0901,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          239.25,
+          126.0901,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "source_and_snapshot_hashes_stable_during_audit": true,
+  "checks": [
+    "exact binary STL facets versus source print surfaces",
+    "exact 3MF float32 arrays and triangle indices versus source print surfaces",
+    "finite nondegenerate coordinates/facets",
+    "closed oppositely oriented edge pairs",
+    "single-cycle manifold vertex links",
+    "one connected positive-volume shell per part",
+    "all printed parts on Z0",
+    "3MF four objects, matching names/IDs and build metadata",
+    "3MF pure XY translation; observed bed and height bounds",
+    "3MF separate-object XY envelopes do not overlap",
+    "Orca process settings and ZIP CRC"
+  ],
+  "limitations": [
+    "Native page interaction and export actions were observed by the parent agent. Successful loading in the Plater and model approval were confirmed by the user, not independently observed by this byte auditor. Native Rugged 1.3 Dock interaction is not covered.",
+    "No native browser/GPU preview was captured by this audit; exact preview identity is not claimed here.",
+    "Only the two stated parameter configurations and five original files are covered.",
+    "No additional global triangle-intersection or continuous-motion audit is performed here; see the separate geometry methods report.",
+    "No slicing, physical printing, snap assembly, material flexibility, force, fatigue, friction, load rating or support-free manufacturing is established."
+  ],
+  "privacy": {
+    "personal_paths_included": false,
+    "personal_printer_names_included": false,
+    "reference_mesh_or_rendering_included": false
+  }
+}

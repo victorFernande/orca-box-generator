@@ -295,13 +295,15 @@ async function motionChecks(studio, style) {
       assert.ok(Math.abs(lid[14] - Math.max(0,(value/100-.35)/.65)*50)<.001, 'Lid waits for both released levers');
     }
     if (style === 'rugged_box') {
-      const lid=frame.models[frame.parts.indexOf('lid')];
+      const snapshot=await studio.snapshot(),lid=frame.models[frame.parts.indexOf('lid')];
       const angle=Math.atan2(lid[6],lid[5]);
       const expected=-Math.PI*Math.max(0,(value/100-.25)/.75);
-      assert.ok(Math.abs(angle-expected)<.001 || Math.abs(Math.abs(angle-expected)-2*Math.PI)<.001, 'Rugged lid must wait until clips are removed: '+JSON.stringify({value,actual:angle,expected}));
+      assert.ok(Math.abs(angle-expected)<.001 || Math.abs(Math.abs(angle-expected)-2*Math.PI)<.001,'Rugged lid waits for released latches');
       for(const part of ['clip_left','clip_right']) {
-        const clip=frame.models[frame.parts.indexOf(part)];
-        assert.ok(Math.abs(clip[13]+Math.min(value/25,1)*15)<.001, 'Rugged clip release precedes lid opening');
+        const clip=frame.models[frame.parts.indexOf(part)],info=snapshot.latch_motion[part],v=info.pivot;
+        const expectedAngle=expected-info.release_angle*Math.PI/180*Math.min(value/100/info.release_fraction,1);
+        assert.ok(Math.abs(Math.sin(Math.atan2(clip[6],clip[5])-expectedAngle))<.001,'Lid-mounted latch release composes with lid rotation');
+        for(let i=0;i<3;i++) assert.ok(Math.abs(clip[i]*v.x+clip[4+i]*v.y+clip[8+i]*v.z+clip[12+i]-(lid[i]*v.x+lid[4+i]*v.y+lid[8+i]*v.z+lid[12+i]))<.001,'Latch remains attached to moving lid');
       }
     }
     if(style==='clamshell_pip') {
@@ -331,17 +333,20 @@ async function styleChecks(studio) {
       const p = await studio.state();
       for (const [key,delta] of [['width_x',2],['depth_y',1],['height_z',1]]) await studio.number(key,p[key]+delta);
       const snapshot = await studio.snapshot();
-      const expected = ['open_bin','stackable_bin'].includes(style) ? 1 : style==='snap_latch' ? 4 : style==='rugged_box' ? 5 : 2;
+      const expected = ['open_bin','stackable_bin'].includes(style) ? 1 : style==='snap_latch' ? 4 : style==='rugged_box' ? 4 : 2;
       assert.equal(snapshot.meshes, expected);
       return {parts:snapshot.parts, params:await studio.state()};
     });
     await studio.check(style, 'style-specific real controls', async () => {
       if (style==='lip_snap') await studio.number('snap_retention',.15);
       if (style==='rugged_box') {
-        await studio.select('#hinge_mode','print_in_place','hinge_mode');
-        for(const target of ['base_only','lid_only'])assert.equal(await studio.optionDisabled(target),true,'Captive Rugged requires its paired shells');
+        assert.equal(await studio.page.locator('#hinge_mode').count(),0,'SnapLock has no loose pin or captive mode');
+        assert.equal(await studio.page.locator('[data-slider="hinge_pin_diameter"]').isVisible(),false);
+        assert.equal(await studio.page.locator('#addPost').isDisabled(),true);
+        assert.equal(await studio.page.locator('#addPort').isDisabled(),true);
+        await studio.number('rugged_lid_height',22);
+        for(const target of ['base_only','lid_only'])assert.equal(await studio.optionDisabled(target),false,'Snap-assembled shells export separately');
         for(const format of ['stl','3mf']) await studio.action(format);
-        await studio.select('#hinge_mode','pin','hinge_mode');await studio.number('hinge_pin_diameter',3.2);
       }
       if (style==='sliding_lid') await studio.number('fit_clearance',.3);
       if (style==='screw_corner') for(const size of ['M2','M2.5','M3']) await studio.select('#screw_size',size,'screw_size');
@@ -364,14 +369,14 @@ async function styleChecks(studio) {
     });
     await studio.check(style,'gasket export availability follows a supported channel',async()=>{
       assert.equal(await studio.optionDisabled('gasket'),true,'No gasket export without an enabled channel');
-      if(['lip_snap','rugged_box','screw_corner','snap_latch'].includes(style)) {
+      if(['lip_snap','screw_corner','snap_latch'].includes(style)) {
         await studio.number('wall_thickness',3);await studio.toggle('gasket_enabled',true);
         assert.equal(await studio.optionDisabled('gasket'),false);
       }
     });
     const available = await studio.page.locator('#target option').evaluateAll(options => options.map(o=>({value:o.value,disabled:o.disabled})));
     await studio.check(style, 'unavailable targets disabled', async () => {
-      const expected = ['open_bin','stackable_bin'].includes(style) ? ['lid_only','gasket','fit_test_kit'] : style==='clamshell_pip' ? ['base_only','lid_only','gasket','fit_test_kit'] : style==='snap_latch' ? ['fit_test_kit'] : style==='sliding_lid' ? ['gasket'] : [];
+      const expected = ['open_bin','stackable_bin'].includes(style) ? ['lid_only','gasket','fit_test_kit'] : style==='clamshell_pip' ? ['base_only','lid_only','gasket','fit_test_kit'] : style==='snap_latch' ? ['fit_test_kit'] : style==='sliding_lid' ? ['gasket'] : style==='rugged_box' ? ['gasket','fit_test_kit'] : [];
       assert.deepEqual(available.filter(o=>o.disabled).map(o=>o.value).sort(),expected.sort());
     });
     for (const option of available.filter(o=>!o.disabled)) {

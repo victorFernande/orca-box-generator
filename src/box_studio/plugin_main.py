@@ -999,7 +999,9 @@ class BoxStudioController:
         self._mesh_cache_limit = 128 * 1024 * 1024
         self._encoded_cache = OrderedDict()
         self._encoded_cache_bytes = 0
-        self._encoded_cache_limit = 48 * 1024 * 1024
+        # A complete pair of fine SnapLock latches exceeds the former 48 MiB
+        # limit. Keep one full preview reusable instead of repeatedly encoding it.
+        self._encoded_cache_limit = 96 * 1024 * 1024
         self._inflight_geometry = {}
         self._subscriptions = {}
         self._preview_waiters = {}
@@ -1253,7 +1255,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.2.3",
+            "version": "1.3.0",
         }
 
     @staticmethod
@@ -1336,10 +1338,12 @@ class BoxStudioController:
 
     def _geometry(self, p, assembled=True, target="full_suite"):
         shape_key = self._geometry_key(p)
+        reusable_latch = None
 
         def factory(raw, part, print_orientation=False):
+            nonlocal reusable_latch
             def generate_canonical():
-                prepared = load_standard_preset_mesh(raw, part)
+                prepared = load_standard_preset_mesh(raw, part, reuse_from=reusable_latch)
                 if prepared is not None:
                     return prepared
                 return self._validate_mesh(generate_box_mesh(raw, part, False), part)
@@ -1348,6 +1352,8 @@ class BoxStudioController:
                 ("part", shape_key, part),
                 generate_canonical,
             )
+            if raw["style"] == "rugged_box" and part in ("clip_left", "clip_right"):
+                reusable_latch = mesh
             return orient_mesh_for_print(mesh, raw, part) if print_orientation else mesh
 
         def collect():
@@ -1380,6 +1386,13 @@ class BoxStudioController:
             latch_motion = {
                 part: latch_geometry(p, part) for part in ("clip_left", "clip_right")
             }
+        elif p["style"] == "rugged_box":
+            from .rugged_geometry import rugged_latch_geometry
+
+            latch_motion = {
+                part: rugged_latch_geometry(p, part)
+                for part in ("clip_left", "clip_right")
+            }
         calibration = target == "fit_test_kit"
         offsets = [[0.0, 0.0, 0.0] for _ in items]
         if calibration:
@@ -1411,10 +1424,10 @@ class BoxStudioController:
                         "part": mesh.part,
                         "preview_offset": offset,
                         "vertices": base64.b64encode(
-                            mesh.vertices.astype("<f4").tobytes()
+                            np.ascontiguousarray(mesh.vertices, dtype="<f4")
                         ).decode("ascii"),
                         "triangles": base64.b64encode(
-                            mesh.triangles.astype("<u4").tobytes()
+                            np.ascontiguousarray(mesh.triangles, dtype="<u4")
                         ).decode("ascii"),
                         "bounds": mesh.bounds_mm,
                         "volume_cm3": mesh.volume_cm3,

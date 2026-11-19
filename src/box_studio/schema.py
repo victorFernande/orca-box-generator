@@ -5,7 +5,7 @@ import copy
 import math
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 VALID_STYLES = (
     "lip_snap",
     "rugged_box",
@@ -25,7 +25,7 @@ VALID_EXPORT_TARGETS = (
     "full_suite",
 )
 DEFAULT_PARAMS: dict[str, Any] = {
-    "schema_version": 1,
+    "schema_version": SCHEMA_VERSION,
     "name": "Caixa de projeto",
     "style": "lip_snap",
     "width_x": 90.0,
@@ -34,6 +34,8 @@ DEFAULT_PARAMS: dict[str, Any] = {
     "wall_thickness": 2.4,
     "floor_thickness": 2.4,
     "lid_height": 3.0,
+    "rugged_lid_height": 20.0,
+    "rugged_model": "snaplock",
     "corner_radius": 4.0,
     "fit_clearance": 0.2,
     "lip_depth": 5.0,
@@ -100,6 +102,19 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
     for key in p:
         if key in source:
             p[key] = copy.deepcopy(source[key])
+    # The rebuilt Rugged changes both its shell and its latch mechanism. Preserve
+    # old personal presets as identifiable records instead of silently changing
+    # their manufacturing geometry when they are loaded.
+    if source.get("style") == "rugged_box":
+        for key, value in {"width_x": 160.0, "depth_y": 95.0, "height_z": 35.0,
+                           "wall_thickness": 2.5, "floor_thickness": 2.5,
+                           "corner_radius": 12.0, "fit_clearance": 0.15}.items():
+            if key not in source:
+                p[key] = value
+        if source.get("schema_version") == 1 and "rugged_model" not in source:
+            p["rugged_model"] = "legacy"
+    p["schema_version"] = SCHEMA_VERSION
+    p["rugged_model"] = "legacy" if p["rugged_model"] == "legacy" else "snaplock"
     for key, lo, hi in (
         ("width_x", 20, 350),
         ("depth_y", 20, 350),
@@ -107,6 +122,7 @@ def normalize_params(raw: dict[str, Any] | None = None) -> dict[str, Any]:
         ("wall_thickness", 1.2, 12),
         ("floor_thickness", 1.2, 12),
         ("lid_height", 1.2, 12),
+        ("rugged_lid_height", 18, 120),
         ("corner_radius", 0.8, 30),
         ("fit_clearance", 0.1, 0.4),
         ("lip_depth", 3, 10),
@@ -224,6 +240,31 @@ def validate_params(p: dict[str, Any]) -> list[str]:
         for k in ("width_x", "depth_y", "height_z", "wall_thickness", "floor_thickness")
     )
     keepout = t + p["corner_radius"] + 1
+    if p["style"] == "rugged_box":
+        if p["rugged_model"] == "legacy":
+            return [
+                "Este preset usa a caixa reforçada anterior. Selecione a caixa SnapLock na galeria; "
+                "seu preset salvo foi preservado / this preset uses the previous Rugged design. "
+                "Select the SnapLock box in the gallery; your saved preset was preserved."
+            ]
+        r = p["corner_radius"]
+        if w < 2 * r + 88:
+            errors.append("Caixa SnapLock: aumente a largura ou reduza o raio para separar as dobradiças / increase width or reduce corner radius for both hinges.")
+        if d < 2 * r + 20:
+            errors.append("Caixa SnapLock: aumente a profundidade para preservar os cantos / increase depth to preserve rounded corners.")
+        if h < 30:
+            errors.append("Caixa SnapLock: use altura da base de pelo menos 30 mm / base height must be at least 30 mm.")
+        minimum_radius = max(6.774 + t / math.sqrt(3), (10 - f + 2 * t) / math.sqrt(3) + 0.8)
+        if r < minimum_radius:
+            errors.append("Caixa SnapLock: aumente o raio para preservar o chanfro interno / increase corner radius for the internal chamfer.")
+        if not 2.1 <= t <= 4 or not 1.5 <= f <= 4:
+            errors.append("Caixa SnapLock: parede de 2.1 a 4 mm e fundo de 1.5 a 4 mm / use 2.1–4 mm walls and a 1.5–4 mm floor.")
+        if p["fit_clearance"] > 0.30:
+            errors.append("Caixa SnapLock: use folga de 0.10 a 0.30 mm / use 0.10–0.30 mm clearance.")
+        if any(p[key] for key in ("standoffs", "cutouts", "dividers_x", "dividers_y", "gasket_enabled")):
+            errors.append("Caixa SnapLock: remova torres, recortes, divisórias e junta para usar este modelo básico / remove posts, cutouts, dividers and gasket for this standard design.")
+        if p["export_target"] in ("gasket", "fit_test_kit"):
+            errors.append("Caixa SnapLock: exporte as peças reais para testar os encaixes / export the actual parts to test the joints.")
     if p["style"] == "clamshell_pip":
         outer_radius = p["hinge_pin_diameter"] / 2 + p["pip_clearance"] + 1.4
         knuckle = max(4.0, min(6.0, w * 0.06))
