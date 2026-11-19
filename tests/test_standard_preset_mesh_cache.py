@@ -25,10 +25,11 @@ class StandardPresetCacheTests(unittest.TestCase):
         cache._PRESET_SOURCE_CHECK = None
         self.items = {item["id"]: item["params"] for item in BUILTIN_PRESETS}
 
-    def test_legacy_surface_hashes_and_rebuilt_rugged_resource_identity(self):
+    def test_approved_resource_bits_and_fresh_rugged_geometry(self):
         reference = json.loads((ROOT / "tests/fixtures/standard_mesh_reference.json").read_text(encoding="utf-8"))
         self.assertEqual(reference["reference_commit"], "75f3be346516ff7c4be557e9ee05d999dc476a3b")
         observed = set()
+        observed_rugged = set()
         latch._clear_latch_cache()
         front._clear_front_patch_cache()
         for design in cache.PRESET_MESH_INDEX.values():
@@ -38,12 +39,52 @@ class StandardPresetCacheTests(unittest.TestCase):
                     self.assertIsNotNone(mesh)
                     name = design["id"] + "-" + part
                     if design["id"] == "tool_rugged":
+                        approved = reference["rugged_reference"]["parts"][name]
+                        self.assertEqual(cache.PRESET_MESH_SOURCE_HASH,
+                                         reference["rugged_reference"]["geometry_source_fingerprint"])
+                        self.assertEqual(len(mesh.vertices), approved["vertices"])
+                        self.assertEqual(len(mesh.triangles), approved["triangles"])
+                        for field, array in (("vertices", mesh.vertices), ("triangles", mesh.triangles),
+                                             ("normals", mesh.face_normals)):
+                            self.assertEqual(hashlib.sha256(array.tobytes()).hexdigest(),
+                                             approved["array_sha256"][field])
+                            self.assertFalse(array.flags.writeable)
                         with patch.object(latch, "_load_canonical_latch", return_value=None):
                             regenerated = generate_box_mesh(self.items[design["id"]], part)
-                        for actual, source in ((mesh.vertices, regenerated.vertices), (mesh.triangles, regenerated.triangles), (mesh.face_normals, regenerated.face_normals)):
-                            np.testing.assert_array_equal(actual, source)
-                            self.assertFalse(actual.flags.writeable)
+                        # Topology/indices stay exact. Tiny-edge contractions
+                        # choose among endpoints/midpoints using floating scores;
+                        # fresh ARM/x86 representatives may differ within the
+                        # documented 0.002 mm contraction bound. This numerical
+                        # check never substitutes for the strict bank digests.
+                        np.testing.assert_array_equal(mesh.triangles, regenerated.triangles)
+                        if part.startswith("clip_"):
+                            self.assertEqual(mesh.vertices.shape, regenerated.vertices.shape)
+                            distance = np.linalg.norm(mesh.vertices.astype(float) - regenerated.vertices, axis=1)
+                            self.assertLessEqual(float(distance.max()), .002)
+                            xyz = regenerated.vertices[regenerated.triangles].astype(np.float64)
+                            normals = np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, 2] - xyz[:, 0])
+                            length = np.linalg.norm(normals, axis=1)
+                            self.assertTrue(np.isfinite(xyz).all() and np.all(length > 0))
+                            np.testing.assert_allclose(regenerated.face_normals, normals / length[:, None],
+                                                       atol=1e-6, rtol=0, equal_nan=False)
+                            field = latch.rugged_latch_field(self.items[design["id"]], part)
+                            for points in (regenerated.vertices, xyz.mean(axis=1)):
+                                self.assertLessEqual(float(np.abs(field(points)).max()),
+                                                     regenerated.interface_error_mm + 1e-5)
+                            volume = float(np.einsum('ij,ij->i', xyz[:, 0],
+                                                      np.cross(xyz[:, 1], xyz[:, 2])).sum() / 6000)
+                            self.assertAlmostEqual(regenerated.volume_cm3, volume, places=9)
+                        else:
+                            np.testing.assert_array_equal(mesh.vertices, regenerated.vertices)
+                            np.testing.assert_array_equal(mesh.face_normals, regenerated.face_normals)
                         self.assertEqual(topology_report(mesh), entry["topology"])
+                        fresh = topology_report(regenerated)
+                        for key in ("closed", "oriented", "components", "euler", "genus", "vertices", "triangles"):
+                            self.assertEqual(fresh[key], entry["topology"][key])
+                        self.assertTrue(np.isfinite(regenerated.volume_cm3))
+                        self.assertGreater(regenerated.volume_cm3, 0)
+                        self.assertEqual(regenerated.interface_error_mm, mesh.interface_error_mm)
+                        observed_rugged.add(name)
                         continue
                     original = reference["parts"][name]
                     self.assertEqual(len(mesh.vertices), original["vertices"])
@@ -54,6 +95,7 @@ class StandardPresetCacheTests(unittest.TestCase):
                     self.assertEqual(topology_report(mesh), entry["topology"])
                     observed.add(name)
         self.assertEqual(observed, set(reference["parts"]))
+        self.assertEqual(observed_rugged, set(reference["rugged_reference"]["parts"]))
 
     def test_geometry_edits_miss_while_presentation_changes_reuse_exact_arrays(self):
         original = self.items["screw_corner_standard"]

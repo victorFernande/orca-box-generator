@@ -371,6 +371,37 @@
       "tests/test_visual_template.py": "ed219fa4dbe47850350a07110b781367e6419d2d691a190b11bd632a95efbeeb"
     },
     "full_local_log_sha256": "fc7741efc44e546ce2fa20ec36075214fdf8f03f4a3798f447627996a1adf76c",
-    "earlier_focused_run_counts_must_not_be_added": true
+    "earlier_focused_run_counts_must_not_be_added": true,
+    "full_local_suite_candidate_commit": "13ee968e3ecaba2a498fbd8ce13eab60901ea397",
+    "cross_cpu_cache_test_followup": {
+      "status": "pass_local",
+      "tests": 7,
+      "duration_seconds": 61.182,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "runtime_and_distributed_arrays_changed": false,
+      "source_sha256": {
+        "tests/test_standard_preset_mesh_cache.py": "c187f1f7cceafde72a2954f1312f2f4ae1bbdcff44b13586641cf00155734ebf",
+        "tests/fixtures/standard_mesh_reference.json": "ae511e86dc1da46f41ab3c847ccde08977f990bb2b365cf766f4a82063b9fc7b"
+      },
+      "first_ci_observation": {
+        "run_url": "https://github.com/victorFernande/orca-box-generator/actions/runs/44582196054",
+        "runner": "macos-26-arm64",
+        "differing_vertex_coordinates": 89,
+        "compared_coordinates": 1691007,
+        "maximum_delta_mm": 0.00094223
+      },
+      "requirements": [
+        "approved bank V/T/N SHA256 identities stay exact",
+        "fresh triangle indices and discrete topology stay exact",
+        "fresh latch Euclidean vertex displacement <=0.002 mm from the existing contraction bound",
+        "fresh normals match their own winding",
+        "all fresh vertices and facet centroids match the unchanged analytic field limit",
+        "positive volume checked against the fresh geometry and no degenerate facets",
+        "fresh base/lid arrays remain byte-exact",
+        "interface error target stays exact"
+      ]
+    }
   }
 }

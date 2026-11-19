@@ -37,5 +37,47 @@
         "normals": "d3883143b2865809cc1bf18d6be75fe0f4ede44af97774304b85551b9ae967dc"
       }
     }
+  },
+  "rugged_reference": {
+    "approved_candidate_commit": "13ee968e3ecaba2a498fbd8ce13eab60901ea397",
+    "geometry_source_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "parts": {
+      "tool_rugged-base": {
+        "vertices": 236661,
+        "triangles": 473318,
+        "array_sha256": {
+          "vertices": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+          "triangles": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+          "normals": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0"
+        }
+      },
+      "tool_rugged-lid": {
+        "vertices": 226460,
+        "triangles": 452916,
+        "array_sha256": {
+          "vertices": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+          "triangles": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+          "normals": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef"
+        }
+      },
+      "tool_rugged-clip_left": {
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "tool_rugged-clip_right": {
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      }
+    }
   }
 }
