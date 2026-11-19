@@ -82,6 +82,8 @@ A integração nativa no macOS/Linux permanece pendente. Não houve fatiamento, 
 
 O organizador atual considera o envelope completo das quatro peças e pode rejeitar conjuntos que não caibam com seu espaçamento. Para o novo Snap com parâmetros padrão de encaixe, foram verificados corpo de 160 × 90 × 35 mm em mesa de 220 × 220 mm e corpo de 160 × 95 × 35 mm em mesa de 260 × 260 mm. O segundo caso é rejeitado em 220 × 220 mm, sem reduzir a escala; exporte STLs por peça ou ajuste as dimensões.
 
+STL mantém as medidas de cada peça e não organiza a geometria nos limites XY da mesa ativa. O 3MF automático verifica esse espaço e rejeita um conjunto que não caiba, sem reduzir a escala. A conferência existente de altura continua nos dois formatos; escolha uma impressora compatível antes de fabricar o STL.
+
 Ao abrir um 3MF exportado, use a opção de abrir como projeto ou uma mesa vazia. Se importar como geometria em um projeto já ocupado, organize os objetos antes de fatiar: o teste conjunto com Thread mostrou sobreposição com objetos que já estavam na mesa.
 
 Veja [Manual PT-BR](docs/MANUAL_PT-BR.md), [English manual](docs/MANUAL_EN.md), [notas de implementação](docs/IMPLEMENTATION_NOTES.md), [textos de divulgação](docs/COMMUNITY_LISTING.md) e [apresentação e textos PT/EN para catálogo](docs/orcacloud/README.md). Licença [MIT](LICENSE), incluindo os avisos da infraestrutura adaptada de Orca Gear Studio.

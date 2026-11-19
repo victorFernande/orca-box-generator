@@ -7,7 +7,7 @@ O runner `scripts/check_box_e2e.cjs` exercita a interface real do Box com Playwr
 O comando completo percorre os oito estilos e os 17 presets, alterando os controles pela interface. Os testes incluem:
 
 - Seleção dos 17 presets na página e no painel lateral, com prévias reais; exportação STL/3MF de cada preset na página, além de dimensões e controles específicos dos oito estilos.
-- Todos os alvos de exportação habilitados para o estilo/configuração de ensaio; opções incompatíveis desabilitadas e rejeições explícitas, sem redução silenciosa de escala.
+- Todos os alvos de exportação habilitados para o estilo/configuração de ensaio; opções incompatíveis desabilitadas e rejeições explícitas, sem redução silenciosa de escala. O STL bruto preserva uma peça de 270 mm numa configuração de mesa de 260 mm, enquanto o 3MF automático deve rejeitar essa organização sem criar novo arquivo 3MF. O STL anterior permanece intacto; a pasta não precisa estar vazia. A guarda existente de altura permanece nos dois formatos.
 - Movimento observado nas matrizes realmente enviadas ao WebGL, incluindo destravar os fechos antes de levantar a tampa e preservar os eixos das dobradiças. Câmera, materiais, cortes, cotas, malha, rotação e análise visual também são exercitados.
 - Torres PCB com inserto/piloto, tipos e faces de recortes, divisórias, dimensões da junta TPU, qualidade e opção de processo. São configurações amostradas, não todas as combinações possíveis.
 - Histórico, edição pendente, restaurar, Surpreenda-me, PT/EN, temas, sincronização dos metadados da impressora e criação/carregamento/exclusão de um preset pessoal temporário.

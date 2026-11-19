@@ -495,17 +495,24 @@ async function generalChecks(studio) {
 
 async function negativeChecks(studio) {
   await studio.preset('everyday');
-  await studio.check('rejections','oversize printable layout is rejected without rescaling',async()=>{
+  await studio.check('rejections','raw STL preserves dimensions; automatic 3MF rejects out-of-bed layout',async()=>{
     const bed=Number(process.env.ORCA_E2E_BED_X || 260);
     assert.ok(bed<=340,'The oversize-negative fixture requires bed X <=340mm so schema permits a genuinely oversized model');
     const oversize=bed+10;
     await studio.select('#target','base_only','export_target');
     await studio.number('width_x',oversize);
-    for(const format of ['stl','3mf']) {
-      const result=await studio.action(format,true);
-      assert.match(result.rejection,/bed|mesa|fit|cabe|dimensions|dimens/i,'Expected a bed-size reason');
-    }
+    const requested=await studio.state();
+    await studio.action('stl');
+    const stl=report.exports.at(-1),base=stl.verification.parts.find(part=>part.part==='base');
+    assert.ok(stl.verification.checks.includes('binary_stl_exact_facet_source_identity'));
+    assert.equal(stl.verification.preview_identity.ok,true);
+    const width=base.bounds.max[0]-base.bounds.min[0];
+    assert.ok(Math.abs(width-oversize)<.001,'Raw STL must preserve its exact requested X extent');
+    assert.deepEqual(await studio.state(),requested,'Raw STL export must preserve the requested design');
+    const result=await studio.action('3mf',true);
+    assert.match(result.rejection,/bed|mesa|fit|cabe|dimensions|dimens/i,'Expected a bed-size reason');
     assert.equal((await studio.state()).width_x,oversize,'No silent autoscaling');
+    return {stl_width_mm:width,stl_manifest_id:stl.id,automatic_3mf_rejection:result.rejection};
   });
   await studio.preset('clamshell_pip_short');
   await studio.check('rejections','PIP unsupported features and partial exports are disabled',async()=>{
