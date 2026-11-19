@@ -1203,6 +1203,35 @@ def _tet_cases() -> dict[int, list[tuple[int, int, int]]]:
 _TET_CASES = _tet_cases()
 
 
+def _unique_xyz_indices(points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return first/inverse indices in NumPy's numeric XYZ unique order.
+
+    Surface coordinates are finite float32 values. Numeric lexsort avoids the
+    structured-row comparison used by unique(axis=0); its stable ordering also
+    retains the first original signed-zero representation, just like unique.
+    """
+    order = np.lexsort((points[:, 2], points[:, 1], points[:, 0]))
+    ordered = points[order]
+    start = np.empty(len(points), dtype=bool)
+    if len(points):
+        start[0] = True
+        start[1:] = np.any(ordered[1:] != ordered[:-1], axis=1)
+    inverse = np.empty(len(points), dtype=np.intp)
+    inverse[order] = np.cumsum(start, dtype=np.intp) - 1
+    return order[start], inverse
+
+
+def _undirected_edge_keys(directed: np.ndarray, vertex_count: int) -> np.ndarray:
+    """Pack nonnegative vertex pairs in the same order as sorted row pairs.
+
+    The extractor's grid limit keeps vertex_count squared inside int64. Cast
+    before multiplying: int32 triangle indices otherwise overflow on large meshes.
+    """
+    lo = np.minimum(directed[:, 0], directed[:, 1]).astype(np.int64)
+    hi = np.maximum(directed[:, 0], directed[:, 1])
+    return lo * vertex_count + hi
+
+
 def _simplify_planar(
     vertices: np.ndarray, triangles: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -1231,8 +1260,7 @@ def _simplify_planar(
                 t = triangles[group]
                 directed = np.concatenate((t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]))
                 _, inverse, counts = np.unique(
-                    np.sort(directed, axis=1),
-                    axis=0,
+                    _undirected_edge_keys(directed, len(vertices)),
                     return_inverse=True,
                     return_counts=True,
                 )
@@ -1304,6 +1332,9 @@ def mesh_field(
     ix, iy = np.meshgrid(np.arange(nx - 1), np.arange(ny - 1), indexing="ij")
     xybase = (ix * ny + iy).ravel()
     offsets = np.array((0, ny, 1, ny + 1, 0, ny, 1, ny + 1), dtype=np.int64)
+    offsets[4:] += nx * ny
+    # Every iteration joins precisely two XY layers with the same local indices.
+    layer_cubeidx = xybase[:, None] + offsets
     all_keys = []
     all_points = []
     ngrid = nx * ny * nz
@@ -1320,12 +1351,9 @@ def mesh_field(
         nxt, nxtval = layer(zs[k + 1])
         joined = np.concatenate((prev, nxt))
         vals = np.concatenate((prevval, nxtval))
-        off = offsets.copy()
-        off[4:] += nx * ny
-        cubeidx = xybase[:, None] + off
-        cv = vals[cubeidx]
+        cv = vals[layer_cubeidx]
         active = np.any(cv < 0, axis=1) & np.any(cv > 0, axis=1)
-        cubeidx = cubeidx[active]
+        cubeidx = layer_cubeidx[active]
         if len(cubeidx):
             for tet in _TETRA:
                 ids = cubeidx[:, tet]
@@ -1406,9 +1434,7 @@ def mesh_field(
     # Degenerate iso-edge vertices weld consistently. This is necessary when an exact
     # planar boundary passes through a grid node before float32 export.
     rounded = vertices.astype(np.float32)
-    _, vfirst, vinverse = np.unique(
-        rounded, axis=0, return_index=True, return_inverse=True
-    )
+    vfirst, vinverse = _unique_xyz_indices(rounded)
     vertices = rounded[vfirst].astype(np.float64)
     triangles = vinverse[triangles].astype(np.int32)
     # Collapse sub-micron edge clusters before float32 STL serialization. Removing
@@ -2484,10 +2510,15 @@ def collect_target_meshes(
 def topology_report(mesh: MeshData) -> dict[str, Any]:
     t = mesh.triangles
     directed = np.concatenate((t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]))
-    edge = np.sort(directed, axis=1)
-    unique, counts = np.unique(edge, axis=0, return_counts=True)
-    rev = np.sort(directed[:, 0] * len(mesh.vertices) + directed[:, 1])
-    opposite = np.sort(directed[:, 1] * len(mesh.vertices) + directed[:, 0])
+    vertex_count = len(mesh.vertices)
+    unique_keys, counts = np.unique(
+        _undirected_edge_keys(directed, vertex_count), return_counts=True
+    )
+    unique = np.column_stack((unique_keys // vertex_count, unique_keys % vertex_count))
+    # Directed comparisons use the same collision-free numeric encoding.
+    a, b = directed[:, 0].astype(np.int64), directed[:, 1].astype(np.int64)
+    rev = np.sort(a * vertex_count + b)
+    opposite = np.sort(b * vertex_count + a)
     parent = np.arange(len(mesh.vertices))
     # Vectorised label relaxation avoids a per-triangle Python traversal.
     for _ in range(1000):

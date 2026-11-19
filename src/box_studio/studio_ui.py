@@ -4023,7 +4023,7 @@ const INITIAL = __BOX_CONTEXT__;
       INITIAL.latch_motion = m.latch_motion || null;
       INITIAL.preview_mode = m.preview_mode || "assembly";
       if (!m.geometry_key || m.geometry_key !== meshRevisionKey) {
-        loadMeshes(m.meshes);
+        loadMeshes(m.meshes, false);
         meshRevisionKey = m.geometry_key || null;
       }
       $("volume").textContent = m.volume_cm3.toFixed(1);
@@ -4068,6 +4068,17 @@ const INITIAL = __BOX_CONTEXT__;
     cutAxis = "y",
     lastFrame = null;
   const TWO_PI = Math.PI * 2;
+  const shaderUniformLocations = new Map();
+  function uniformLocation(shader, name) {
+    let locations = shaderUniformLocations.get(shader);
+    if (!locations) {
+      locations = new Map();
+      shaderUniformLocations.set(shader, locations);
+    }
+    if (!locations.has(name))
+      locations.set(name, gl.getUniformLocation(shader, name));
+    return locations.get(name);
+  }
   const MATERIAL_PRESETS = {
     emerald_silk: {
       base: [0.02, 0.72, 0.63],
@@ -4676,7 +4687,7 @@ const INITIAL = __BOX_CONTEXT__;
     for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
     return new ctor(a.buffer);
   }
-  function loadMeshes(items) {
+  function loadMeshes(items, drawImmediately = true) {
     configureOpening();
     const calibration = INITIAL.preview_mode === "calibration";
     $("open").disabled =
@@ -4781,12 +4792,12 @@ const INITIAL = __BOX_CONTEXT__;
       };
     });
     zoom = 1;
-    render();
+    if (drawImmediately) render();
   }
   function drawLines(buffer, count, mvp, color) {
     gl.useProgram(lineProg);
-    gl.uniformMatrix4fv(gl.getUniformLocation(lineProg, "u_mvp"), false, mvp);
-    gl.uniform4fv(gl.getUniformLocation(lineProg, "u_color"), color);
+    gl.uniformMatrix4fv(uniformLocation(lineProg, "u_mvp"), false, mvp);
+    gl.uniform4fv(uniformLocation(lineProg, "u_color"), color);
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.enableVertexAttribArray(0);
@@ -4862,22 +4873,22 @@ const INITIAL = __BOX_CONTEXT__;
       const model = partTransform(m.part, openingFraction(), m.preview_offset);
       gl.useProgram(program);
       gl.uniformMatrix4fv(
-        gl.getUniformLocation(program, "u_mvp"),
+        uniformLocation(program, "u_mvp"),
         false,
         cam.mvp,
       );
       gl.uniformMatrix4fv(
-        gl.getUniformLocation(program, "u_model"),
+        uniformLocation(program, "u_model"),
         false,
         model,
       );
-      gl.uniform3fv(gl.getUniformLocation(program, "u_eye"), cam.eye);
+      gl.uniform3fv(uniformLocation(program, "u_eye"), cam.eye);
       gl.uniform3fv(
-        gl.getUniformLocation(program, "u_baseColor"),
+        uniformLocation(program, "u_baseColor"),
         m.part === "lid" ? mat.saucer : mat.base,
       );
       gl.uniform3fv(
-        gl.getUniformLocation(program, "u_saucerColor"),
+        uniformLocation(program, "u_saucerColor"),
         mat.saucer,
       );
       for (const [key, v] of Object.entries({
@@ -4890,7 +4901,7 @@ const INITIAL = __BOX_CONTEXT__;
         u_passMode: 0,
         u_lightTheme: theme === "light" ? 1 : 0,
       }))
-        gl.uniform1f(gl.getUniformLocation(program, key), v);
+        gl.uniform1f(uniformLocation(program, key), v);
       gl.bindVertexArray(m.vao);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ib);
       if ($("xray").checked) {
@@ -4922,12 +4933,12 @@ const INITIAL = __BOX_CONTEXT__;
         }
         gl.useProgram(lineProg);
         gl.uniformMatrix4fv(
-          gl.getUniformLocation(lineProg, "u_mvp"),
+          uniformLocation(lineProg, "u_mvp"),
           false,
           mult(cam.mvp, model),
         );
         gl.uniform4fv(
-          gl.getUniformLocation(lineProg, "u_color"),
+          uniformLocation(lineProg, "u_color"),
           [0, 0, 0, 0.32],
         );
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.wireBuffer);
@@ -5060,9 +5071,11 @@ const INITIAL = __BOX_CONTEXT__;
       ctx = cv.getContext("2d"),
       r = cv.getBoundingClientRect(),
       dpr = Math.min(devicePixelRatio || 1, 2);
-    cv.width = Math.max(1, r.width * dpr);
-    cv.height = Math.max(1, r.height * dpr);
-    ctx.scale(dpr, dpr);
+    const width = Math.max(1, Math.floor(r.width * dpr)),
+      height = Math.max(1, Math.floor(r.height * dpr));
+    if (cv.width !== width) cv.width = width;
+    if (cv.height !== height) cv.height = height;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, r.width, r.height);
     if (!calipers || !lastFrame || !meshes.length) return;
     const b = sceneBounds(),

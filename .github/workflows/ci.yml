@@ -37,8 +37,10 @@ jobs:
         run: python -B -W error scripts/build_and_install.py --no-install
       - name: Run geometry, export, UI and bridge verification
         run: python -B -W error -m unittest discover -s tests -v
-      - name: Reject stale preview responses in the E2E runner
-        run: node scripts/box_e2e_waiter_test.cjs
+      - name: Verify browser-test response and frame measurement predicates
+        run: |
+          node scripts/box_e2e_waiter_test.cjs
+          node scripts/check_box_performance.cjs --self-check
       - name: Install isolated browser test tools
         id: browser_tools
         if: ${{ !cancelled() && runner.os == 'Linux' }}

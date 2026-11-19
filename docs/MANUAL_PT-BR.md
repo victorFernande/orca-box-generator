@@ -2,7 +2,7 @@
 
 ## Instalação e interface
 
-Após instalar ou atualizar, feche e reabra o OrcaSlicer. No gerenciador de plugins, confira a versão **1.2.2** e ative **Orca Box Studio**. Abra a aba superior **Gerador de Caixas**.
+Após instalar ou atualizar, feche e reabra o OrcaSlicer. No gerenciador de plugins, confira a versão **1.2.3** e ative **Orca Box Studio**. Abra a aba superior **Gerador de Caixas**.
 
 Para abrir o painel lateral no caminho verificado no Windows com OrcaSlicer 2.5.1:
 

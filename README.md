@@ -2,9 +2,11 @@
 
 <p align="center"><img src="assets/icon.jpg" alt="Orca Box Studio — parametric enclosures" width="240"></p>
 
-Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.2.2 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
+Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.2.3 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
 
 A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, galeria com filtros, cartões de parâmetros, sliders com valores numéricos, ferramentas flutuantes de inspeção e exportação fixa. Veja a [referência visual e sua origem](docs/UI_TEMPLATE.md).
+
+A seleção dos três modelos mais pesados (parafusado, reforçado e deslizante) reutiliza suas malhas completas já calculadas e verificadas no pacote, sem reduzir a qualidade. Ao mudar medidas, folgas ou recursos, o gerador calcula a nova geometria. Veja as [medições e o teste de clique até desenho](docs/PERFORMANCE.md).
 
 A galeria começa com caixas básicas, sem placas, portas, divisórias ou juntas TPU pré-configuradas. Os presets de ESP32, Raspberry Pi, Arduino, sensores e eletrônica ventilada foram retirados para facilitar os testes das caixas.
 

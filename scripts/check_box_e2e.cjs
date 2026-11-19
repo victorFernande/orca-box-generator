@@ -634,6 +634,7 @@ async function main() {
   report.runtime={node:process.version,platform:process.platform};
   report.source_hashes={};
   const sourceFiles=fs.readdirSync(path.join(root,'src','box_studio')).filter(name=>name.endsWith('.py')).sort().map(name=>'src/box_studio/'+name);
+  sourceFiles.push(...fs.readdirSync(path.join(root,'src','box_studio','preset_meshes')).filter(name=>name.endsWith('.npz')).sort().map(name=>'src/box_studio/preset_meshes/'+name));
   sourceFiles.push('scripts/ui_test_server.py','scripts/verify_box_e2e_exports.py','scripts/check_box_e2e.cjs');
   for(const relative of sourceFiles) {
     report.source_hashes[relative]=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,relative))).digest('hex');
