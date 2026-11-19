@@ -1,5 +1,38 @@
 # Validation status
 
+## Complete Box E2E review — 1.2.1, 2026-11-19
+
+This revision adds a real-browser/real-backend E2E runner for all eight styles, seventeen presets, enabled export targets, resources, page and dock. It reopens actual STL/3MF bytes and checks them independently against the delivered preview and print snapshot. Native IPC is deliberately disabled only in that development environment. See [reproduction and exact scope](E2E.md); native Windows observations below are separate evidence.
+
+The review found and corrected a Rugged pin bore refilled by the lid-arm union, simultaneous clip/lid motion, individual-half export options for a captive Rugged hinge, nominal TPU contact independent of fit clearance, inaccessible removal of an incompatible gasket after a style change, and hex openings that ignored independent width/height changes. The Rugged animation now removes clips over the first 25% of travel before rotating the lid. Nominal gasket compression is 0.15 mm; it is not a measured seal rating. Sliding now has an upper detent and matching ceiling socket, a broad flat print underside and rear-corner relief; its five new tests and two unchanged legacy precision/retention tests passed without relaxing their original criteria.
+
+A fresh Windows session of OrcaSlicer 2.5.1 loaded models from all eight styles. The table records representative configurations, not every parameter combination or a physical fit test. The earlier Sliding observation was superseded by a fresh rebuild/restart and the corrected native export/import below.
+
+| Native configuration | Observed workflow |
+| --- | --- |
+| Lip Snap, 92 × 65 × 35 mm | Width edit, native STL/3MF export, base and lid loaded on the Plater. |
+| Rugged pin and captive modes, 92 × 65 × 35 mm | Clip-removal/opening phases, native export and Plater loading. The pin mode displayed five separate pieces; captive export preserves the base/lid relationship. |
+| Sliding, final corrected 90 × 65 × 35 mm | Closed/open course, native STL/3MF and both pieces loaded on the Plater. The pre-import originals had identical STL/3MF facets, two manifold closed oriented shells, and 5052.989 mm² of lid bed contact (99.786% of its XY envelope, 0.005 mm contact-plane tolerance). |
+| Screw Corner, 92 × 65 × 35 mm | Closed preview and exported base/lid with four corner holes loaded. |
+| Open bin, 92 × 65 × 42 mm, 48 mm hand openings | Height/grip edits, both openings visible in preview and model loaded. Serialized base independently had one closed oriented shell and Euler −2. |
+| Pivot latch lid, 92 × 65 × 42 mm | Release and lift stages; base, lid and two levers loaded. |
+| Stackable bin, 92 × 65 × 58 mm, 56 mm front access | Height/access edits and one container loaded. No physical stacking claim. |
+| Equal-half PIP, 92 × 65 × 18 mm per half | 36.2 mm closed height, 180°→0° preview, then the preserved open assembly loaded from the closed preview. |
+
+No slicing or printing was performed. Native macOS/Linux loading and physical calibration remain pending. Existing Anycubic acceleration warnings and the dense Rugged model warning are not treated as proof of a geometry defect or as approval to print. Imported project process settings must be reviewed before saving a profile.
+
+The complete local Python run passed **159 tests in 704.989 seconds**, with `-B -W error`, optional Chromium coverage enabled and **no skips**. A subsequent **11-case focused follow-up** checked a two-string PT/EN instruction correction: preserve the exported part orientation rather than telling every lid to be flipped. Geometry and motion code were unchanged by that text follow-up. These counts describe separate runs and are not summed as unique tests. The complete browser-run result belongs to its exact recorded source hashes and CI revision; consult the [CI history](https://github.com/victorFernande/orca-box-generator/actions/workflows/ci.yml) and the change's pull request for completion and artifacts.
+
+The initial complete browser run contained an obsolete negative assertion that expected raw STL to reject a 270 mm-wide part on a 260 mm bed. Existing STL export preserves part coordinates without XY placement, consistently with the reference generators; automatic 3MF export performs the bed-layout check. The corrected assertion requires the actual STL to remain 270 mm with exact facets, then requires 3MF rejection, no new 3MF file and an unchanged design. The existing height guard is unchanged. The earlier full local report retains its failed assertion; it is not relabeled as a passing full run. The complete CI run of the corrected revision is the approval record for that final contract.
+
+The final isolated template/browser run, after the instruction-text correction, passed **12 layouts and 37 interactions**, with zero layout issues or script errors.
+
+The native dock also exercised all four sections, PT/dark, a 120 × 65 mm PIP preset with half height changed to 15 mm, 180°→0°→180° movement, 3MF export and actual loading of the open assembly from the dock. Hex width/height were edited independently to 12 × 6 and 6 × 12 mm on the page; the preview changed and both configurations were exported.
+
+Native application re-saving is not source-byte parity. In a separate inspection, Orca's recenter/save step collapsed one pair of original Rugged PIN vertices separated by approximately 0.00000155 mm, introducing two zero-area triangles in the re-saved base; the re-saved captive file had four. All five original PIN STLs passed strict checks, and corresponding facets located the rounding in Orca's rewritten coordinates. The re-saved Rugged files are explicitly not counted as strict mesh passes. Diagnostic welding recovered the expected closed shells, but no native files were repaired. Original exported-byte verification and native UI/loading acceptance remain distinct evidence.
+
+Earlier validation counts below describe their own historical snapshots.
+
 ## Snap lever redesign — 2026-11-19
 
 The current `snap_latch` has two lever latches articulated on the base, replacing the previous removable C-retainers. Four pieces are printed: base, lid and two levers with integral side pins. The pins pressure-fit through chamfered socket mouths. Both levers rotate to 90 degrees before the lid lifts, and stay attached to the base. Pivot diameter, lever width/thickness, hook retention and lid skirt depth remain independently editable within the validated geometric limits.

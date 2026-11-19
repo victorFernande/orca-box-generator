@@ -15,7 +15,7 @@ from .plugin_main import (
     BoxStudioController,
 )
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __all__ = [
     "DEFAULT_PARAMS",
     "SCHEMA_VERSION",

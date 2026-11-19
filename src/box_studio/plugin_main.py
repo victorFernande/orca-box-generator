@@ -1252,7 +1252,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.2.0",
+            "version": "1.2.1",
         }
 
     @staticmethod
@@ -1580,6 +1580,7 @@ class BoxStudioController:
             )
 
     def handle_message(self, raw_data, send_fn, default_mode="page"):
+        msg = None
         try:
             msg = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
             if not isinstance(msg, dict):
@@ -1679,6 +1680,16 @@ class BoxStudioController:
                 except Exception:
                     pass
         except Exception as exc:
+            if isinstance(msg, dict) and msg.get("type") in ("preview", "update_params"):
+                send_fn(
+                    {
+                        "type": "preview_result",
+                        "ok": False,
+                        "request_id": msg.get("request_id"),
+                        "message": str(exc),
+                    }
+                )
+                return
             send_fn(
                 {
                     "type": "action_result",

@@ -123,6 +123,38 @@ class PresetBridgeTests(unittest.TestCase):
             c.handle_message({"type": "preview", "params": p}, a.append, "page")
         self.assertEqual(b[0]["type"], "design_changed")
 
+    def test_invalid_previews_keep_request_identity_and_allow_a_valid_retry(self):
+        c = bridge.BoxStudioController()
+        previous = c.current_params()
+        for action in ("preview", "update_params"):
+            for encoded in (False, True):
+                with self.subTest(action=action, json_string=encoded):
+                    output = []
+                    msg = {"type": action, "request_id": 41,
+                           "params": {"style": "open_bin", "gasket_enabled": True}}
+                    c.handle_message(json.dumps(msg) if encoded else msg, output.append)
+                    self.assertEqual(len(output), 1)
+                    self.assertEqual(output[0]["type"], "preview_result")
+                    self.assertEqual(output[0]["request_id"], 41)
+                    self.assertFalse(output[0]["ok"])
+                    self.assertTrue(output[0]["message"])
+                    self.assertEqual(c.current_params(), previous)
+        output = []
+        done = threading.Event()
+
+        def receive(payload):
+            output.append(payload)
+            if payload.get("type") == "preview_result":
+                done.set()
+
+        c.handle_message({"type": "preview", "request_id": 42,
+                          "params": {"style": "open_bin", "gasket_enabled": False}}, receive)
+        self.assertTrue(done.wait(15))
+        c._last_worker.join(5)
+        self.assertTrue(output[-1]["ok"], output[-1])
+        self.assertEqual(output[-1]["request_id"], 42)
+        self.assertEqual(output[-1]["params"]["style"], "open_bin")
+
     def test_06_no_fake_success_on_transport_failure(self):
         c = bridge.BoxStudioController()
         output = []

@@ -19,7 +19,7 @@ jobs:
   verify:
     name: Verify (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -37,8 +37,11 @@ jobs:
         run: python -B -W error scripts/build_and_install.py --no-install
       - name: Run geometry, export, UI and bridge verification
         run: python -B -W error -m unittest discover -s tests -v
+      - name: Reject stale preview responses in the E2E runner
+        run: node scripts/box_e2e_waiter_test.cjs
       - name: Install isolated browser test tools
-        if: runner.os == 'Linux'
+        id: browser_tools
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
         shell: bash
         run: |
           npm install --prefix "$RUNNER_TEMP/orca-ui-tools" --no-save --package-lock=false playwright@1.62.1
@@ -51,12 +54,32 @@ jobs:
         run: |
           node scripts/check_ui_template.cjs
           python -B -W error -m unittest discover -s tests -p "test_*adapter.py" -v
+      - name: Verify every Box style, preset and supported export through the UI
+        if: ${{ !cancelled() && runner.os == 'Linux' && steps.browser_tools.outcome == 'success' }}
+        timeout-minutes: 90
+        env:
+          ORCA_PLAYWRIGHT_MODULE: ${{ runner.temp }}/orca-ui-tools/node_modules/playwright
+          ORCA_E2E_OUTPUT: test-output/e2e
+          ORCA_E2E_SECTIONS: presets,general,styles,features,negative,dock
+          ORCA_E2E_PRESET_EXPORTS: "1"
+          ORCA_E2E_BED_X: "260"
+          ORCA_E2E_BED_Y: "260"
+          ORCA_E2E_BED_Z: "260"
+        run: node scripts/check_box_e2e.cjs
       - name: Preserve browser evidence
         if: always() && runner.os == 'Linux'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: orca_box_generator-ui
           path: test-output/ui/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Preserve comprehensive E2E evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orca_box_generator-e2e
+          path: test-output/e2e/
           if-no-files-found: ignore
           retention-days: 14
       - name: Preserve verified distribution artifacts

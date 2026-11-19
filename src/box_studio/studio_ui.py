@@ -2197,6 +2197,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                     <option value="print_in_place">Print-in-place</option>
                   </select></label
                 >
+                <p id="rugged-motion-phase" class="helper-note" aria-live="polite" hidden></p>
               </div>
                 <div data-slider="hinge_pin_diameter" class="ctrl-row">
                   <label class="ctrl-top"
@@ -2956,6 +2957,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
       releaseAndOpen: "Soltar fechos e abrir",
+      releaseClipsAndOpen: "Retirar presilhas e abrir",
+      ruggedClosed: "Presilhas instaladas · tampa fechada",
+      ruggedReleasing: "Retirando presilhas · tampa parada",
+      ruggedOpening: "Presilhas retiradas · abrindo a tampa",
+      ruggedOpen: "Presilhas retiradas · tampa aberta",
       latchesEngaged: "Fechos presos · tampa fechada",
       releasingLatches: "Soltando os fechos · tampa parada",
       liftingLid: "Fechos abertos · afastando a tampa",
@@ -3017,7 +3023,7 @@ const INITIAL = __BOX_CONTEXT__;
       auto: "Aplicar fatiamento mecânico",
       folder: "Abrir pasta de exportação",
       printHelp:
-        "Base com fundo na mesa; tampa invertida. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+        "Base com fundo na mesa; preserve a orientação exportada das peças. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
       printHelpClamshell:
         "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
       printHelpOpen:
@@ -3072,6 +3078,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
       releaseAndOpen: "Release latches & open",
+      releaseClipsAndOpen: "Remove clips & open",
+      ruggedClosed: "Clips installed · lid closed",
+      ruggedReleasing: "Removing clips · lid stationary",
+      ruggedOpening: "Clips removed · opening the lid",
+      ruggedOpen: "Clips removed · lid open",
       latchesEngaged: "Latches engaged · lid closed",
       releasingLatches: "Releasing latches · lid stationary",
       liftingLid: "Latches open · lifting the lid",
@@ -3133,7 +3144,7 @@ const INITIAL = __BOX_CONTEXT__;
       auto: "Apply mechanical slicing",
       folder: "Open export folder",
       printHelp:
-        "Base on its floor; lid flipped onto the cap. Print the fit kit first. Print time depends on printer and profile.",
+        "Base on its floor; preserve the exported orientation of each part. Print the fit kit first. Print time depends on printer and profile.",
       printHelpClamshell:
         "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
       printHelpOpen:
@@ -3255,7 +3266,7 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updateOpeningCaption() {
     document.querySelector('[data-i18n="open"]').textContent = tr(
-      p.style === "snap_latch" ? "releaseAndOpen" : "open",
+      p.style === "snap_latch" ? "releaseAndOpen" : p.style === "rugged_box" ? "releaseClipsAndOpen" : "open",
     );
   }
   function updatePreviewText() {
@@ -3287,6 +3298,7 @@ const INITIAL = __BOX_CONTEXT__;
     updateOpeningCaption();
     updatePrintHelp();
     updateClamshellNote();
+    if (p.style === "rugged_box") updateRuggedMotionStatus();
     const names = {
       base_and_lid: tr("both"),
       base_only: tr("baseOnly"),
@@ -3387,17 +3399,20 @@ const INITIAL = __BOX_CONTEXT__;
           : "grid";
     }
     $("gasket_enabled").closest(".switch-row").style.display =
-      lidless || (clamshell && !p.gasket_enabled) ? "none" : "flex";
+      (lidless || clamshell || p.style === "sliding_lid") && !p.gasket_enabled ? "none" : "flex";
     for (const key of ["gasket_width", "gasket_depth"])
       document.querySelector('[data-slider="' + key + '"]').style.display =
-        lidless || p.style === "clamshell_pip" ? "none" : "grid";
+        lidless || ["clamshell_pip", "sliding_lid"].includes(p.style) ? "none" : "grid";
     for (const option of $("target").options) {
       option.disabled =
         (lidless &&
           ["lid_only", "gasket", "fit_test_kit"].includes(option.value)) ||
         (p.style === "snap_latch" && option.value === "fit_test_kit") ||
         (p.style === "clamshell_pip" &&
-          !["base_and_lid", "full_suite"].includes(option.value));
+          !["base_and_lid", "full_suite"].includes(option.value)) ||
+        (p.style === "rugged_box" && p.hinge_mode === "print_in_place" &&
+          ["base_only", "lid_only"].includes(option.value)) ||
+        (option.value === "gasket" && (!p.gasket_enabled || p.style === "sliding_lid"));
       if (option.value === "base_and_lid")
         option.textContent =
           p.style === "clamshell_pip"
@@ -3406,6 +3421,8 @@ const INITIAL = __BOX_CONTEXT__;
               ? tr("baseOnly")
               : tr("both");
     }
+    if ([...$("target").options].some(option => option.value === p.export_target && option.disabled))
+      p.export_target = "base_and_lid";
     $("name").value = p.name;
     document
       .querySelectorAll("[data-p]")
@@ -4437,18 +4454,19 @@ const INITIAL = __BOX_CONTEXT__;
     const suffix = meshParams.style === "clamshell_pip" ? "°" : "%";
     $("openValue").textContent = Math.round(Number($("open").value)) + suffix;
     if (meshParams.style === "snap_latch") updateLatchMotionStatus();
+    if (meshParams.style === "rugged_box") updateRuggedMotionStatus();
   }
   function configureOpening() {
     const nextStyle = meshParams.style;
     const isClamshell = nextStyle === "clamshell_pip";
     $("open").max = isClamshell ? "180" : "100";
     if (isClamshell && openingStyle !== nextStyle) $("open").value = "180";
-    else if (nextStyle === "snap_latch" && openingStyle !== nextStyle)
+    else if (["snap_latch", "rugged_box"].includes(nextStyle) && openingStyle !== nextStyle)
       $("open").value = "0";
     else if (
       !isClamshell &&
-      nextStyle !== "snap_latch" &&
-      ["clamshell_pip", "snap_latch"].includes(openingStyle)
+      !["snap_latch", "rugged_box"].includes(nextStyle) &&
+      ["clamshell_pip", "snap_latch", "rugged_box"].includes(openingStyle)
     )
       $("open").value = "25";
     openingStyle = nextStyle;
@@ -4505,6 +4523,16 @@ const INITIAL = __BOX_CONTEXT__;
     const message = tr(key);
     if (label.textContent !== message) label.textContent = message;
   }
+  function updateRuggedMotionStatus() {
+    const label = $("rugged-motion-phase");
+    if (!label) return;
+    const shape = typeof meshParams === "undefined" ? p : meshParams;
+    label.hidden = shape.style !== "rugged_box" || INITIAL.preview_mode === "calibration";
+    if (label.hidden) return;
+    const phase = openingFraction();
+    const message = tr(phase <= 0 ? "ruggedClosed" : phase < 0.25 ? "ruggedReleasing" : phase < 1 ? "ruggedOpening" : "ruggedOpen");
+    if (label.textContent !== message) label.textContent = message;
+  }
   function partTransform(part, opening = openingFraction(), offset = null) {
     const shape = typeof meshParams === "undefined" ? p : meshParams;
     const frame = translateM(...(offset || [0, 0, 0]));
@@ -4515,8 +4543,21 @@ const INITIAL = __BOX_CONTEXT__;
         snapLatchTransform(part, opening, INITIAL.latch_motion),
       );
     let model = I();
+    if (shape.style === "rugged_box") {
+      // Remove the spring clips completely before the hinged lid rotates.
+      const phase = Math.max(0, Math.min(1, opening));
+      const releaseFraction = 0.25;
+      if (part.startsWith("clip"))
+        model = translateM(0, -15 * Math.min(1, phase / releaseFraction), 0);
+      else if (part === "lid") {
+        const h = INITIAL.hinge || {y: shape.depth_y / 2 + 5, z: shape.height_z - 4};
+        const angle = -Math.PI * Math.max(0, (phase - releaseFraction) / (1 - releaseFraction));
+        model = mult(translateM(0, h.y, h.z), mult(rotateX(angle), translateM(0, -h.y, -h.z)));
+      }
+      return mult(frame, model);
+    }
     if (part === "lid") {
-      if (shape.style === "rugged_box" || shape.style === "clamshell_pip") {
+      if (shape.style === "clamshell_pip") {
         const h = INITIAL.hinge || {
           y: shape.depth_y / 2 + 5,
           z: shape.height_z - 4,
@@ -4529,7 +4570,6 @@ const INITIAL = __BOX_CONTEXT__;
         model = translateM(0, -opening * (shape.depth_y + 10), 0);
       else model = translateM(0, 0, opening * 50);
     }
-    if (shape.style === "rugged_box" && part.startsWith("clip")) model = translateM(0, -opening * 15, 0);
     return mult(frame, model);
   }
   function transformPoint(m, x, y, z) {
