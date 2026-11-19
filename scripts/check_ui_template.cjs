@@ -186,7 +186,7 @@ async function featureChecks(page,slug,url,passed){
     const beforeRandom=await page.evaluate(()=>window.__hostMessages.length);await page.locator('#randomize, #btn-randomize').first().click();
     await page.waitForFunction(before=>window.__hostMessages.slice(before).some(m=>m.type==='geometry'&&m.params?.standard==='mason_86'&&m.params?.measurements_confirmed===false&&m.meshes===0),beforeRandom,{timeout:30000});passed.push('Experimental Mason 86 stays blocked after Surprise');
   }else{
-    let n=await geometryCount(page);await page.locator('.preset-card').filter({hasText:'Mini'}).click();await waitGeometry(page,n,{width_x:45,depth_y:35});passed.push('Preset gallery changes real box geometry');
+    let n=await geometryCount(page);await page.locator('.preset-card[data-preset-id="everyday"]').click();await waitGeometry(page,n,{width_x:90,depth_y:65});passed.push('Preset gallery changes real box geometry');
     n=await geometryCount(page);await page.locator('#target').selectOption('fit_test_kit');await waitGeometry(page,n,{export_target:'fit_test_kit'});
     const parts=await page.evaluate(()=>window.__hostMessages.filter(m=>m.type==='preview_result').at(-1).meshes);if(parts!==3)throw Error('Expected the three-part Box fit kit preview');passed.push('Box fit-kit preview reflects export target');
     await page.screenshot({path:path.join(output,'box-calibration-fit.png')});
