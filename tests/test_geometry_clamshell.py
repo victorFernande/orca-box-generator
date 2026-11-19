@@ -229,7 +229,7 @@ class ClamshellGeometryTests(unittest.TestCase):
                     "front_access_drop": 4,
                 }
             )
-            if style == "snap_latch":
+            if style in ("snap_latch", "rugged_box"):
                 p = normalize_params({"style": style})
             self.assertEqual(validate_params(p), [], style)
             for part in (

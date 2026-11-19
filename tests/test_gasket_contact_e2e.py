@@ -16,7 +16,7 @@ from box_studio.mesh_generator import (
 
 
 class GasketContactE2E(unittest.TestCase):
-    styles = ("lip_snap", "screw_corner", "rugged_box", "snap_latch")
+    styles = ("lip_snap", "screw_corner", "snap_latch")
 
     def params(self, style, clearance):
         return normalize_params(
@@ -82,7 +82,7 @@ class GasketContactE2E(unittest.TestCase):
                     )
 
     def test_one_actual_ring_per_style_keeps_channel_dimensions_and_prints_flat(self):
-        for style, c in zip(self.styles, (0.1, 0.2, 0.4, 0.2)):
+        for style, c in zip(self.styles, (0.1, 0.2, 0.2)):
             with self.subTest(style=style, clearance=c):
                 p = self.params(style, c)
                 mesh = generate_box_mesh(p, "gasket")
@@ -127,6 +127,20 @@ class GasketContactE2E(unittest.TestCase):
                 printed_report = topology_report(printed)
                 self.assertTrue(printed_report["closed"] and printed_report["oriented"])
                 self.assertEqual(printed_report["euler"], 0)
+
+    def test_rugged_preserves_a_requested_gasket_and_rejects_generation_explicitly(self):
+        for clearance in (.1, .15, .3):
+            with self.subTest(clearance=clearance):
+                base = normalize_params({"style": "rugged_box", "fit_clearance": clearance})
+                self.assertEqual(validate_params(base), [])
+                requested = normalize_params({**base, "gasket_enabled": True})
+                self.assertTrue(requested["gasket_enabled"], "An unsupported request must not be silently removed")
+                errors = validate_params(requested)
+                self.assertEqual(len(errors), 1)
+                self.assertIn("gasket", errors[0])
+                for part in ("base", "gasket"):
+                    with self.assertRaisesRegex(ValueError, "gasket"):
+                        generate_box_mesh(requested, part)
 
 
 if __name__ == "__main__":

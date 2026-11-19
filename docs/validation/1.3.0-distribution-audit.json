@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "verified_utc": "2026-11-19T17:10:27.410503+00:00",
+  "status": "pass",
+  "scope": "Read-only source/resource identity, distribution packaging and public-file hygiene. No mesh generation, rebuild, installation, native session or full test-suite execution.",
+  "candidate_binding": {
+    "base_commit": "dcee1f2b554f951ac00d9771d647484428e699b9",
+    "state": "Candidate identified by source/resource hashes below; base_commit records ancestry only.",
+    "source_sha256": {
+      "src/box_studio/__init__.py": "8e97275d20248b34e99448e283f6574f7bf933051269b31979669c03a9e3ced4",
+      "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+      "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+      "src/box_studio/rugged_geometry.py": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+      "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+      "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+      "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+      "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+      "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+      "src/box_studio/preset_mesh_index.py": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+      "src/box_studio/preset_mesh_cache.py": "5f70ed680befe0360acc81b676f45ed8c8e1e0686dcb4477393484fbc9f94844",
+      "src/box_studio/studio_ui.py": "c58d4b0e3c407db301affbedeb697e363982dc7f9022099851767e9bc6ff0b26",
+      "src/box_studio/linux_ipc.py": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+      "src/box_studio/plugin_main.py": "3234d812fcebbd30d4919ab0f2972a9d1cb1740e5a1f44596d4210d21a080ec7",
+      "README.md": "faad23fc18c9ec0ca4179a8b9ae14873b3fce2514a840f3f4f47a0036c50832f",
+      "LICENSE": "076d0f872a70a4ac6a226ef64837e1a5cb47b1010306df04b3879bc1093e874f",
+      "pyproject.toml": "17dbf1632d49f1041c5409284fe5cd8510443e5da8cc7a84447374e87fa16409",
+      "scripts/build_and_install.py": "7d7036e1e085f531cf90285e4d50f5625e894b39fa8f6f922756f0c9b529db2a",
+      "docs/validation/1.3.0-rugged-geometry.json": "22bb766f6913f8fdf969fbc0868a7f9bfdae85494d458bf01a80170442151b2b",
+      "docs/validation/1.3.0-rugged-reference-fit.json": "19c5e9e458cc72d1e8d42239813b673061b8602a1dc345d4bbf9ef87e3ee8a3e",
+      ".gitignore": "f76e04fe442f3df3a24a626615ccff09e7e57c5670a663b9af1ae83578aea86a",
+      ".gitattributes": "1aac79a40d0603719f30c694282cb2488457cd433d09cffc31f07f85b0aa5528"
+    }
+  },
+  "artifacts": {
+    "dist/orca_box_generator.py": {
+      "sha256": "7d7e0778f34cb3a4206d916dbd4b1f8dd32959cd75e9edec7968b02c9c944ec0",
+      "bytes": 46465454
+    },
+    "dist/orca_box_generator_any.py": {
+      "sha256": "7d7e0778f34cb3a4206d916dbd4b1f8dd32959cd75e9edec7968b02c9c944ec0",
+      "bytes": 46465454
+    },
+    "dist/orca_box_generator-1.3.0-py3-none-any.whl": {
+      "sha256": "bfeec6990d0920e971a6e33167cb3f19f103ef7040ff4d1ee9066d7b9b2debe1",
+      "bytes": 34108244
+    }
+  },
+  "bundles": {
+    "byte_identical": true,
+    "exact_current_source_transformation": true,
+    "source_modules": 13,
+    "module_body_sha256": {
+      "schema.py": "58ad8076d7211a77de927fdc6ee7b0791a6372917f196d2e9f8519b2c678c3a6",
+      "mesh_generator.py": "122867a240e5133400a603713aa97209eb556549ed15c49201c2518e302f7fa6",
+      "rugged_geometry.py": "ea7bc31440318c3996af28fa8f62358b914162b1a05883e3175a6509cb618f3c",
+      "rugged_latch_geometry.py": "002a5371d6ffaf2cfe80bc344ca0e356d13b02c2f4c2fc2c90ca811b1a5bb75e",
+      "rugged_front_geometry.py": "6563b125feeabf7eb71624f791e1e9bcab2d7ab400fa0409fcfbdd39b0b7c817",
+      "rugged_front_mesh.py": "9c8e8608d5cf07e78b485f981da9d1656d01be121ebe6fbe887728d9ae62e2e0",
+      "exporters.py": "83f7328b3590eea9d32efe2444a39c27439e865304acb92d48a5e52c166b3562",
+      "presets_catalog.py": "1d8fc38f3c875c970c281db89c3d6eed54b53cbe68380e948666c9a44bdb67b2",
+      "preset_mesh_index.py": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+      "preset_mesh_cache.py": "eea8a9ac9c257a578c2f20842cb6dfb0dcd765b43209f378dc04a8b1b77562d0",
+      "studio_ui.py": "866149585355ae05e138b6ef2e3443c963e6d0b68ee2bc839f2c24e57b51ada9",
+      "linux_ipc.py": "9445bde8486567409e7f12cad5a5cdffc8297000bfb7b20ce96bb83c37c946b7",
+      "plugin_main.py": "123a681bf3aa56c3d764898effd3855ed2aa9d8c4f0b06ea2bb221fb4d0c6c70"
+    },
+    "geometry_dependency_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "embedded_resources_equal_source_bytes": true,
+    "pep723_version": "1.3.0",
+    "license": "MIT"
+  },
+  "wheel": {
+    "members": 28,
+    "manifest": {
+      "box_studio/__init__.py": {
+        "sha256": "8e97275d20248b34e99448e283f6574f7bf933051269b31979669c03a9e3ced4",
+        "bytes": 810
+      },
+      "box_studio/exporters.py": {
+        "sha256": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+        "bytes": 25368
+      },
+      "box_studio/icon.svg": {
+        "sha256": "bf8b1a8706b98a352cb431d7d27bfb5fb61382dd6e83aeed03b869b2814cf3aa",
+        "bytes": 521
+      },
+      "box_studio/linux_ipc.py": {
+        "sha256": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+        "bytes": 8310
+      },
+      "box_studio/mesh_generator.py": {
+        "sha256": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+        "bytes": 108823
+      },
+      "box_studio/plugin_main.py": {
+        "sha256": "3234d812fcebbd30d4919ab0f2972a9d1cb1740e5a1f44596d4210d21a080ec7",
+        "bytes": 71766
+      },
+      "box_studio/preset_mesh_cache.py": {
+        "sha256": "5f70ed680befe0360acc81b676f45ed8c8e1e0686dcb4477393484fbc9f94844",
+        "bytes": 7681
+      },
+      "box_studio/preset_mesh_index.py": {
+        "sha256": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+        "bytes": 29805
+      },
+      "box_studio/preset_meshes/pencil-base.npz": {
+        "sha256": "0fb9267429f058dc9f4775e4bb614d6bc3163121e258ad3b95dc7b3936e44fd7",
+        "bytes": 753190
+      },
+      "box_studio/preset_meshes/pencil-lid.npz": {
+        "sha256": "b0fe863cb8a1664e33b642aef95b2bf52703fa2650ae1f193e01740cd9b36e18",
+        "bytes": 318810
+      },
+      "box_studio/preset_meshes/screw_corner_standard-base.npz": {
+        "sha256": "7860693cf524fec8356cfd03494d5c51610408f28d04393bfc60b16869562633",
+        "bytes": 987702
+      },
+      "box_studio/preset_meshes/screw_corner_standard-lid.npz": {
+        "sha256": "04c16f9f0dc22161f9cc6e8ca911f07faf1633ac5e80e908c87b17e716061886",
+        "bytes": 790170
+      },
+      "box_studio/preset_meshes/tool_rugged-base.npz": {
+        "sha256": "82bf5a9a9c4fd340b63cdafbfb1eaa62c97bf29273007316dd20e57e16fea544",
+        "bytes": 5120771
+      },
+      "box_studio/preset_meshes/tool_rugged-clip_left.npz": {
+        "sha256": "ef6e6d4bff98c5e5820c38fc2320729bd9b66625d0a1ddae057e650d48b1cf71",
+        "bytes": 11788695
+      },
+      "box_studio/preset_meshes/tool_rugged-clip_right.npz": {
+        "sha256": "570a4608a98b9dc02393add71488a321bd7fe956173b521615fe0b75532e3042",
+        "bytes": 11789070
+      },
+      "box_studio/preset_meshes/tool_rugged-lid.npz": {
+        "sha256": "fd19e0d80fd6096097e28381b92aec566357a314113804bd7b48419870087655",
+        "bytes": 2878638
+      },
+      "box_studio/presets_catalog.py": {
+        "sha256": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+        "bytes": 9299
+      },
+      "box_studio/rugged_front_geometry.py": {
+        "sha256": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+        "bytes": 18335
+      },
+      "box_studio/rugged_front_mesh.py": {
+        "sha256": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+        "bytes": 12275
+      },
+      "box_studio/rugged_geometry.py": {
+        "sha256": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+        "bytes": 45946
+      },
+      "box_studio/rugged_latch_geometry.py": {
+        "sha256": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+        "bytes": 20411
+      },
+      "box_studio/schema.py": {
+        "sha256": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+        "bytes": 21552
+      },
+      "box_studio/studio_ui.py": {
+        "sha256": "c58d4b0e3c407db301affbedeb697e363982dc7f9022099851767e9bc6ff0b26",
+        "bytes": 177659
+      },
+      "orca_box_generator-1.3.0.dist-info/LICENSE": {
+        "sha256": "076d0f872a70a4ac6a226ef64837e1a5cb47b1010306df04b3879bc1093e874f",
+        "bytes": 1198
+      },
+      "orca_box_generator-1.3.0.dist-info/METADATA": {
+        "sha256": "8ea7dc5397388cb7beed01263789dc1d7041f21e7eb3bd9800f390ca84126041",
+        "bytes": 16305
+      },
+      "orca_box_generator-1.3.0.dist-info/RECORD": {
+        "sha256": "e1f1110a55d6f548597eb52e2ed508694e5f5a2c744ab85edbcc1888563ea17f",
+        "bytes": 2568
+      },
+      "orca_box_generator-1.3.0.dist-info/WHEEL": {
+        "sha256": "8b7f53e0801d40a0fb59b37698f5f6b362546b6aadd1ac4a2c5b7e19b25cf8cb",
+        "bytes": 102
+      },
+      "orca_box_generator-1.3.0.dist-info/top_level.txt": {
+        "sha256": "3fda1e889ae0a717fe50153dede629588557c44a9214a3dc2649da03cd21e8b5",
+        "bytes": 11
+      }
+    },
+    "record_all_members_verified": true,
+    "source_icon_license_and_resource_parity": true,
+    "readme_exact_current_markdown": true,
+    "entry_point": "box_studio",
+    "python": ">=3.12",
+    "runtime_dependencies": [
+      "numpy>=1.26"
+    ],
+    "tag": "py3-none-any",
+    "license": "MIT",
+    "unexpected_members": []
+  },
+  "resources": {
+    "source_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "count": 8,
+    "total_compressed_bytes": 34427046,
+    "independent_decode_method": "Integer deltas accumulated through int64 then int32; float bits reconstructed with XOR accumulation. Every array hash compared with the frozen index. No mesh regeneration.",
+    "manifest": {
+      "src/box_studio/preset_meshes/screw_corner_standard-base.npz": {
+        "sha256": "7860693cf524fec8356cfd03494d5c51610408f28d04393bfc60b16869562633",
+        "bytes": 987702,
+        "preset": "screw_corner_standard",
+        "part": "base",
+        "vertices": 350202,
+        "triangles": 700400,
+        "decoded_array_sha256": {
+          "vertices": "efaba8bdd14c1be37afe81595eebc369ff747fcda6b3add2a8560bb63afb6069",
+          "triangles": "3dc2eb8babea699118a91de7ec097dffe0022aacc492329956f70d555352058a",
+          "normals": "1fc184882da3e3afcc85a0c05bcc9445cbe632554c34bb0e7f257d42434e40aa"
+        }
+      },
+      "src/box_studio/preset_meshes/screw_corner_standard-lid.npz": {
+        "sha256": "04c16f9f0dc22161f9cc6e8ca911f07faf1633ac5e80e908c87b17e716061886",
+        "bytes": 790170,
+        "preset": "screw_corner_standard",
+        "part": "lid",
+        "vertices": 335986,
+        "triangles": 671984,
+        "decoded_array_sha256": {
+          "vertices": "b1d5caa66f02f32279b209c38212cc70364d0a430a80a37cb3c56b4237c5d6a8",
+          "triangles": "8b54ad267b99491eb799bf67822dd50c9a7a35733ed8db1047cc8d114b2d96c1",
+          "normals": "4f95cf285fbebcaa073f6a0c5d188789322eba28d09ce50398cdd7053cd35958"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-base.npz": {
+        "sha256": "82bf5a9a9c4fd340b63cdafbfb1eaa62c97bf29273007316dd20e57e16fea544",
+        "bytes": 5120771,
+        "preset": "tool_rugged",
+        "part": "base",
+        "vertices": 236661,
+        "triangles": 473318,
+        "decoded_array_sha256": {
+          "vertices": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+          "triangles": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+          "normals": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-lid.npz": {
+        "sha256": "fd19e0d80fd6096097e28381b92aec566357a314113804bd7b48419870087655",
+        "bytes": 2878638,
+        "preset": "tool_rugged",
+        "part": "lid",
+        "vertices": 226460,
+        "triangles": 452916,
+        "decoded_array_sha256": {
+          "vertices": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+          "triangles": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+          "normals": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-clip_left.npz": {
+        "sha256": "ef6e6d4bff98c5e5820c38fc2320729bd9b66625d0a1ddae057e650d48b1cf71",
+        "bytes": 11788695,
+        "preset": "tool_rugged",
+        "part": "clip_left",
+        "vertices": 563669,
+        "triangles": 1127334,
+        "decoded_array_sha256": {
+          "vertices": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-clip_right.npz": {
+        "sha256": "570a4608a98b9dc02393add71488a321bd7fe956173b521615fe0b75532e3042",
+        "bytes": 11789070,
+        "preset": "tool_rugged",
+        "part": "clip_right",
+        "vertices": 563669,
+        "triangles": 1127334,
+        "decoded_array_sha256": {
+          "vertices": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "src/box_studio/preset_meshes/pencil-base.npz": {
+        "sha256": "0fb9267429f058dc9f4775e4bb614d6bc3163121e258ad3b95dc7b3936e44fd7",
+        "bytes": 753190,
+        "preset": "pencil",
+        "part": "base",
+        "vertices": 174969,
+        "triangles": 349934,
+        "decoded_array_sha256": {
+          "vertices": "17655321a7ba477ac408cd4e605d70e1ec22db7ac7fe15b094adcd6982a55f85",
+          "triangles": "776716f09b6e34039a36ae0534ee9fd546208f93d4ac788a8fad01b2c346af88",
+          "normals": "b7654ced1ce8c2b7c9b27b0b172fb26ef51d030fd124800438729d0b2cb60891"
+        }
+      },
+      "src/box_studio/preset_meshes/pencil-lid.npz": {
+        "sha256": "b0fe863cb8a1664e33b642aef95b2bf52703fa2650ae1f193e01740cd9b36e18",
+        "bytes": 318810,
+        "preset": "pencil",
+        "part": "lid",
+        "vertices": 111246,
+        "triangles": 222488,
+        "decoded_array_sha256": {
+          "vertices": "4aca63c4d2adb669e91c58c027b82d922a38fba657ef6972012fba2b7b429a56",
+          "triangles": "72cbae0390b99db1328c9d4b97aae15b115672d062366a037054e7a86f7b85d2",
+          "normals": "d3883143b2865809cc1bf18d6be75fe0f4ede44af97774304b85551b9ae967dc"
+        }
+      }
+    },
+    "all_blob_sizes_hashes_and_array_hashes_verified": true
+  },
+  "public_hygiene": {
+    "text_files_scanned": 109,
+    "findings": [],
+    "checks": [
+      "strong token/private-key patterns",
+      "personal absolute Windows workspace/user paths",
+      "literal credential-bearing HTTP URLs",
+      "LF text files",
+      "no STL or 3MF files in intended public set",
+      "only indexed NPZ resources",
+      "wheel member allowlist"
+    ],
+    "binary_files": [
+      "dist/orca_box_generator-1.3.0-py3-none-any.whl",
+      "assets/icon.jpg",
+      "assets/icon.png",
+      "assets/marketplace/01-box-studio-en.png",
+      "assets/marketplace/01-box-studio-pt-BR.png",
+      "assets/marketplace/02-removable-lid-en.png",
+      "assets/marketplace/02-removable-lid-pt-BR.png",
+      "assets/marketplace/03-stackable-container-en.png",
+      "assets/marketplace/03-stackable-container-pt-BR.png",
+      "assets/marketplace/04-workspace-export-en.png",
+      "assets/marketplace/04-workspace-export-pt-BR.png",
+      "assets/marketplace/source-workspace-en.png",
+      "assets/marketplace/source-workspace-pt-BR.png",
+      "assets/marketplace/sources/model-01.png",
+      "assets/marketplace/sources/model-02.png",
+      "assets/marketplace/sources/model-03.png",
+      "src/box_studio/preset_meshes/pencil-base.npz",
+      "src/box_studio/preset_meshes/pencil-lid.npz",
+      "src/box_studio/preset_meshes/screw_corner_standard-base.npz",
+      "src/box_studio/preset_meshes/screw_corner_standard-lid.npz",
+      "src/box_studio/preset_meshes/tool_rugged-base.npz",
+      "src/box_studio/preset_meshes/tool_rugged-clip_left.npz",
+      "src/box_studio/preset_meshes/tool_rugged-clip_right.npz",
+      "src/box_studio/preset_meshes/tool_rugged-lid.npz"
+    ],
+    "reference_geometry_or_renderings_added": false,
+    "limitation": "Pattern scans do not constitute a general secret-detection proof or legal review."
+  },
+  "limitations": [
+    "This audit does not turn pending full-suite, UI E2E, template, native or performance runs into passes.",
+    "The separate 28-case focused geometry run predates final decimal seam corrections; its historical status remains unchanged.",
+    "Hashes identify this source/package snapshot; later source, README, resource or bundle changes require a fresh audit.",
+    "No physical fit, elasticity, force, fatigue, load, slicing or support-free printing is certified."
+  ],
+  "final_public_hygiene": {
+    "verified_utc": "2026-11-19T17:51:31.095048+00:00",
+    "indexed_files_reviewed": 136,
+    "text_files_reviewed": 112,
+    "strong_secret_or_personal_path_findings": [],
+    "crlf_text_findings": [],
+    "reference_stl_or_3mf_files": [],
+    "wheel_members": 28,
+    "inline_binary_base64_reviewed_as_typed_assets_instead_of_plaintext": true,
+    "scope": "Final indexed candidate paths and current file bytes, including editorial assets/documents and all three distributions. This report is updated after inspection."
+  }
+}

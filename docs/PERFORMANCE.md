@@ -1,5 +1,30 @@
 # Generation measurements / Medições de geração
 
+## Rugged SnapLock 1.3.0 — 2026-11-19
+
+A geometria Rugged foi substituída. A rodada final com GPU Intel UHD 630/D3D11 passou nas **32 seleções medidas abaixo de 2000 ms**, incluindo primeira seleção em processos novos e seleção após duas voltas pela galeria, na página e no painel. O pior tempo medido foi **1748,3 ms**, Rugged no painel após as duas voltas. A caixa completa manteve seus 3.180.902 triângulos, incluindo as duas travas. Veja [relatório completo, hashes e método](performance/1.3.0-standard-selection.json).
+
+As **32 seleções de aquecimento também estão no relatório**. Duas seleções Rugged no painel demoraram 2212,8 e 2048,5 ms. Portanto, o resultado não significa que qualquer clique será sempre inferior a dois segundos. O ensaio usa Chromium isolado com o controlador real; não mede a latência do WebView nativo do Orca, o tempo de inicialização dos processos ou uma fila com outro cálculo pesado ainda em andamento. O cache de arquivos do sistema operacional não foi esvaziado.
+
+| Modelo padrão / Standard model | Pior seleção medida / Worst measured selection |
+| --- | ---: |
+| Lip Snap | 279.9 ms |
+| Screw Corner | 763.1 ms |
+| Rugged SnapLock | 1748.3 ms |
+| Sliding | 446.2 ms |
+| Open bin | 295.9 ms |
+| Lever latch | 780.7 ms |
+| Stackable | 215.8 ms |
+| PIP clamshell | 480.3 ms |
+
+Escolher um projeto completo não espera mais o atraso de 350 ms usado para agrupar edições de sliders. Os arquivos preparados mantêm todos os bits de V/T/N; o decoder reconstrói os dados no próprio buffer e verifica seus hashes. As duas travas compartilham somente os índices e normais imutáveis cujos hashes são idênticos; as coordenadas continuam independentes. O controlador é o dono dessas referências, sem um segundo cache global de arrays. Não houve redução de triângulos ou alteração dos materiais/normais da prévia.
+
+A revisão mantém o limite de 128 MiB para malhas, amplia a prévia codificada para 96 MiB e inclui caches locais das travas (48 MiB, até duas entradas) e apoios frontais (8 MiB). Os limites somam 280 MiB de contabilização, incluindo referências compartilhadas contadas mais de uma vez; não limitam a memória total do processo, navegador ou GPU. Em um processo Python isolado usando o pacote-fonte, três voltas e 24 seleções ficaram dentro dos quatro limites. A memória privada no fim das voltas foi aproximadamente 423,56 / 423,58 / 423,58 MiB; o pico de working set chegou a 312,41 MiB após também exercitar os caches locais. Veja [memória, limites e hashes](performance/1.3.0-python-memory.json). O ensaio não mede a memória do bundle dentro do Orca nem da GPU/navegador.
+
+Reprodução: `python -B -W error scripts/check_box_memory.py --output test-output/memory.json` e o comando de benchmark de seleção abaixo. Mudanças em qualquer uma das sete dependências em `_PRESET_DEPENDENCIES` exigem reconstruir o banco antes da distribuição. Alterar a altura da tampa ou a folga das articulações pode exigir nova extração das travas e levar dezenas de segundos; a meta de seleção padrão não abrange toda edição personalizada.
+
+The final hardware-backed run passed 32/32 measured standard-card selections below two seconds, worst 1748.3 ms. All 32 declared warm-ups remain visible; two exceeded the target (2212.8 and 2048.5 ms). These are isolated Chromium/controller observations on this machine, not a native-WebView or universal timing guarantee. Full geometry and all V/T/N bits are retained. The three-tour memory report covers a fresh Python process importing the source package, separately from browser/GPU and native Orca memory. The 1.2.3 results below describe the previous Rugged design.
+
 ## Version 1.2.3: exact standard presets and faster general computation
 
 The three slow standard cards now load their **complete original surfaces**, not a reduced preview. Nine packaged resources retain every float32 vertex/normal bit and every triangle index from revision `75f3be346516ff7c4be557e9ee05d999dc476a3b`. A committed reference digest fixture checks this identity. Their combined compressed size is 6,488,188 bytes; XOR on float bits and integer deltas are lossless.

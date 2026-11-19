@@ -1,5 +1,19 @@
 # Validation status
 
+## Rugged SnapLock — 1.3.0
+
+Version 1.3.0 replaces the old Rugged pin/captive mechanism with a four-part snap-assembled hinge and lid-mounted latches. Earlier Rugged evidence below is historical and does not approve this geometry. The other seven styles keep their own recorded evidence. See [dimensions, assembly and current verification status](RUGGED_SNAPLOCK.md).
+
+The complete isolated browser/backend run passed **211 checks**, including all eight standard presets/styles, enabled targets, features, rejection paths, page and dock. It performed **102 export actions** and independently reopened **145 files**, including an expected oversized-3MF rejection; there were no failures or console errors. The template run passed **12 layouts and 37 interactions**, with no issues. These runs are separate and their counts are not added together. See [scope, checks, file digests and source hashes](validation/1.3.0-ui-e2e.json).
+
+The four prepared Rugged V/T surfaces match the actual data used for all 16 private reference views. Minimum silhouette IoU is 99.7976%, base/lid exceed 99.992%, and maximum measured envelope errors are 0.001381 / 0.002226 / 0.039665 mm for base / lid / latches. These are view/envelope measurements, with an independently generated triangulation. The [reference-fit proof](validation/1.3.0-rugged-reference-fit.json) and [geometry methods](validation/1.3.0-rugged-geometry.json) record their exact scope.
+
+Native Windows observations covered activation of Box 1.3.0, the default page, latch release and lid opening, four original 160 × 95 / H35 / lid20 STL exports and a custom 140 × 80 / H40 / lid20 3MF export. All original files have exact manufacturing-source identity, one closed oriented manifold shell per part and grounding at Z=0. The custom 3MF has four objects separated within 220 × 220 × 250 mm, preserving the intended process settings. **The user imported the files on the Plater and approved the model.** That confirmation is distinct from the independent original-file inspection; see [native export evidence](validation/1.3.0-native-export.json). The specific native Rugged 1.3 dock remains unobserved; its isolated browser workflow passed. No slicing or physical printing was performed. Native macOS/Linux, printed flexibility, release force, fit and fatigue remain pending.
+
+The final complete local Python run passed **237 tests in 741.323 seconds**, with `-B -W error`, Chromium enabled and **no skips**. Rugged's unsupported-gasket regression now explicitly requires preserving the request and rejecting generation; supported gasket styles retain their geometric contact checks. This is the final rerun, separate from the earlier 236-case run that exposed obsolete Rugged gasket expectations.
+
+Both standalone forms and the wheel passed isolated imports, embedded-resource loading and edited Rugged generation. [Distribution review](validation/1.3.0-distribution-audit.json) verifies sources, MIT notices, icon, wheel RECORD, eight resources and artifact hashes. The selection benchmark passed 32/32 measured selections below two seconds, worst 1748.3 ms; two declared warm-ups exceeded the target. [Performance and memory](PERFORMANCE.md) separate those observations from native-app and universal timing claims. Cross-platform approval is assessed on the change's final CI revision.
+
 ## Exact standard-preset performance — 1.2.3, 2026-11-19
 
 The complete local suite passed **171 tests in 280.631 seconds**, using `-B -W error`, Chromium enabled and **no skips**. The final template/browser run passed **12 layouts and 37 interactions**, with zero issues or script errors. Both standalone bundles and the wheel passed isolated imports and loading of all nine prepared resources. These are separate checks and their case counts are not added together.

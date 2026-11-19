@@ -38,6 +38,10 @@ ICON_SRC_PATH = SRC_PKG_DIR / "icon.svg"
 MODULE_ORDER: list[str] = [
     "schema.py",
     "mesh_generator.py",
+    "rugged_geometry.py",
+    "rugged_latch_geometry.py",
+    "rugged_front_geometry.py",
+    "rugged_front_mesh.py",
     "exporters.py",
     "presets_catalog.py",
     "preset_mesh_index.py",
@@ -47,7 +51,7 @@ MODULE_ORDER: list[str] = [
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.2.3"
+DEFAULT_PLUGIN_VERSION = "1.3.0"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION
@@ -283,7 +287,7 @@ def _strip_internal_imports(source: str) -> tuple[str, set[str]]:
     return "".join(lines), future_features
 
 
-PRESET_SOURCE_FILES = ("schema.py", "mesh_generator.py", "presets_catalog.py")
+PRESET_SOURCE_FILES = ("schema.py", "mesh_generator.py", "presets_catalog.py", "rugged_geometry.py", "rugged_latch_geometry.py", "rugged_front_geometry.py", "rugged_front_mesh.py")
 
 
 def _preset_dependency_digest(parts: dict[str, bytes]) -> str:
@@ -662,10 +666,25 @@ else:
     load_mesh = importlib.import_module("box_studio.preset_mesh_cache").load_standard_preset_mesh
 for item in bridge.BUILTIN_PRESETS:
     if item["params"]["style"] in ("screw_corner", "rugged_box", "sliding_lid"):
-        parts = ("base", "lid", "pin", "clip_left", "clip_right") if item["params"]["style"] == "rugged_box" else ("base", "lid")
+        parts = ("base", "lid", "clip_left", "clip_right") if item["params"]["style"] == "rugged_box" else ("base", "lid")
         for part in parts:
             assert load_mesh(item["params"], part) is not None, "Missing exact standalone preset surface"
-print("Isolated registration, page, dock and embedded icon: PASS")
+# Exercise the generated-code path too: prepared defaults alone would hide a
+# broken intra-package import in the flattened reconstruction modules.
+generate = bridge.generate_box_mesh
+topology = bridge.topology_report if sys.argv[2] == "bundle" else package.topology_report
+edited = {"style": "rugged_box", "width_x": 162, "height_z": 35.1,
+          "rugged_lid_height": 20.3, "fit_clearance": .2}
+for part in ("base", "lid"):
+    mesh = generate(edited, part)
+    report = topology(mesh)
+    assert report["closed"] and report["oriented"] and report["components"] == 1 and report["euler"] == 2
+    assert mesh.volume_cm3 > 0
+# A translated journal/latch keeps its dimensions while missing the exact
+# assembly bank; its canonical shape may still use the verified resource.
+mesh = generate({"style": "rugged_box", "width_x": 162}, "clip_right")
+assert topology(mesh)["closed"] and mesh.volume_cm3 > 0
+print("Isolated registration, page, dock, embedded icon, resources and edited Rugged generation: PASS")
 """
 
 

@@ -2079,6 +2079,10 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                   step="0.2"
                 />
               </div>
+              <div data-slider="rugged_lid_height" class="ctrl-row">
+                <label class="ctrl-top"><span class="ctrl-label" data-pt="Altura da tampa" data-en="Lid height">Altura da tampa</span><span class="ctrl-val-wrap"><input class="ctrl-num" data-p="rugged_lid_height" type="number" min="18" max="120" step="1" /><span class="ctrl-unit">mm</span></span></label>
+                <input class="orca-slider" data-param-range="rugged_lid_height" type="range" min="18" max="120" step="1" />
+              </div>
               <div data-slider="fit_clearance" class="ctrl-row">
                 <label class="ctrl-top"
                   ><span
@@ -2190,13 +2194,8 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                 />
               </div>
               <div class="rugged">
-                <label class="ctrl-row"
-                  ><span class="ctrl-label" data-i18n="hinge">hinge</span
-                  ><select id="hinge_mode" class="vp-select box-select">
-                    <option value="pin">Pino / Pin</option>
-                    <option value="print_in_place">Print-in-place</option>
-                  </select></label
-                >
+                <p class="helper-note" data-pt="SnapLock: dobradiça traseira de encaixe e duas travas articuladas na tampa. Sem pinos soltos." data-en="SnapLock: snap-assembled rear hinge and two latches pivoting on the lid. No loose pins."></p>
+                <p class="helper-note" data-pt="A folga amplia os bolsões das orelhas, preservando a parede de apoio. O aro em V mantém contato nominal." data-en="Clearance enlarges the ear recesses while retaining the backing wall. The V rim keeps nominal contact."></p>
                 <p id="rugged-motion-phase" class="helper-note" aria-live="polite" hidden></p>
               </div>
                 <div data-slider="hinge_pin_diameter" class="ctrl-row">
@@ -2957,11 +2956,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Duas travas articuladas na base, com pega e gancho. Solte as travas antes de retirar a tampa.",
       releaseAndOpen: "Soltar fechos e abrir",
-      releaseClipsAndOpen: "Retirar presilhas e abrir",
-      ruggedClosed: "Presilhas instaladas · tampa fechada",
-      ruggedReleasing: "Retirando presilhas · tampa parada",
-      ruggedOpening: "Presilhas retiradas · abrindo a tampa",
-      ruggedOpen: "Presilhas retiradas · tampa aberta",
+      releaseClipsAndOpen: "Girar travas e abrir",
+      ruggedClosed: "Travas engatadas · tampa fechada",
+      ruggedReleasing: "Girando travas · tampa parada",
+      ruggedOpening: "Travas abertas · abrindo a tampa",
+      ruggedOpen: "Travas abertas · tampa aberta",
       latchesEngaged: "Fechos presos · tampa fechada",
       releasingLatches: "Soltando os fechos · tampa parada",
       liftingLid: "Fechos abertos · afastando a tampa",
@@ -2977,6 +2976,7 @@ const INITIAL = __BOX_CONTEXT__;
       lid: "Espessura tampa",
       clearance: "Folga por lado",
       hingeClearance: "Folga da dobradiça",
+      latchClearance: "Folga dos pivôs",
       lip: "Profundidade de encaixe",
       hinge: "Dobradiça",
       pin: "Diâmetro do pino",
@@ -3024,6 +3024,7 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Abrir pasta de exportação",
       printHelp:
         "Base com fundo na mesa; preserve a orientação exportada das peças. Imprima o kit de encaixe antes da peça final. Tempo depende da impressora e do perfil.",
+      printHelpRugged: "Base e tampa têm alturas independentes. Exporte as quatro peças: cascos com a face externa na mesa, travas deitadas. Monte os encaixes esféricos após imprimir; teste a flexibilidade do filamento.",
       printHelpClamshell:
         "Base e tampa com a mesma altura. Exporte o conjunto articulado aberto a 180°, com as duas faces externas apoiadas na mesa. Preserve essa posição no fatiador e teste a articulação impressa.",
       printHelpOpen:
@@ -3078,11 +3079,11 @@ const INITIAL = __BOX_CONTEXT__;
       twoLatches:
         "Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.",
       releaseAndOpen: "Release latches & open",
-      releaseClipsAndOpen: "Remove clips & open",
-      ruggedClosed: "Clips installed · lid closed",
-      ruggedReleasing: "Removing clips · lid stationary",
-      ruggedOpening: "Clips removed · opening the lid",
-      ruggedOpen: "Clips removed · lid open",
+      releaseClipsAndOpen: "Rotate latches & open",
+      ruggedClosed: "Latches engaged · lid closed",
+      ruggedReleasing: "Rotating latches · lid stationary",
+      ruggedOpening: "Latches open · opening the lid",
+      ruggedOpen: "Latches open · lid open",
       latchesEngaged: "Latches engaged · lid closed",
       releasingLatches: "Releasing latches · lid stationary",
       liftingLid: "Latches open · lifting the lid",
@@ -3098,6 +3099,7 @@ const INITIAL = __BOX_CONTEXT__;
       lid: "Lid thickness",
       clearance: "Clearance per side",
       hingeClearance: "Hinge clearance",
+      latchClearance: "Pivot clearance",
       lip: "Locating skirt depth",
       hinge: "Hinge",
       pin: "Pin diameter",
@@ -3145,6 +3147,7 @@ const INITIAL = __BOX_CONTEXT__;
       folder: "Open export folder",
       printHelp:
         "Base on its floor; preserve the exported orientation of each part. Print the fit kit first. Print time depends on printer and profile.",
+      printHelpRugged: "Base and lid have independent heights. Export all four parts: shells with their outer faces on the bed, latches flat. Snap the spherical joints together after printing; check your filament's flexibility.",
       printHelpClamshell:
         "Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.",
       printHelpOpen:
@@ -3223,6 +3226,7 @@ const INITIAL = __BOX_CONTEXT__;
         open_bin: "printHelpOpen",
         stackable_bin: "printHelpStack",
         snap_latch: "printHelpLatch",
+        rugged_box: "printHelpRugged",
         clamshell_pip: "printHelpClamshell",
       }[p.style] || "printHelp";
     document.querySelector('[data-i18n="printHelp"]').textContent = tr(key);
@@ -3250,16 +3254,17 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updateClearanceLabels() {
     const clamshell = p.style === "clamshell_pip";
+    const rugged = p.style === "rugged_box";
     const label = document.querySelector(
       '[data-slider="fit_clearance"] .ctrl-label',
     );
-    label.dataset.pt = clamshell ? "Folga entre metades Z" : "Folga por lado";
+    label.dataset.pt = clamshell ? "Folga entre metades Z" : rugged ? "Folga nos encaixes" : "Folga por lado";
     label.dataset.en = clamshell
       ? "Gap between halves Z"
-      : "Clearance per side";
+      : rugged ? "Joint clearance" : "Clearance per side";
     label.textContent = label.dataset[lang];
     document.querySelector('[data-i18n="hud_mouth_hole"]').textContent = tr(
-      clamshell ? "hingeClearance" : "clearance",
+      clamshell ? "hingeClearance" : rugged ? "latchClearance" : "clearance",
     );
     $("hud-clearance").textContent =
       Number(clamshell ? p.pip_clearance : p.fit_clearance).toFixed(2) + " mm";
@@ -3329,7 +3334,7 @@ const INITIAL = __BOX_CONTEXT__;
     if (remember) snapshot();
     p = clone(next);
     sync();
-    requestPreview();
+    requestPreview(true, 0);
   }
   function sync() {
     updateClearanceLabels();
@@ -3341,13 +3346,17 @@ const INITIAL = __BOX_CONTEXT__;
       '[data-slider="height_z"] .ctrl-label',
     );
     heightLabel.dataset.pt =
-      p.style === "clamshell_pip"
+      p.style === "rugged_box"
+        ? "Altura da base Z"
+        : p.style === "clamshell_pip"
         ? "Altura de cada metade Z"
         : p.style === "stackable_bin"
           ? "Altura total Z"
           : "Altura Z";
     heightLabel.dataset.en =
-      p.style === "clamshell_pip"
+      p.style === "rugged_box"
+        ? "Base height Z"
+        : p.style === "clamshell_pip"
         ? "Height of each half Z"
         : p.style === "stackable_bin"
           ? "Total height Z"
@@ -3368,16 +3377,14 @@ const INITIAL = __BOX_CONTEXT__;
           (key) => p[key]?.length,
         ) || p.gasket_enabled
       );
-    $("addPost").disabled = clamshell;
-    $("addPort").disabled = clamshell;
+    const rugged = p.style === "rugged_box";
+    $("addPost").disabled = clamshell || rugged;
+    $("addPort").disabled = clamshell || rugged;
     const diameterRow = document.querySelector(
       '[data-slider="hinge_pin_diameter"]',
     );
-    diameterRow.style.display = ["rugged_box", "clamshell_pip"].includes(
-      p.style,
-    )
-      ? "grid"
-      : "none";
+    diameterRow.style.display = clamshell ? "grid" : "none";
+    document.querySelector('[data-slider="rugged_lid_height"]').style.display = rugged ? "grid" : "none";
     const diameterLabel = diameterRow.querySelector(".ctrl-label");
     diameterLabel.dataset.pt = clamshell
       ? "Diâmetro do eixo integral"
@@ -3394,15 +3401,16 @@ const INITIAL = __BOX_CONTEXT__;
         lidless ||
         (p.style === "sliding_lid" && key !== "fit_clearance") ||
         (p.style === "snap_latch" && key === "lip_depth") ||
+        (rugged && key !== "fit_clearance") ||
         (p.style === "clamshell_pip" && key !== "fit_clearance")
           ? "none"
           : "grid";
     }
     $("gasket_enabled").closest(".switch-row").style.display =
-      (lidless || clamshell || p.style === "sliding_lid") && !p.gasket_enabled ? "none" : "flex";
+      (lidless || clamshell || rugged || p.style === "sliding_lid") && !p.gasket_enabled ? "none" : "flex";
     for (const key of ["gasket_width", "gasket_depth"])
       document.querySelector('[data-slider="' + key + '"]').style.display =
-        lidless || ["clamshell_pip", "sliding_lid"].includes(p.style) ? "none" : "grid";
+        lidless || ["clamshell_pip", "sliding_lid", "rugged_box"].includes(p.style) ? "none" : "grid";
     for (const option of $("target").options) {
       option.disabled =
         (lidless &&
@@ -3410,8 +3418,7 @@ const INITIAL = __BOX_CONTEXT__;
         (p.style === "snap_latch" && option.value === "fit_test_kit") ||
         (p.style === "clamshell_pip" &&
           !["base_and_lid", "full_suite"].includes(option.value)) ||
-        (p.style === "rugged_box" && p.hinge_mode === "print_in_place" &&
-          ["base_only", "lid_only"].includes(option.value)) ||
+        (rugged && ["fit_test_kit", "gasket"].includes(option.value)) ||
         (option.value === "gasket" && (!p.gasket_enabled || p.style === "sliding_lid"));
       if (option.value === "base_and_lid")
         option.textContent =
@@ -3429,7 +3436,6 @@ const INITIAL = __BOX_CONTEXT__;
       .forEach((e) => (e.value = p[e.dataset.p]));
     for (const key of [
       "style",
-      "hinge_mode",
       "screw_size",
       "quality",
       "handle_faces",
@@ -3454,10 +3460,9 @@ const INITIAL = __BOX_CONTEXT__;
       .forEach(
         (e) => (e.style.display = p.style === "screw_corner" ? "grid" : "none"),
       );
-    $("pipNote").textContent =
-      p.style === "rugged_box" && p.hinge_mode === "print_in_place"
-        ? tr("pip")
-        : "";
+    $("pipNote").textContent = rugged
+      ? (lang === "pt" ? `Fechada: ${p.height_z + p.rugged_lid_height} mm · base ${p.height_z} + tampa ${p.rugged_lid_height} mm` : `Closed: ${p.height_z + p.rugged_lid_height} mm · base ${p.height_z} + lid ${p.rugged_lid_height} mm`)
+      : "";
     document
       .querySelectorAll("[data-param-range]")
       .forEach((e) => (e.value = p[e.dataset.paramRange]));
@@ -3467,7 +3472,7 @@ const INITIAL = __BOX_CONTEXT__;
     buttons();
     render();
   }
-  function requestPreview(commit = true) {
+  function requestPreview(commit = true, delay = 350) {
     clearTimeout(timer);
     localDirty = true;
     const request_id = ++serial;
@@ -3479,11 +3484,15 @@ const INITIAL = __BOX_CONTEXT__;
       p.theme = theme;
       if (!send({ type: "preview", params: p, request_id }))
         status(tr("noHost"));
-    }, 350);
+    }, delay);
   }
   function change(key, value) {
     snapshot();
     p[key] = value;
+    if (key === "style" && value === "rugged_box") {
+      const reference = INITIAL.presets?.find(item => item.id === "tool_rugged")?.params;
+      if (reference) for (const k of ["schema_version", "rugged_model", "width_x", "depth_y", "height_z", "rugged_lid_height", "wall_thickness", "floor_thickness", "corner_radius", "fit_clearance"]) p[k] = reference[k];
+    }
     if (
       key === "style" &&
       ((["open_bin", "stackable_bin"].includes(value) &&
@@ -3508,7 +3517,6 @@ const INITIAL = __BOX_CONTEXT__;
     );
   for (const key of [
     "style",
-    "hinge_mode",
     "screw_size",
     "quality",
     "handle_faces",
@@ -3998,7 +4006,7 @@ const INITIAL = __BOX_CONTEXT__;
         return;
       }
       if (
-        m.params?.style === "snap_latch" &&
+        ["snap_latch", "rugged_box"].includes(m.params?.style) &&
         (!m.latch_motion?.clip_left || !m.latch_motion?.clip_right)
       ) {
         status(tr("latchMotionUnavailable"), true);
@@ -4008,6 +4016,14 @@ const INITIAL = __BOX_CONTEXT__;
         try {
           for (const part of ["clip_left", "clip_right", "lid"])
             snapLatchTransform(part, 0, m.latch_motion);
+        } catch (_) {
+          status(tr("latchMotionUnavailable"), true);
+          return;
+        }
+      }
+      if (m.params?.style === "rugged_box") {
+        try {
+          validateRuggedMotion(m.params, m.hinge, m.latch_motion);
         } catch (_) {
           status(tr("latchMotionUnavailable"), true);
           return;
@@ -4544,6 +4560,21 @@ const INITIAL = __BOX_CONTEXT__;
     const message = tr(phase <= 0 ? "ruggedClosed" : phase < 0.25 ? "ruggedReleasing" : phase < 1 ? "ruggedOpening" : "ruggedOpen");
     if (label.textContent !== message) label.textContent = message;
   }
+  function validateRuggedMotion(shape, hinge, motion) {
+    const near = (actual, expected) => Number.isFinite(actual) && Math.abs(actual - expected) < 1e-5;
+    if (hinge?.axis !== "x" || hinge?.open_sign !== -1 ||
+        !near(hinge.y, shape.depth_y / 2 + 4.75) || !near(hinge.z, shape.height_z))
+      throw Error("Invalid rear hinge snapshot");
+    for (const [index, part] of ["clip_left", "clip_right"].entries()) {
+      const info = motion?.[part];
+      const cx = (index ? 1 : -1) * (shape.width_x / 2 - shape.corner_radius - 20.75);
+      if (info?.attachment !== "lid" || info?.axis !== "x" || info?.open_sign !== -1 ||
+          !near(info.release_fraction, 0.25) || !near(info.release_angle, 90) ||
+          !near(info.pivot?.x, cx) || !near(info.pivot?.y, -shape.depth_y / 2 - 3) ||
+          !near(info.pivot?.z, shape.height_z + shape.rugged_lid_height - 10))
+        throw Error("Invalid lid-mounted latch snapshot");
+    }
+  }
   function partTransform(part, opening = openingFraction(), offset = null) {
     const shape = typeof meshParams === "undefined" ? p : meshParams;
     const frame = translateM(...(offset || [0, 0, 0]));
@@ -4555,16 +4586,20 @@ const INITIAL = __BOX_CONTEXT__;
       );
     let model = I();
     if (shape.style === "rugged_box") {
-      // Remove the spring clips completely before the hinged lid rotates.
+      // Release each lid-mounted latch before opening the rear hinge.
       const phase = Math.max(0, Math.min(1, opening));
-      const releaseFraction = 0.25;
-      if (part.startsWith("clip"))
-        model = translateM(0, -15 * Math.min(1, phase / releaseFraction), 0);
-      else if (part === "lid") {
-        const h = INITIAL.hinge || {y: shape.depth_y / 2 + 5, z: shape.height_z - 4};
-        const angle = -Math.PI * Math.max(0, (phase - releaseFraction) / (1 - releaseFraction));
-        model = mult(translateM(0, h.y, h.z), mult(rotateX(angle), translateM(0, -h.y, -h.z)));
-      }
+      const info = INITIAL.latch_motion?.[part];
+      const releaseFraction = info?.release_fraction || 0.25;
+      const h = INITIAL.hinge;
+      if (!h) return frame;
+      const lidAngle = (h.open_sign || -1) * Math.PI * Math.max(0, (phase - releaseFraction) / (1 - releaseFraction));
+      const lidMotion = mult(translateM(0, h.y, h.z), mult(rotateX(lidAngle), translateM(0, -h.y, -h.z)));
+      if (part.startsWith("clip") && info) {
+        const q = info.pivot;
+        const theta = (info.open_sign || -1) * info.release_angle * Math.PI / 180 * Math.min(1, phase / releaseFraction);
+        const release = mult(translateM(q.x, q.y, q.z), mult(rotateX(theta), translateM(-q.x, -q.y, -q.z)));
+        model = mult(lidMotion, release);
+      } else if (part === "lid") model = lidMotion;
       return mult(frame, model);
     }
     if (part === "lid") {
@@ -4682,6 +4717,8 @@ const INITIAL = __BOX_CONTEXT__;
     };
   }
   function decode(s, ctor) {
+    if (typeof Uint8Array.fromBase64 === "function")
+      return new ctor(Uint8Array.fromBase64(s).buffer);
     const b = atob(s),
       a = new Uint8Array(b.length);
     for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
@@ -4714,7 +4751,7 @@ const INITIAL = __BOX_CONTEXT__;
         roles = new Float32Array(pos.length / 3);
       const lo = [Infinity, Infinity, Infinity],
         hi = [-Infinity, -Infinity, -Infinity];
-      let maxOverhang = 0;
+      let maxDownwardRatio = 0;
       for (let i = 0; i < pos.length; i += 3)
         for (let a = 0; a < 3; a++) {
           lo[a] = Math.min(lo[a], pos[i + a]);
@@ -4732,19 +4769,17 @@ const INITIAL = __BOX_CONTEXT__;
           vz = pos[c + 2] - pos[a + 2],
           nx = uy * vz - uz * vy,
           ny = uz * vx - ux * vz,
-          nz = ux * vy - uy * vx,
-          l = Math.hypot(nx, ny, nz) || 1;
-        if (Math.max(pos[a + 2], pos[b + 2], pos[c + 2]) > lo[2] + 0.02)
-          maxOverhang = Math.max(
-            maxOverhang,
-            (Math.asin(Math.max(0, Math.min(1, -nz / l))) * 180) / Math.PI,
-          );
-        for (const j of [a, b, c]) {
-          norm[j] += nx;
-          norm[j + 1] += ny;
-          norm[j + 2] += nz;
+          nz = ux * vy - uy * vx;
+        if (nz < 0 && Math.max(pos[a + 2], pos[b + 2], pos[c + 2]) > lo[2] + 0.02) {
+          const l = Math.hypot(nx, ny, nz) || 1;
+          maxDownwardRatio = Math.max(maxDownwardRatio, Math.min(1, -nz / l));
         }
+        // Preserve the exact addition order without allocating an array per face.
+        norm[a] += nx; norm[a + 1] += ny; norm[a + 2] += nz;
+        norm[b] += nx; norm[b + 1] += ny; norm[b + 2] += nz;
+        norm[c] += nx; norm[c + 1] += ny; norm[c + 2] += nz;
       }
+      const maxOverhang = Math.asin(maxDownwardRatio) * 180 / Math.PI;
       for (let i = 0; i < norm.length; i += 3) {
         const l = Math.hypot(norm[i], norm[i + 1], norm[i + 2]) || 1;
         norm[i] /= l;
@@ -5276,6 +5311,10 @@ const INITIAL = __BOX_CONTEXT__;
     presets();
   }
   function presetThumb(params) {
+    if (params.style === "rugged_box") {
+      // Domain thumbnail: deep lid, chamfered lower edge and two lid-mounted clips.
+      return `<svg viewBox="0 0 124 92" fill="none" aria-hidden="true"><path d="M17 28l20 -10h61l-20 10Z" fill="#00a896" fill-opacity=".65" stroke="#80ffea"/><path d="M17 28v17h61V28M78 28l20 -10v17L78 45" fill="#008577" stroke="#55cfbb"/><path d="M17 45v25l6 8h55V45M78 45l20 -10v27L78 78" fill="#00796b" fill-opacity=".6" stroke="#55cfbb"/>${[30,61].map(x=>`<path d="M${x} 37v6l3 4 -3 4v12h8V51l-3 -4 3 -4v-6M${x+2} 55v6M${x+6} 55v6" fill="#ffb74d" stroke="#ffe0a3" stroke-width="1"/>`).join("")}</svg>`;
+    }
     if (params.style === "clamshell_pip") {
       const shell = (x, y) =>
         `<path d="M${x} ${y}l16 -8h44l-16 8Z" fill="#00a896" fill-opacity=".55" stroke="#80ffea"/><path d="M${x} ${y}v14h44v-14M${x + 44} ${y}l16 -8v14l-16 8" fill="#00796b" fill-opacity=".45" stroke="#55cfbb"/>`;
@@ -5349,7 +5388,9 @@ const INITIAL = __BOX_CONTEXT__;
           ? item.name_pt
           : item.name_en;
       card.querySelector(".preset-sub").textContent =
-        `${item.params.width_x}×${item.params.depth_y}×${item.params.height_z} mm`;
+        item.params.style === "rugged_box"
+          ? `${item.params.width_x}×${item.params.depth_y} · ${item.params.height_z}+${item.params.rugged_lid_height} mm`
+          : `${item.params.width_x}×${item.params.depth_y}×${item.params.height_z} mm`;
       const apply = () => {
         activePreset = item.id;
         setDesign(item.params);

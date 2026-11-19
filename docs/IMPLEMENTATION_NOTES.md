@@ -1,4 +1,12 @@
-# Implementation and verification notes — version 1.2
+# Implementation and verification notes — version 1.3.0
+
+## Rugged replacement contract
+
+Schema 2 introduces `rugged_lid_height` for independent base/lid shell heights and `rugged_model` to identify legacy personal presets. The new Rugged has only `base`, `lid`, `clip_left`, `clip_right`: snap-assembled spherical rear joints and latches attached to the lid. It does not support the previous loose-pin or captive export mode. `clamshell_pip` remains independent. Production reconstruction modules never read the supplied reference meshes. Current checks are recorded in [RUGGED_SNAPLOCK.md](RUGGED_SNAPLOCK.md); historical Rugged results below are superseded for this shape.
+
+The shell and rear joints share explicit attachment boundaries. Each front ear uses two dimensional interval graphs with one common triangulation and a marked root cap. Assembly removes the root cap and joins the exposed loop to the shell panel; overlapping closed solids are not treated as a union. Decimal crease planes use the same final float32 coordinates on both sides of an attachment, preventing nearly coincident open seams. Independent field, topology, vertex-link and full-mesh intersection tests check the resulting surfaces.
+
+The latch is extracted from its own analytic dimensional field, with guarded contractions of tiny edges and a measured surface-error limit. Prepared meshes preserve its complete V/T/N arrays to avoid repeating this expensive extraction on each standard-card selection. Changes to W/D/base height translate the same local fittings; joint diameters remain fixed. A new lid height or clearance may require fresh extraction and is not covered by the standard-selection latency target. Rendering and STL/3MF export use the same manufactured surfaces, with proper rigid rotations for the print orientation.
 
 ## Architecture and parameter contract
 

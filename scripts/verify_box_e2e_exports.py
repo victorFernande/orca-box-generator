@@ -200,15 +200,27 @@ def preview_identity(preview, items, params, target):
                 v[:, 1] = params["depth_y"] + 2 * params["hinge_separation"] - v[:, 1]
                 v[:, 2] = 2 * params["height_z"] + params["fit_clearance"] - v[:, 2]
                 v = v.astype(np.float32)
-            elif part == "lid" and params["style"] != "sliding_lid" and not (params["style"] == "rugged_box" and params["hinge_mode"] == "print_in_place"):
+            elif params["style"] == "rugged_box" and part in ("base", "lid", "clip_left", "clip_right"):
+                # Independent rigid print poses of the reconstructed four-piece
+                # enclosure. Neither the old hinge mode nor the opening slider
+                # changes the actual printed part membership or orientation.
+                v = v.astype(np.float64)
+                if part == "lid":
+                    v[:, 0] *= -1
+                    v[:, 2] = params["height_z"] + params["rugged_lid_height"] - v[:, 2]
+                elif part in ("clip_left", "clip_right"):
+                    pivot_y = -params["depth_y"] / 2 - 3.0
+                    v = np.column_stack((-v[:, 0], v[:, 2], v[:, 1] - pivot_y + 3.0))
+                v = v.astype(np.float32)
+            elif part == "lid" and params["style"] != "sliding_lid":
                 v[:, 2] *= -1
                 t = t[:, [0, 2, 1]]
             if part == "pin":
                 v = v[:, [1, 2, 0]]
-            if not (params["style"] == "rugged_box" and params["hinge_mode"] == "print_in_place" and part in ("base", "lid")):
+            if not (params["style"] == "rugged_box" and part in ("base", "lid", "clip_left", "clip_right")):
                 v[:, 2] -= v[:, 2].min()
         decoded.append((part, v, t))
-    if params["style"] == "clamshell_pip" or (params["style"] == "rugged_box" and params["hinge_mode"] == "print_in_place" and target in ("base_and_lid", "full_suite")):
+    if params["style"] == "clamshell_pip":
         pair = [m for m in decoded if m[0] in ("base", "lid")]
         _require(len(pair) == 2, "captive preview must contain both halves")
         assembly = items[0][1].part
@@ -263,9 +275,20 @@ def verify_exports(paths, items, params, host, preview, target):
             result["checks"].append("binary_stl_exact_facet_source_identity")
         result["checks"].extend(["finite_nondegenerate_float32", "oriented_closed_edges", "manifold_vertex_links", "positive_shell_volumes"])
         for part in result["parts"]:
-            expected_shells = 2 if part["part"] in ("clamshell_pip_assembly", "print_in_place_assembly") else 1
+            expected_shells = 2 if part["part"] == "clamshell_pip_assembly" else 1
             _require(part["components"] == expected_shells, f"unexpected disconnected shells: {part['part']}")
         result["checks"].append("expected_connected_shell_count")
+        if params["style"] == "rugged_box":
+            required = {
+                "base_only": ["base"], "lid_only": ["lid"],
+                "base_and_lid": ["base", "lid", "clip_left", "clip_right"],
+                "full_suite": ["base", "lid", "clip_left", "clip_right"],
+            }
+            _require(target in required and not params["gasket_enabled"],
+                     "Rugged requires its actual shell/latch parts; gasket and generic fit kit are unsupported")
+            _require([part["part"] for part in result["parts"]] == required.get(target),
+                     "Rugged export must contain its separate shell parts and two latches, without a pin or captive assembly")
+            result["checks"].append("rugged_separate_parts_without_pin_or_captive_assembly")
         if params["style"] == "sliding_lid" and target != "fit_test_kit":
             for report, (_, mesh) in zip(result["parts"], items):
                 if mesh.part == "lid":

@@ -193,24 +193,25 @@ class FunctionalMatingTests(unittest.TestCase):
                 lever.assert_open_lid_lift(self, p)
 
     def test_rugged_clips_have_no_permanent_closed_overlap(self):
-        for clearance in (0.1, 0.2, 0.4):
+        # The new clips pivot on the LID. Temporary hook snap deflection cannot
+        # excuse an undeformed overlap in the fully closed, latched geometry.
+        for clearance in (0.1, 0.15, 0.3):
             p = normalize_params({"style": "rugged_box", "fit_clearance": clearance})
             base, _, _ = build_part_field(p, "base")
             lid, _, _ = build_part_field(p, "lid")
             for part in ("clip_left", "clip_right"):
                 with self.subTest(clearance=clearance, part=part):
                     clip, bounds, _ = build_part_field(p, part)
-                    points = solid_grid(clip, bounds)
+                    points = solid_grid(clip, bounds, spacing=0.30)
                     self.assertGreater(len(points), 10, "Clip must contain a printable solid")
-                    # Exact historical counterexamples supplement the grid so a
-                    # narrow overlapping arm cannot hide between sampled planes.
-                    cx = (-1 if part == "clip_left" else 1) * p["width_x"] * 0.24
-                    witnesses = np.array([
-                        [cx + 2.8, -p["depth_y"] / 2 - 1.5, p["height_z"] - 6],
-                        [cx - 2.8, -p["depth_y"] / 2 - 1.5, p["height_z"] - 6],
-                        [cx, -p["depth_y"] / 2 - 1.5, p["height_z"] - 7.1],
-                    ])
-                    points = np.concatenate((points, witnesses[clip(witnesses) < -1e-5]))
+                    actual = generate_box_mesh(p, part)
+                    # Actual face samples supplement the spatial grid around
+                    # the spherical socket lips and narrow retaining fingers.
+                    inward = actual.vertices[actual.triangles].mean(axis=1).astype(float)
+                    inward -= actual.face_normals.astype(float) * 0.025
+                    inward = inward[clip(inward) < -1e-5]
+                    self.assertGreater(len(inward), 10, "Actual clip faces must bound material")
+                    points = np.concatenate((points, inward))
                     for other, field in (("base", base), ("lid", lid)):
                         values = field(points)
                         index = int(np.argmin(values))
@@ -219,6 +220,11 @@ class FunctionalMatingTests(unittest.TestCase):
                             f"{part} permanently penetrates {other} at {points[index].tolist()}; "
                             "transient insertion flexure does not justify undeformed closed overlap",
                         )
+        # The old Rugged accepted .40 mm. Its replacement has a narrower
+        # validated snap range; preserve coverage as a rejection, not a skip.
+        invalid = normalize_params({"style": "rugged_box", "fit_clearance": .4})
+        with self.assertRaises(ValueError):
+            generate_box_mesh(invalid, "base")
 
     def test_sliding_detent_resists_withdrawal_and_is_clear_when_closed(self):
         for clearance in (0.1, 0.2, 0.4):

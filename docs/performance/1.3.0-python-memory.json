@@ -1,0 +1,275 @@
+{
+  "isolated_python_process_only": true,
+  "runtime_representation": "source_package_in_fresh_process",
+  "browser_gpu_rss_measured": false,
+  "source_hashes": {
+    "src/box_studio/__init__.py": "8e97275d20248b34e99448e283f6574f7bf933051269b31979669c03a9e3ced4",
+    "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+    "src/box_studio/linux_ipc.py": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+    "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+    "src/box_studio/plugin_main.py": "3234d812fcebbd30d4919ab0f2972a9d1cb1740e5a1f44596d4210d21a080ec7",
+    "src/box_studio/preset_mesh_cache.py": "5f70ed680befe0360acc81b676f45ed8c8e1e0686dcb4477393484fbc9f94844",
+    "src/box_studio/preset_mesh_index.py": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+    "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+    "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+    "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+    "src/box_studio/rugged_geometry.py": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+    "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+    "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+    "src/box_studio/studio_ui.py": "c58d4b0e3c407db301affbedeb697e363982dc7f9022099851767e9bc6ff0b26",
+    "src/box_studio/preset_meshes/pencil-base.npz": "0fb9267429f058dc9f4775e4bb614d6bc3163121e258ad3b95dc7b3936e44fd7",
+    "src/box_studio/preset_meshes/pencil-lid.npz": "b0fe863cb8a1664e33b642aef95b2bf52703fa2650ae1f193e01740cd9b36e18",
+    "src/box_studio/preset_meshes/screw_corner_standard-base.npz": "7860693cf524fec8356cfd03494d5c51610408f28d04393bfc60b16869562633",
+    "src/box_studio/preset_meshes/screw_corner_standard-lid.npz": "04c16f9f0dc22161f9cc6e8ca911f07faf1633ac5e80e908c87b17e716061886",
+    "src/box_studio/preset_meshes/tool_rugged-base.npz": "82bf5a9a9c4fd340b63cdafbfb1eaa62c97bf29273007316dd20e57e16fea544",
+    "src/box_studio/preset_meshes/tool_rugged-clip_left.npz": "ef6e6d4bff98c5e5820c38fc2320729bd9b66625d0a1ddae057e650d48b1cf71",
+    "src/box_studio/preset_meshes/tool_rugged-clip_right.npz": "570a4608a98b9dc02393add71488a321bd7fe956173b521615fe0b75532e3042",
+    "src/box_studio/preset_meshes/tool_rugged-lid.npz": "fd19e0d80fd6096097e28381b92aec566357a314113804bd7b48419870087655"
+  },
+  "before": {
+    "working_set_bytes": 41639936,
+    "private_bytes": 264196096,
+    "peak_working_set_bytes": 53293056
+  },
+  "rows": [
+    {
+      "round": 1,
+      "id": "everyday",
+      "mesh_bytes": 164256,
+      "encoded_bytes": 65728,
+      "working_set_bytes": 44802048,
+      "private_bytes": 267231232,
+      "peak_working_set_bytes": 53293056
+    },
+    {
+      "round": 1,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 82507200,
+      "encoded_bytes": 33002880,
+      "working_set_bytes": 118235136,
+      "private_bytes": 339894272,
+      "peak_working_set_bytes": 128987136
+    },
+    {
+      "round": 1,
+      "id": "tool_rugged",
+      "mesh_bytes": 129247200,
+      "encoded_bytes": 76341776,
+      "working_set_bytes": 189321216,
+      "private_bytes": 411246592,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 1,
+      "id": "pencil",
+      "mesh_bytes": 129772572,
+      "encoded_bytes": 90079968,
+      "working_set_bytes": 221245440,
+      "private_bytes": 443023360,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 1,
+      "id": "open_bin_handles",
+      "mesh_bytes": 129927564,
+      "encoded_bytes": 90141952,
+      "working_set_bytes": 222277632,
+      "private_bytes": 444334080,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 1,
+      "id": "snap_latch_case",
+      "mesh_bytes": 130523436,
+      "encoded_bytes": 90380352,
+      "working_set_bytes": 222363648,
+      "private_bytes": 443854848,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 1,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 130578204,
+      "encoded_bytes": 90402272,
+      "working_set_bytes": 222388224,
+      "private_bytes": 443875328,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 1,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 130899036,
+      "encoded_bytes": 90530528,
+      "working_set_bytes": 222957568,
+      "private_bytes": 444137472,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 2,
+      "id": "everyday",
+      "mesh_bytes": 131063292,
+      "encoded_bytes": 90596256,
+      "working_set_bytes": 222957568,
+      "private_bytes": 444137472,
+      "peak_working_set_bytes": 240304128
+    },
+    {
+      "round": 2,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 117979080,
+      "encoded_bytes": 47191632,
+      "working_set_bytes": 151715840,
+      "private_bytes": 372621312,
+      "peak_working_set_bytes": 247685120
+    },
+    {
+      "round": 2,
+      "id": "tool_rugged",
+      "mesh_bytes": 129247200,
+      "encoded_bytes": 76341776,
+      "working_set_bytes": 190484480,
+      "private_bytes": 411799552,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 2,
+      "id": "pencil",
+      "mesh_bytes": 129772572,
+      "encoded_bytes": 90079968,
+      "working_set_bytes": 222543872,
+      "private_bytes": 443842560,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 2,
+      "id": "open_bin_handles",
+      "mesh_bytes": 129927564,
+      "encoded_bytes": 90141952,
+      "working_set_bytes": 221630464,
+      "private_bytes": 442740736,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 2,
+      "id": "snap_latch_case",
+      "mesh_bytes": 130523436,
+      "encoded_bytes": 90380352,
+      "working_set_bytes": 222248960,
+      "private_bytes": 443699200,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 2,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 130578204,
+      "encoded_bytes": 90402272,
+      "working_set_bytes": 222314496,
+      "private_bytes": 443891712,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 2,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 130899036,
+      "encoded_bytes": 90530528,
+      "working_set_bytes": 222941184,
+      "private_bytes": 444153856,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "everyday",
+      "mesh_bytes": 131063292,
+      "encoded_bytes": 90596256,
+      "working_set_bytes": 222945280,
+      "private_bytes": 444153856,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "screw_corner_standard",
+      "mesh_bytes": 117979080,
+      "encoded_bytes": 47191632,
+      "working_set_bytes": 151588864,
+      "private_bytes": 372498432,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "tool_rugged",
+      "mesh_bytes": 129247200,
+      "encoded_bytes": 76341776,
+      "working_set_bytes": 190656512,
+      "private_bytes": 412483584,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "pencil",
+      "mesh_bytes": 129772572,
+      "encoded_bytes": 90079968,
+      "working_set_bytes": 222388224,
+      "private_bytes": 443691008,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "open_bin_handles",
+      "mesh_bytes": 129927564,
+      "encoded_bytes": 90141952,
+      "working_set_bytes": 223186944,
+      "private_bytes": 444583936,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "snap_latch_case",
+      "mesh_bytes": 130523436,
+      "encoded_bytes": 90380352,
+      "working_set_bytes": 222425088,
+      "private_bytes": 444133376,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "stackable_parts_bin",
+      "mesh_bytes": 130578204,
+      "encoded_bytes": 90402272,
+      "working_set_bytes": 222507008,
+      "private_bytes": 444153856,
+      "peak_working_set_bytes": 256303104
+    },
+    {
+      "round": 3,
+      "id": "clamshell_pip_short",
+      "mesh_bytes": 130899036,
+      "encoded_bytes": 90530528,
+      "working_set_bytes": 223055872,
+      "private_bytes": 444153856,
+      "peak_working_set_bytes": 256303104
+    }
+  ],
+  "local_latch_cache": {
+    "retained_bytes": 33820044,
+    "limit_bytes": 50331648,
+    "entries": 1,
+    "entry_limit": 2
+  },
+  "local_front_cache": {
+    "retained_bytes": 4332280,
+    "limit_bytes": 8388608,
+    "entries": 2
+  },
+  "cache_budget_bytes": {
+    "controller_mesh": 134217728,
+    "controller_encoded": 100663296,
+    "local_latch": 50331648,
+    "local_front": 8388608
+  },
+  "after_local_translations": {
+    "working_set_bytes": 263426048,
+    "private_bytes": 484589568,
+    "peak_working_set_bytes": 327589888
+  },
+  "prepared_compressed_bytes": 34427046
+}

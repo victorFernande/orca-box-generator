@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "units": "mm",
+  "status": "pass",
+  "verified_utc": "2026-11-19T17:03:07.460716+00:00",
+  "scope": "Numerical reference fit and identity of the four packaged default Rugged SnapLock surfaces. Physical printing, strength, and other parameter combinations are outside this record.",
+  "nominal_design": {
+    "width": 160,
+    "depth": 95,
+    "base_height": 35,
+    "lid_height": 20,
+    "closed_height": 55,
+    "corner_radius": 12,
+    "wall_thickness": 2.5,
+    "floor_thickness": 2.5,
+    "fit_clearance": 0.15,
+    "part_count": 4
+  },
+  "reference": {
+    "origin": "Manually supplied private 3MF reference.",
+    "handling": "The original reference geometry, coordinate arrays, rendered images, and local storage locations are excluded from this public record.",
+    "assembly": "Original CAD assembly offsets; no print-layout transforms or fitted model transforms.",
+    "generated_design": "Independent analytic reconstruction; no reference triangulation is embedded in the generated resources."
+  },
+  "provenance": {
+    "geometry_source_fingerprint_sha256": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "decoder_source_sha256": "5f70ed680befe0360acc81b676f45ed8c8e1e0686dcb4477393484fbc9f94844",
+    "resource_index_sha256": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+    "parameter_key_sha256": "cfb2da870997f12ecc0220dff6c9f83db126522b7608f9544bedb583cd7a63d0",
+    "private_proof_record_sha256": "ba12385ac809d4ff7916e3affdc215c7dd42a68ac7871963b82eabf3b16f24e1",
+    "private_render_input_sha256": "fa98e034dd5f39ef34da10f23a6fbc78b1aecf5b60208c258a7f4dcf053eaac2",
+    "private_gpu_masks_sha256": "4cf5fe2c870dc2e31a6a864c5311ac12a90bea25f26672cddb465ee3a31b0fbe",
+    "private_fit_metrics_sha256": "e7ba8a4eb838c18fbe4126c4455396280a5b1cbd3c537a13b620c7f504252812",
+    "source_index_and_resources_stable_during_verification": true
+  },
+  "method": {
+    "resource_loading": "Four direct calls to the current validated package decoder. No CAD fallback or resource regeneration.",
+    "identity": "Exact dtype, shape, and byte equality of vertices and triangle indices from package resources to private snapshots and actual WebGL upload payloads.",
+    "renderer": "Actual indexed WebGL2 drawElements, depth testing, and back-face culling.",
+    "camera": "Orthographic framing derived from reference bounds; identical viewport and millimetres per pixel for each pair. No camera or model fitting between paired renders.",
+    "viewport": {
+      "width_pixels": 1200,
+      "height_pixels": 900
+    },
+    "silhouette": "Intersection-over-union of alpha >= 128 GPU readPixels masks.",
+    "independent_checks": "All 16 mask IoUs, pixel bounds, centroids, and original CAD model bounds independently recomputed; actual draw index counts checked.",
+    "paired_comparison_count": 16,
+    "required_iou": {
+      "base_and_lid": 0.99,
+      "latches": 0.97
+    },
+    "rerender_required_after_decoder_change": false,
+    "reuse_basis": "The final decoded V/T bytes remain identical to the previously rendered input bytes."
+  },
+  "resources": {
+    "base": {
+      "resource_sha256": "82bf5a9a9c4fd340b63cdafbfb1eaa62c97bf29273007316dd20e57e16fea544",
+      "vertex_count": 236661,
+      "triangle_count": 473318,
+      "vertices_sha256": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+      "triangles_sha256": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+      "normals_sha256": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0",
+      "resource_to_snapshot_vertex_bits_identical": true,
+      "resource_to_snapshot_triangle_bits_identical": true,
+      "resource_to_webgl_vertex_bits_identical": true,
+      "resource_to_webgl_triangle_bits_identical": true,
+      "maximum_model_bbox_error_mm": 0.001380925292970403,
+      "minimum_silhouette_iou": 0.9999207270669502
+    },
+    "lid": {
+      "resource_sha256": "fd19e0d80fd6096097e28381b92aec566357a314113804bd7b48419870087655",
+      "vertex_count": 226460,
+      "triangle_count": 452916,
+      "vertices_sha256": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+      "triangles_sha256": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+      "normals_sha256": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef",
+      "resource_to_snapshot_vertex_bits_identical": true,
+      "resource_to_snapshot_triangle_bits_identical": true,
+      "resource_to_webgl_vertex_bits_identical": true,
+      "resource_to_webgl_triangle_bits_identical": true,
+      "maximum_model_bbox_error_mm": 0.0022258842529296885,
+      "minimum_silhouette_iou": 0.9999227181617226
+    },
+    "clip_left": {
+      "resource_sha256": "ef6e6d4bff98c5e5820c38fc2320729bd9b66625d0a1ddae057e650d48b1cf71",
+      "vertex_count": 563669,
+      "triangle_count": 1127334,
+      "vertices_sha256": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+      "triangles_sha256": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+      "normals_sha256": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6",
+      "resource_to_snapshot_vertex_bits_identical": true,
+      "resource_to_snapshot_triangle_bits_identical": true,
+      "resource_to_webgl_vertex_bits_identical": true,
+      "resource_to_webgl_triangle_bits_identical": true,
+      "maximum_model_bbox_error_mm": 0.03966518530273788,
+      "minimum_silhouette_iou": 0.9979762225996412
+    },
+    "clip_right": {
+      "resource_sha256": "570a4608a98b9dc02393add71488a321bd7fe956173b521615fe0b75532e3042",
+      "vertex_count": 563669,
+      "triangle_count": 1127334,
+      "vertices_sha256": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+      "triangles_sha256": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+      "normals_sha256": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6",
+      "resource_to_snapshot_vertex_bits_identical": true,
+      "resource_to_snapshot_triangle_bits_identical": true,
+      "resource_to_webgl_vertex_bits_identical": true,
+      "resource_to_webgl_triangle_bits_identical": true,
+      "maximum_model_bbox_error_mm": 0.03966518530273788,
+      "minimum_silhouette_iou": 0.9979762225996412
+    }
+  },
+  "views": {
+    "base.front": {
+      "silhouette_iou": 0.9999899138983119,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.00030297683235560896,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "base.back": {
+      "silhouette_iou": 0.9999899138983119,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.00030297683235560896,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "base.side": {
+      "silhouette_iou": 0.9999376386185056,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.00103512070048534,
+      "pixels_per_mm": 10.258285151705552,
+      "passed": true
+    },
+    "base.top": {
+      "silhouette_iou": 0.9999207270669502,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.0009727306275112596,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "lid.front": {
+      "silhouette_iou": 0.9999607046222592,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.0009648940288539378,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "lid.back": {
+      "silhouette_iou": 0.9999607046222592,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.0009648940288539378,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "lid.side": {
+      "silhouette_iou": 0.9999530564517506,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.00018419449537477234,
+      "pixels_per_mm": 10.258405721455285,
+      "passed": true
+    },
+    "lid.top": {
+      "silhouette_iou": 0.9999227181617226,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.0007810180497828547,
+      "pixels_per_mm": 7.234567901234568,
+      "passed": true
+    },
+    "clip_right.front": {
+      "silhouette_iou": 0.9988723552127107,
+      "projected_bbox_error_max_pixels": 1,
+      "projected_bbox_error_max_mm": 0.04006113038990826,
+      "centroid_error_mm": 0.009001669943322682,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_right.back": {
+      "silhouette_iou": 0.998888438843424,
+      "projected_bbox_error_max_pixels": 1,
+      "projected_bbox_error_max_mm": 0.04006113038990826,
+      "centroid_error_mm": 0.008795022699431429,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_right.side": {
+      "silhouette_iou": 0.9995292804965219,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.007096825855697636,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_right.top": {
+      "silhouette_iou": 0.9979762225996412,
+      "projected_bbox_error_max_pixels": 2,
+      "projected_bbox_error_max_mm": 0.05105915017064845,
+      "centroid_error_mm": 0.0014784844328485506,
+      "pixels_per_mm": 39.170256326547864,
+      "passed": true
+    },
+    "clip_left.front": {
+      "silhouette_iou": 0.9988723552127107,
+      "projected_bbox_error_max_pixels": 1,
+      "projected_bbox_error_max_mm": 0.04006113038990826,
+      "centroid_error_mm": 0.009001669943322682,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_left.back": {
+      "silhouette_iou": 0.998888438843424,
+      "projected_bbox_error_max_pixels": 1,
+      "projected_bbox_error_max_mm": 0.04006113038990826,
+      "centroid_error_mm": 0.008795022699431429,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_left.side": {
+      "silhouette_iou": 0.9995292804965219,
+      "projected_bbox_error_max_pixels": 0,
+      "projected_bbox_error_max_mm": 0.0,
+      "centroid_error_mm": 0.007096825855697636,
+      "pixels_per_mm": 24.961851806655673,
+      "passed": true
+    },
+    "clip_left.top": {
+      "silhouette_iou": 0.9979762225996412,
+      "projected_bbox_error_max_pixels": 2,
+      "projected_bbox_error_max_mm": 0.05105915017064845,
+      "centroid_error_mm": 0.0014784844328485506,
+      "pixels_per_mm": 39.170256326547864,
+      "passed": true
+    }
+  },
+  "summary": {
+    "resources_verified": 4,
+    "comparisons_passed": 16,
+    "comparisons_failed": 0,
+    "minimum_silhouette_iou": 0.9979762225996412,
+    "maximum_centroid_error_mm": 0.009001669943322682,
+    "all_resource_vertices_and_indices_reach_render_input_unchanged": true,
+    "gpu_mask_metrics_independently_recomputed": true,
+    "cad_bounds_independently_recomputed": true
+  }
+}

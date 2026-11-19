@@ -7,7 +7,7 @@ const path = require('path');
 const {spawn} = require('child_process');
 const {chromium} = require(process.env.ORCA_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'assets/marketplace');
+const output = process.env.ORCA_MARKETPLACE_OUTPUT || path.join(root, 'assets/marketplace');
 
 (async () => {
   fs.mkdirSync(output, {recursive:true});
@@ -32,8 +32,12 @@ const output = path.join(root, 'assets/marketplace');
     await page.route('**/*',route=>new URL(route.request().url()).origin===url?route.continue():route.abort());
     for(const [language,code]of [['pt','pt-BR'],['en','en']]){
       await page.goto(url+'/?theme=light&lang='+language);
-      await page.locator('.preset-card[data-preset-id="clamshell_pip_short"]').click();
-      await page.waitForFunction(()=>window.__hostMessages.some(message=>message.type==='preview_result'&&message.ok&&message.params?.style==='clamshell_pip'&&message.meshes===2),{},{timeout:180000});
+      const before=await page.evaluate(()=>window.__hostMessages.filter(message=>message.type==='preview_result').length);
+      await page.locator('.preset-card[data-preset-id="tool_rugged"]').click();
+      await page.waitForFunction(before=>window.__hostMessages.filter(message=>message.type==='preview_result').slice(before).some(message=>message.ok&&message.params?.style==='rugged_box'&&message.params.width_x===160&&message.params.depth_y===95&&message.params.height_z===35&&message.params.rugged_lid_height===20&&message.meshes===4),before,{timeout:180000});
+      await page.locator('#open').press('Home');
+      for(let step=0;step<4;step++)await page.locator('#open').press('PageUp');
+      await page.waitForFunction(()=>document.querySelector('#open').value==='40');
       await page.locator('[data-cam="fit"]').click();
       await page.evaluate(()=>document.fonts.ready);
       await page.waitForFunction(()=>{

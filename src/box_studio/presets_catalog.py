@@ -32,12 +32,17 @@ BUILTIN_PRESETS = [
     ),
     _preset(
         "tool_rugged",
-        "Caixa reforçada com dobradiça",
-        "Rugged hinged box",
+        "Caixa reforçada · SnapLock",
+        "Rugged box · SnapLock",
         style="rugged_box",
-        width_x=90,
-        depth_y=65,
+        width_x=160,
+        depth_y=95,
         height_z=35,
+        rugged_lid_height=20,
+        wall_thickness=2.5,
+        floor_thickness=2.5,
+        corner_radius=12,
+        fit_clearance=0.15,
     ),
     _preset(
         "pencil",
@@ -198,19 +203,20 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
     host = limits or {}
     stacking_family = original["style"] == "stackable_bin"
     clamshell = original["style"] == "clamshell_pip"
+    rugged = original["style"] == "rugged_box"
     maxima = {
         "width_x": min(350.0, float(host.get("bed_x", 358)) - 8),
         "depth_y": min(
             350.0,
             float(host.get("bed_y", 372))
-            - (22 if original["style"] == "rugged_box" else 8),
+            - (18 if rugged else 8),
         ),
         "height_z": min(
             250.0,
             float(host.get("max_z", 265))
             - (
-                0
-                if original["style"] in ("open_bin", "stackable_bin")
+                4.5 if rugged else
+                0 if original["style"] in ("open_bin", "stackable_bin")
                 else original["lid_height"] + 1
             ),
         ),
@@ -229,6 +235,13 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
             candidate[k] <= limit for k, limit in maxima.items()
         ):
             return False
+        if rugged:
+            # The rear fittings extend 4.5 mm below the lid seam and above
+            # the base rim; flat latch length grows with the lid's depth.
+            return (
+                candidate["rugged_lid_height"] + 4.5 <= float(host.get("max_z", 265))
+                and candidate["rugged_lid_height"] + 13 <= float(host.get("bed_y", 372))
+            )
         if clamshell:
             from .mesh_generator import clamshell_print_bounds
 
@@ -251,8 +264,8 @@ def generate_random_printable_params(current=None, seed=None, limits=None):
                 break
             candidate[key] = round(rng.uniform(lo, hi), 1)
         else:
-            candidate["fit_clearance"] = round(rng.uniform(0.12, 0.35), 2)
-            if not constrained and not stacking_family:
+            candidate["fit_clearance"] = round(rng.uniform(0.12, 0.30 if rugged else 0.35), 2)
+            if not constrained and not stacking_family and not rugged:
                 candidate["corner_radius"] = round(
                     rng.uniform(2, min(candidate["width_x"], candidate["depth_y"]) / 9),
                     1,

@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "units": "mm",
+  "scope": "Numerical verification of the independently generated four-part Rugged SnapLock design.",
+  "nominal_design": {
+    "width": 160,
+    "depth": 95,
+    "base_height": 35,
+    "lid_height": 20,
+    "closed_height": 55,
+    "corner_radius": 12,
+    "wall_thickness": 2.5,
+    "floor_thickness": 2.5,
+    "fit_clearance": 0.15,
+    "parts": [
+      "base",
+      "lid",
+      "clip_left",
+      "clip_right"
+    ],
+    "rear_hinge": {
+      "axis": "X",
+      "y": 52.25,
+      "z": 35,
+      "ball_radius": 5,
+      "socket_radius": 5.125,
+      "radial_clearance": 0.125,
+      "axial_clearance": 0.25,
+      "nominal_engagement": 1
+    },
+    "latch_journals": {
+      "attachment": "lid",
+      "centers_x": [
+        -47.25,
+        47.25
+      ],
+      "pivot_y": -50.5,
+      "pivot_z": 45,
+      "ball_radius": 3.75,
+      "socket_radius": 3.9,
+      "nominal_engagement": 1.25
+    }
+  },
+  "focused_run": {
+    "status": "pass",
+    "tests": 28,
+    "duration_seconds": 576.786,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "python_flags": [
+      "-B",
+      "-W",
+      "error"
+    ],
+    "snapshot_stage": "Before the final decimal seam corrections. The final source hashes below identify the subsequent frozen candidate, not an assertion that this earlier run used those exact bytes.",
+    "breakdown": {
+      "coupled_cad": 12,
+      "verification_method_regressions": 6,
+      "closed_clip_clearance": 1,
+      "four_part_collection_contract": 1,
+      "extracted_javascript_unit_checks": 2,
+      "export_verifier_regressions": 6
+    },
+    "full_suite_counts_must_not_be_added": true,
+    "final_revision_results_record": "docs/VALIDATION.md"
+  },
+  "methods": {
+    "topology": [
+      "finite float32 coordinates",
+      "nondegenerate facets",
+      "closed oppositely directed edges",
+      "one connected shell per printed part",
+      "single-cycle vertex links",
+      "positive signed volume",
+      "unit facet normals",
+      "centroid agreement with declared analytic-field error"
+    ],
+    "intersections": {
+      "broad_phase": "Balanced median triangle-AABB BVH; exhaustive candidate coverage, no triangle sampling.",
+      "narrow_phase": "Strict segment/triangle crossings and positive-area coplanar overlap; shared boundaries and zero-area tangencies excluded.",
+      "rigid_copy_reuse": "The second latch is omitted from duplicate crossing work only if triangle indices and float32 positions after exact rigid translation are identical.",
+      "regressions": [
+        "exhaustive small-fixture bounds oracle at three coordinate scales",
+        "dense 28680-pair traversal across batch boundaries",
+        "crossing, contained coplanar and duplicate-face negatives",
+        "legal shared-edge and separated-face positives",
+        "360 coplanar pairs compared with the original individual-pair oracle"
+      ]
+    },
+    "closed_fit": {
+      "clip_clearances": [
+        0.1,
+        0.15,
+        0.3
+      ],
+      "unsupported_clearance_rejected": 0.4,
+      "closed_clip_field_threshold": -1e-05,
+      "rim_contact": "Only the closed frame admits real points on triangles of both halves with opposite outward normals, within the V-rim. Analytic chord deficit must remain inside the declared mesh error; no global collision tolerance is enlarged.",
+      "rim_contact_plane_tolerance": 1e-05
+    },
+    "motion": {
+      "lid_poses": 73,
+      "lid_angle_range_degrees": [
+        0,
+        180
+      ],
+      "latch_release_poses": 91,
+      "latch_angle_range_degrees": [
+        0,
+        90
+      ],
+      "release_then_open": true,
+      "clips_follow_lid": true,
+      "bidirectional_surface_queries": true,
+      "moving_surface_field_threshold": -0.01,
+      "temporary_cam_contact": {
+        "region": "Only the lower cam fingers, with the lid stationary.",
+        "maximum_nominal_deflection": 0.75,
+        "derivation": "Cam tip 13.5 minus base inner cheek 12.75; add only the declared mesh chord allowance.",
+        "closed_and_released_overlap_allowed": false,
+        "force_or_strain_simulation": false
+      },
+      "sampling": "Vertices and facet centroids sampled in both directions (up to 14000 per surface); all lower-cam vertices are additionally included during latch release. This is not a continuous exact collision proof."
+    },
+    "printing": {
+      "rigid_print_poses_preserve_connectivity": true,
+      "all_part_minimum_z": 0,
+      "latch_birth_check": "All vertices and edges of the oriented print mesh are checked for downward-facing local-minimum plateaus above the bed; upward cavity floors and grounded bridges are distinguished.",
+      "negative_fixture": "A single connected closed shell with a suspended bulb is rejected.",
+      "minimum_z_tolerance": 0.0001
+    },
+    "exports": {
+      "actual_binary_stl_files": 4,
+      "actual_3mf_files": 1,
+      "objects_in_complete_3mf": 4,
+      "loose_pin_or_captive_assembly_allowed": false,
+      "test_bed": [
+        350,
+        350,
+        260
+      ],
+      "stl_facet_vertex_source_identity": "exact float32",
+      "three_mf_mesh_source_identity": "exact float32",
+      "preview_to_print_connectivity": "exact",
+      "preview_to_print_coordinate_tolerance": 3e-05,
+      "checks": [
+        "independent rigid print transforms",
+        "oriented closed manifold serialized parts",
+        "bed placement and nonoverlap",
+        "Orca project settings",
+        "no input scaling"
+      ]
+    },
+    "legacy_presets": "Schema-1 Rugged records retain their features and are rejected with migration guidance, rather than silently receiving new manufacturing geometry."
+  },
+  "separate_isolated_latch_observation": {
+    "input": "Project-generated corrected right latch; no reference array is distributed.",
+    "vertices": 563669,
+    "triangles": 1127334,
+    "proper_intersections": 0,
+    "unsupported_layer_roots": 0,
+    "print_size": [
+      27.99999237060547,
+      32.93252944946289,
+      6
+    ],
+    "minimum_z": 0,
+    "bed_contact_area": 645.8393161308159,
+    "bed_contact_bbox_fraction": 0.7003924682574029,
+    "bed_contact_tolerance": 0.0001,
+    "not_an_additional_test_count": true
+  },
+  "privacy": {
+    "reference_meshes_embedded": false,
+    "reference_renderings_included": false,
+    "personal_paths_included": false
+  },
+  "limitations": [
+    "Numerical checks at their stated tolerances and sampled motion poses are not an exact global CAD proof for all inputs.",
+    "The 28-case focused run predates the final decimal seam corrections; final full-suite and CI evidence is recorded separately.",
+    "No native Orca session, slicing, physical printing, material flexibility, release force, fatigue, friction, load rating, or support-free manufacturing is established by this report."
+  ],
+  "final_candidate_binding": {
+    "scope": "Frozen geometry, test methods, export verifier and eight prepared resources after the last decimal seam corrections. UI, transport, decoder optimization and distribution artifacts are deliberately outside this binding while their final checks run.",
+    "geometry_dependency_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+    "index_blob_and_size_checks": "pass",
+    "source_sha256": {
+      "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+      "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+      "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+      "src/box_studio/rugged_geometry.py": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+      "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+      "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+      "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+      "src/box_studio/preset_mesh_index.py": "1ddabc9be039b7ec10ac26e5bcf3644edf8ea76725d7bd9687aa2207fa397041",
+      "tests/test_rugged_motion_e2e.py": "6e1a6070c0343f4fbe766c919deb62d99ab176a5ad68c69a6e45865817ab9bd1",
+      "tests/test_functional_mating.py": "359e4205542f793e7b2775903f20cd6b3620e31d518adb49387097c3a1971fb4",
+      "tests/test_geometry_manifold.py": "e3ffb5acbcb002aa88db30a68e6a27196580cb6a417f81b306ba42f0469e9c59",
+      "tests/test_geometry_cache_and_local_edits.py": "84f0ae37fad58d2c5a01aced8cc18c469195ca40535ca3f99eb8a12c65e5700a",
+      "tests/test_e2e_export_verifier.py": "d0f3f0a26884baafbe8a7b898951685809dc045bcc25d459969f6549164fd5fa",
+      "scripts/verify_box_e2e_exports.py": "5f8b6fdb87797bdfca113972cdcb85d78ae393ee7927f11e87d92132c067869e",
+      "tests/test_snap_lever_mating.py": "f41fb0ede5f48f505b777f0bd1fbd13fe49453ba1683325bb06fd6c1511ebc8a",
+      "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891"
+    },
+    "resources": {
+      "src/box_studio/preset_meshes/screw_corner_standard-base.npz": {
+        "sha256": "7860693cf524fec8356cfd03494d5c51610408f28d04393bfc60b16869562633",
+        "bytes": 987702,
+        "preset": "screw_corner_standard",
+        "part": "base",
+        "vertices": 350202,
+        "triangles": 700400,
+        "array_sha256": {
+          "vertices": "efaba8bdd14c1be37afe81595eebc369ff747fcda6b3add2a8560bb63afb6069",
+          "triangles": "3dc2eb8babea699118a91de7ec097dffe0022aacc492329956f70d555352058a",
+          "normals": "1fc184882da3e3afcc85a0c05bcc9445cbe632554c34bb0e7f257d42434e40aa"
+        }
+      },
+      "src/box_studio/preset_meshes/screw_corner_standard-lid.npz": {
+        "sha256": "04c16f9f0dc22161f9cc6e8ca911f07faf1633ac5e80e908c87b17e716061886",
+        "bytes": 790170,
+        "preset": "screw_corner_standard",
+        "part": "lid",
+        "vertices": 335986,
+        "triangles": 671984,
+        "array_sha256": {
+          "vertices": "b1d5caa66f02f32279b209c38212cc70364d0a430a80a37cb3c56b4237c5d6a8",
+          "triangles": "8b54ad267b99491eb799bf67822dd50c9a7a35733ed8db1047cc8d114b2d96c1",
+          "normals": "4f95cf285fbebcaa073f6a0c5d188789322eba28d09ce50398cdd7053cd35958"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-base.npz": {
+        "sha256": "82bf5a9a9c4fd340b63cdafbfb1eaa62c97bf29273007316dd20e57e16fea544",
+        "bytes": 5120771,
+        "preset": "tool_rugged",
+        "part": "base",
+        "vertices": 236661,
+        "triangles": 473318,
+        "array_sha256": {
+          "vertices": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+          "triangles": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+          "normals": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-lid.npz": {
+        "sha256": "fd19e0d80fd6096097e28381b92aec566357a314113804bd7b48419870087655",
+        "bytes": 2878638,
+        "preset": "tool_rugged",
+        "part": "lid",
+        "vertices": 226460,
+        "triangles": 452916,
+        "array_sha256": {
+          "vertices": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+          "triangles": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+          "normals": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-clip_left.npz": {
+        "sha256": "ef6e6d4bff98c5e5820c38fc2320729bd9b66625d0a1ddae057e650d48b1cf71",
+        "bytes": 11788695,
+        "preset": "tool_rugged",
+        "part": "clip_left",
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "src/box_studio/preset_meshes/tool_rugged-clip_right.npz": {
+        "sha256": "570a4608a98b9dc02393add71488a321bd7fe956173b521615fe0b75532e3042",
+        "bytes": 11789070,
+        "preset": "tool_rugged",
+        "part": "clip_right",
+        "vertices": 563669,
+        "triangles": 1127334,
+        "array_sha256": {
+          "vertices": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+          "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+          "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+        }
+      },
+      "src/box_studio/preset_meshes/pencil-base.npz": {
+        "sha256": "0fb9267429f058dc9f4775e4bb614d6bc3163121e258ad3b95dc7b3936e44fd7",
+        "bytes": 753190,
+        "preset": "pencil",
+        "part": "base",
+        "vertices": 174969,
+        "triangles": 349934,
+        "array_sha256": {
+          "vertices": "17655321a7ba477ac408cd4e605d70e1ec22db7ac7fe15b094adcd6982a55f85",
+          "triangles": "776716f09b6e34039a36ae0534ee9fd546208f93d4ac788a8fad01b2c346af88",
+          "normals": "b7654ced1ce8c2b7c9b27b0b172fb26ef51d030fd124800438729d0b2cb60891"
+        }
+      },
+      "src/box_studio/preset_meshes/pencil-lid.npz": {
+        "sha256": "b0fe863cb8a1664e33b642aef95b2bf52703fa2650ae1f193e01740cd9b36e18",
+        "bytes": 318810,
+        "preset": "pencil",
+        "part": "lid",
+        "vertices": 111246,
+        "triangles": 222488,
+        "array_sha256": {
+          "vertices": "4aca63c4d2adb669e91c58c027b82d922a38fba657ef6972012fba2b7b429a56",
+          "triangles": "72cbae0390b99db1328c9d4b97aae15b115672d062366a037054e7a86f7b85d2",
+          "normals": "d3883143b2865809cc1bf18d6be75fe0f4ede44af97774304b85551b9ae967dc"
+        }
+      }
+    }
+  },
+  "final_candidate_validation": {
+    "status": "local_full_suite_and_browser_passed",
+    "record": "docs/VALIDATION.md",
+    "tests": 237,
+    "duration_seconds": 741.323,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "python_flags": [
+      "-B",
+      "-W",
+      "error"
+    ],
+    "browser_checks": 211,
+    "export_actions": 102,
+    "verified_files": 145,
+    "native_page_and_original_file_exports_observed_by_parent": true,
+    "native_plater_import_and_model_approval_confirmed_by_user": true,
+    "native_rugged_dock_observed": false,
+    "physical_print_test": false,
+    "final_ci_record": "See the pull request checks for the exact head revision; this is a local validation record.",
+    "test_file_sha256": {
+      "tests/test_clamshell_export.py": "8d26ebb14b0a2438d7552486350a6d3714c045aba7030b4ca50e02b72a38736a",
+      "tests/test_clamshell_mating.py": "fbe8b9b8bbf59307a451e5e5bab8cbe5174a06b3c4c4330e0e08af733ab66270",
+      "tests/test_clamshell_ui_and_bridge.py": "c7b44ed055696ecb574fc8598ce93b65aa15d29fe22fa2aa966b253c0e4b0f99",
+      "tests/test_e2e_export_verifier.py": "d0f3f0a26884baafbe8a7b898951685809dc045bcc25d459969f6549164fd5fa",
+      "tests/test_export_safety.py": "428d0eef6205a7c6c8680aa6f2c0748200de50cd347991e4a0a212f5e234baf8",
+      "tests/test_functional_mating.py": "359e4205542f793e7b2775903f20cd6b3620e31d518adb49387097c3a1971fb4",
+      "tests/test_gasket_contact_e2e.py": "5364cb1ca8814c366e9400124a4baf4b82ddfae0225ecf3ec2cda7a1589d1f18",
+      "tests/test_geometry_cache_and_local_edits.py": "84f0ae37fad58d2c5a01aced8cc18c469195ca40535ca3f99eb8a12c65e5700a",
+      "tests/test_geometry_clamshell.py": "70b18f7ea5a6d40eb22887186f2e5202d00ce09ae768680cc8dccf6cea3fb4a1",
+      "tests/test_geometry_manifold.py": "e3ffb5acbcb002aa88db30a68e6a27196580cb6a417f81b306ba42f0469e9c59",
+      "tests/test_geometry_snap_lever.py": "d44db345f98b1889724b03df40c659f4175081f2521509b5bed622b9dc985e36",
+      "tests/test_geometry_stackable.py": "81793323ceace38572c0a160341afef2c2f39d550f36f0d1e128f71592487b67",
+      "tests/test_geometry_storage.py": "6941c9325e437a5c708ba150b04ea766bcb03121ab02544c610e0ad760e8bfbf",
+      "tests/test_hex_cutout_dimensions.py": "ca2aa3bc866769d94011eece65dbd04b07d72fe40ef5678094f2ee2ddd4216b8",
+      "tests/test_linux_ipc.py": "c271a8705725a94af29ff3befbe51ba3db0a0c154d8fe2befa5741dc74e27ef1",
+      "tests/test_mesh_decode.py": "eefd51edf1cee6378ce48aa4549e8b5e94d9f03bf3b3bd210e0d113aaa36acfb",
+      "tests/test_mesh_index_equivalence.py": "032a3a935ea98a8b30c5e780a498632dce3b37dc1acd330776af47cec7ce48ef",
+      "tests/test_native_theme_adapter.py": "070b1e8d56c37aeaaa05208981acd34070ee4211c927348a06c7260c00b999cd",
+      "tests/test_packaging.py": "554b82ff4f28c96d183e0625d7ac1d973b93bbf90e7b0f41f1b756a29cab4082",
+      "tests/test_pivot_latch_ui.py": "676586de86645468cb13b1c5d35574eb1724978c22663c9c92b94cd26eb37589",
+      "tests/test_presets_and_bridge.py": "517832753bdef6ba24dd5ac737c4f789a230ba9fa30d4100c2b4781a024d6bd6",
+      "tests/test_preview_i18n.py": "57fa3045b2c61d714af70ed07de649333cd531abf4500663f0c8c5f7dfb9944b",
+      "tests/test_rugged_front_geometry.py": "ae02e82784aef55de1757c2863c5088c26556f09bb429924e5b47af09d4dc548",
+      "tests/test_rugged_front_graph.py": "3a7e4edb4b36c9535fad9bb56fc82e85a026321baaeae80ccfa3f7f8fddddea2",
+      "tests/test_rugged_latch_geometry.py": "f0aa8fd88fe78d4298acff6a8f2f4e6d2c00f7c90ae44b8b6f42f3694812b510",
+      "tests/test_rugged_motion_e2e.py": "6e1a6070c0343f4fbe766c919deb62d99ab176a5ad68c69a6e45865817ab9bd1",
+      "tests/test_rugged_reconstruction.py": "3a7a03f15b35001b41482907c3aa7c0216c30008daf79600cfecdfdfa5511f48",
+      "tests/test_rugged_schema.py": "f05d2f6ee161b36d02cd40ff8909c63c5dac77e28388038f61c19e72b008194d",
+      "tests/test_rugged_ui.py": "6f3cdef33c3cf07f7ac9faf4156af42e999dab26d574b85c3a420b635fe1af32",
+      "tests/test_sliding_print_contact.py": "6b02deb0a7d975b02346771c0a4b280af88ea1aa4363ea6d73fc08140a965766",
+      "tests/test_snap_lever_mating.py": "f41fb0ede5f48f505b777f0bd1fbd13fe49453ba1683325bb06fd6c1511ebc8a",
+      "tests/test_stackable_mating.py": "8cc51369edda67fb57e12c1767bd91467ec0f0cacbb8f14f12223fd34fa73429",
+      "tests/test_standard_preset_mesh_cache.py": "4a6c4f89352076355ea09ccb86dd5a6e88f52fa2850adf085efe9d2dfe9eea91",
+      "tests/test_storage_export.py": "5cc5c6934e0c20cfa32955b7561a20ad1cb1b96fd5d503a7235592971e5ece71",
+      "tests/test_studio_interactions.py": "81c6ec4506760a4c09cce17d4f19296c11601060f2cb4cb41e974451d5f9418a",
+      "tests/test_visual_template.py": "ed219fa4dbe47850350a07110b781367e6419d2d691a190b11bd632a95efbeeb"
+    },
+    "full_local_log_sha256": "fc7741efc44e546ce2fa20ec36075214fdf8f03f4a3798f447627996a1adf76c",
+    "earlier_focused_run_counts_must_not_be_added": true
+  }
+}

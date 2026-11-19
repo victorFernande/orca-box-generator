@@ -220,10 +220,12 @@ class ClamshellUiTests(unittest.TestCase):
         lang='en';updateClearanceLabels();
         if(gap.textContent!=='Gap between halves Z'||hudLabel.textContent!=='Hinge clearance')throw Error('English PIP clearance labels incorrect');
         p.style='rugged_box';updateClearanceLabels();
-        if(gap.textContent!=='Clearance per side'||hudLabel.textContent!=='Clearance per side'||hudValue.textContent!=='0.20 mm')throw Error('legacy clearance not restored');
+        if(gap.textContent!=='Joint clearance'||hudLabel.textContent!=='Pivot clearance'||hudValue.textContent!=='0.20 mm')throw Error('SnapLock pivot clearance not explained');
         updateHud(bounds);if(hudValue.textContent!=='0.20 mm')throw Error('render did not restore legacy fit clearance');
         lang='pt';updateClearanceLabels();
-        if(gap.textContent!=='Folga por lado'||hudLabel.textContent!=='Folga por lado')throw Error('Portuguese legacy labels not restored');
+        if(gap.textContent!=='Folga nos encaixes'||hudLabel.textContent!=='Folga dos pivôs')throw Error('Portuguese SnapLock pivot labels incorrect');
+        p.style='lip_snap';updateClearanceLabels();
+        if(gap.textContent!=='Folga por lado'||hudLabel.textContent!=='Folga por lado')throw Error('Original locating gap label not restored');
         """
         result = subprocess.run(
             ["node"],

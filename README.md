@@ -2,18 +2,18 @@
 
 <p align="center"><img src="assets/icon.jpg" alt="Orca Box Studio — parametric enclosures" width="240"></p>
 
-Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.2.3 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
+Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.3.0 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em português/inglês, temas claro/escuro, aba principal em três colunas e painel lateral.
 
 A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, galeria com filtros, cartões de parâmetros, sliders com valores numéricos, ferramentas flutuantes de inspeção e exportação fixa. Veja a [referência visual e sua origem](docs/UI_TEMPLATE.md).
 
-A seleção dos três modelos mais pesados (parafusado, reforçado e deslizante) reutiliza suas malhas completas já calculadas e verificadas no pacote, sem reduzir a qualidade. Ao mudar medidas, folgas ou recursos, o gerador calcula a nova geometria. Veja as [medições e o teste de clique até desenho](docs/PERFORMANCE.md).
+Os presets parafusado, reforçado e deslizante carregam suas malhas completas preparadas pelo próprio gerador. O pacote não inclui a malha do SnapLock de referência. Alterações nas medidas usam a geometria paramétrica; as duas travas iguais reutilizam o mesmo formato local e mudam de posição quando largura, profundidade ou altura da base variam. Veja as [medições e o teste de clique até desenho](docs/PERFORMANCE.md).
 
 A galeria começa com caixas básicas, sem placas, portas, divisórias ou juntas TPU pré-configuradas. Os presets de ESP32, Raspberry Pi, Arduino, sensores e eletrônica ventilada foram retirados para facilitar os testes das caixas.
 
 ## Recursos
 
 - **Lip snap:** saia de localização com entrada chanfrada, ressalto com rampa e canal correspondente. A retenção do encaixe é ajustada separadamente da folga por lado.
-- **Rugged:** nervuras integradas, dobradiça com pino removível ou eixo cativo print-in-place e duas travas flexíveis removíveis. A animação usa os primeiros 25% do curso para afastar as travas em 15 mm; depois gira a tampa de 0 a 180°. Retire as travas antes de abrir a tampa real.
+- **Rugged · SnapLock:** reconstrução paramétrica do mecanismo da referência fornecida. Corpo nominal de 160 × 95 mm, base de 35 mm e tampa de 20 mm (55 mm fechado), cantos R12 e chanfros inferiores. São quatro peças: base, tampa e duas travas com linguetas flexíveis. Os pivôs esféricos das travas prendem-se à tampa; a dobradiça traseira também é montada por encaixe, sem pino solto. Largura, profundidade e alturas da base/tampa são independentes. Veja [medidas, montagem e limites](docs/RUGGED_SNAPLOCK.md).
 - **Sliding:** trilhos e tampa com perfil a 45°, abertura frontal, puxador e detente traseiro. O detente fica acima da placa, preservando uma face inferior plana para impressão; os cantos traseiros têm alívio no curso nominal de inserção. A espessura útil da tampa deriva do trilho e da folga; os controles de espessura/saia são ocultados neste estilo. Essas propriedades geométricas não comprovam impressão ou encaixe físico.
 - **Screw corner:** quatro colunas integradas à base e furos correspondentes na tampa, para M2/M2.5/M3.
 - **Caixa aberta (`open_bin`):** sem tampa, com duas aberturas de mão arredondadas opcionais nas faces esquerda/direita ou frente/trás. Largura, altura e margem superior das alças são editáveis.
@@ -40,7 +40,7 @@ Requer Python 3.12+ e NumPy 1.26+. No OrcaSlicer, use o Python embutido, que pod
 
 Depois de instalar ou atualizar, **feche e reabra o OrcaSlicer** para carregar o novo bundle. Em **Plugins**, confira a versão e ative **Orca Box Studio**. A substituição do arquivo enquanto o aplicativo está aberto não atualiza o plugin que já está em memória.
 
-Abra **Gerador de Caixas** na aba superior. Para o painel lateral, o caminho verificado no OrcaSlicer 2.5.1 no Windows é: na área principal, pressione **Espaço** para abrir o Speed Dial, digite **Orca Box**, selecione **Orca Box Studio — Painel Lateral** e pressione **Enter**. Escolha um preset, ajuste as dimensões e confira os acessórios. Use o kit de calibração nos estilos compatíveis; caixa aberta, tampa com travas, empilhável e estojo articulado exigem ensaio com peças reais de uma configuração menor. Os botões STL/3MF salvam na pasta de exportação privada do plugin; **Abrir pasta de exportação** localiza os arquivos.
+Abra **Gerador de Caixas** na aba superior. Para o painel lateral, o caminho verificado no OrcaSlicer 2.5.1 no Windows é: na área principal, pressione **Espaço** para abrir o Speed Dial, digite **Orca Box**, selecione **Orca Box Studio — Painel Lateral** e pressione **Enter**. Escolha um preset, ajuste as dimensões e confira os acessórios. Use o kit de calibração nos estilos compatíveis; Rugged, caixa aberta, tampa com travas, empilhável e estojo articulado exigem ensaio com peças reais de uma configuração menor. Os botões STL/3MF salvam na pasta de exportação privada do plugin; **Abrir pasta de exportação** localiza os arquivos.
 
 ## Geometria, tolerâncias e impressão
 
@@ -50,7 +50,7 @@ Cascas simples Lip Snap, os estilos de armazenamento e o estojo articulado usam 
 
 No caminho geral, a grade se refina nas interfaces curvas e nos eventos de altura. O alvo de erro de tesselação é inferior a `min(folga/4, 0,04 mm)` nas interfaces; a interface mostra o alvo em milímetros. Isso não representa a precisão da impressora. Testes verificam topologia, orientação, conectividade, perfis de encaixe e amostras dimensionais. Combinações incompatíveis geram uma explicação e precisam ser corrigidas antes da exportação.
 
-No estilo Rugged com pino, a base é exportada com o fundo para baixo e a tampa invertida. No Rugged **print-in-place**, base e tampa são exportadas como um único objeto com duas cascas fechadas nas posições montadas; o organizador da mesa preserva essa relação. A exportação de base ou tampa isolada é bloqueada nesse modo; junta e kit permanecem alvos separados quando compatíveis. A tampa fica sobre uma grande cavidade: avalie pontes e suportes removíveis no fatiador e mantenha suporte fora das folgas da dobradiça. **Não há promessa de impressão sem suporte para print-in-place.**
+No novo Rugged, imprima as quatro peças separadamente: base pelo fundo, tampa pela face superior externa e travas deitadas na face larga. Monte a dobradiça traseira e os pivôs das travas por pressão após imprimir. Primeiro solte as linguetas inferiores e gire as travas; depois abra a tampa. As travas continuam presas à tampa. A animação representa a rotação rígida, sem simular a deformação elástica das linguetas. Presets pessoais do Rugged anterior são identificados como antigos e preservados no arquivo; selecione o novo modelo na galeria para começar.
 
 A junta TPU acompanha a folga de fechamento e prevê 0,15 mm de compressão nominal contra o apoio da tampa. Essa medida é geométrica, não uma pressão ou vedação homologada. Se uma junta marcada tornar outro estilo incompatível, a opção permanece visível para ser desmarcada; o erro não remove silenciosamente os acessórios solicitados.
 

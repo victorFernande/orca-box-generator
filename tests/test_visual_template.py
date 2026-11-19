@@ -430,13 +430,13 @@ class VisualTemplateTests(unittest.TestCase):
         production_math = script[start.start():stop.start()]
         prefix = """
 const assert = require('node:assert/strict');
-let p = {style:'rugged_box', depth_y:65, height_z:35};
-let INITIAL = {hinge:{y:37.5,z:31}};
+let p = {style:'rugged_box', depth_y:95, height_z:35};
+let INITIAL = {hinge:{y:52.25,z:35,open_sign:-1}};
 let opening = 100, yaw = -.75, pitch = .68, zoom = 1;
 const $ = () => ({value:opening});
 let meshes = [
- {part:'base',bounds:{min:[-45,-32.5,0],max:[45,41.2,35]}},
- {part:'lid',bounds:{min:[-45,-32.5,27.3],max:[45,41.2,38.2]}}
+ {part:'base',bounds:{min:[-80,-55.5,0],max:[80,56.7491,39.4983]}},
+ {part:'lid',bounds:{min:[-80,-55.5,30.5017],max:[80,56.7478,55]}}
 ];
 """
         assertions = """
@@ -445,9 +445,9 @@ function close(actual, expected) {
  actual.forEach((value,index)=>assert.ok(Math.abs(value-expected[index])<1e-4,
    JSON.stringify({actual,expected})));
 }
-close(sceneBounds(0).max,[45,41.2,38.2]);
-close(sceneBounds(1).min,[-45,-32.5,0]);
-close(sceneBounds(1).max,[45,107.5,35]);
+close(sceneBounds(0).max,[80,56.7491,55]);
+close(sceneBounds(1).min,[-80,-55.5,0]);
+close(sceneBounds(1).max,[80,160,39.4983]);
 for (const aspect of [.6,380/245,1920/960]) {
  const frame=camera(aspect),b=sceneBounds(1),m=frame.mvp;
  for(const x of [b.min[0],b.max[0]])for(const y of [b.min[1],b.max[1]])for(const z of [b.min[2],b.max[2]]) {
@@ -459,7 +459,7 @@ for (const aspect of [.6,380/245,1920/960]) {
    JSON.stringify({aspect,x,y,z,nx,ny,nz}));
  }
 }
-p.style='sliding_lid';
+p.style='sliding_lid';p.depth_y=65;
 meshes=[
  {part:'base',bounds:{min:[-45,-32.5,0],max:[45,32.5,35]}},
  {part:'lid',bounds:{min:[-42.3,-30.1,32.2],max:[42.3,30,36.2]}}
@@ -494,6 +494,12 @@ console.log('Transform-aware lid, sliding and perspective framing: PASS');
                 cutouts=[dict(kind="usb_c",face="front",u=0,z=15)],
             ))
             before = copy.deepcopy(original)
+            if style == "rugged_box":
+                with self.assertRaisesRegex(ValueError, "remove posts"):
+                    catalog.generate_random_printable_params(original, 0)
+                self.assertEqual(original, before)
+                original = SCHEMA.normalize_params(dict(style=style))
+                before = copy.deepcopy(original)
             for seed in (0, 1, 22, 99):
                 with self.subTest(style=style, seed=seed):
                     limits = dict(bed_x=220, bed_y=220, max_z=250)

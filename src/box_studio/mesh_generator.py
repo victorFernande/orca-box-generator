@@ -219,6 +219,10 @@ def _corner_centers(p: dict[str, Any]) -> list[tuple[float, float]]:
 
 
 def hinge_geometry(p: dict[str, Any]) -> dict[str, Any]:
+    if p.get("style") == "rugged_box":
+        from .rugged_geometry import rugged_hinge_geometry
+
+        return rugged_hinge_geometry(p)
     if p.get("style") == "clamshell_pip":
         radius = p["hinge_pin_diameter"] / 2
         return {
@@ -431,6 +435,10 @@ def build_part_field(
     errors = validate_params(p)
     if errors:
         raise ValueError("\n".join(errors))
+    if p["style"] == "rugged_box":
+        from .rugged_geometry import rugged_part_field
+
+        return rugged_part_field(p, part)
     registry = {"planes": [[], [], []], "circles": [], "rectangles": []}
     _GEOMETRY_HINTS.set(registry)
     w, d, h, t, f, c, lh, r = (
@@ -812,8 +820,7 @@ def build_part_field(
                 1.2,
                 max(0.2, r - t - c),
             )
-            if style != "rugged_box":
-                result = _union(result, skirt)
+            result = _union(result, skirt)
             rectangles.extend(
                 [
                     (w - 2 * t - 2 * c, d - 2 * t - 2 * c, max(0.2, r - t - c)),
@@ -885,91 +892,6 @@ def build_part_field(
             ),
         ]
         levels.extend([h - gd + 0.05, h + c + 0.15])
-    elif part == "pin":
-        hg = hinge_geometry(p)
-        span, kl, pr = hg["span"], hg["knuckle_length"], hg["radius"]
-        result = _union(
-            _cylinder_x(
-                -span / 2 - kl / 2 - 2, span / 2 + kl / 2 + 2, hg["y"], hg["z"], pr
-            ),
-            _cylinder_x(
-                -span / 2 - kl / 2 - 3,
-                -span / 2 - kl / 2 - 1.5,
-                hg["y"],
-                hg["z"],
-                pr + 1.2,
-            ),
-        )
-        circles = [(1, 2, hg["y"], hg["z"], pr), (1, 2, hg["y"], hg["z"], pr + 1.2)]
-        bounds = (-w / 2 - 3, w / 2 + 3, d / 2, d / 2 + 12, h - 11, h + 5)
-    elif part.startswith("clip"):
-        cx = (-1 if part == "clip_left" else 1) * w * 0.24
-        if style == "snap_latch":
-            poly = _storage_clip_profile(p)
-
-            def clipfield(v):
-                yz = v[:, [1, 2]]
-                inside = np.zeros(len(v), dtype=bool)
-                distance = np.full(len(v), np.inf)
-                for a, b in zip(poly, np.roll(poly, -1, axis=0)):
-                    edge = b - a
-                    u = np.clip(((yz - a) * edge).sum(axis=1) / (edge @ edge), 0, 1)
-                    distance = np.minimum(
-                        distance, np.linalg.norm(yz - a - u[:, None] * edge, axis=1)
-                    )
-                    inside ^= ((a[1] > yz[:, 1]) != (b[1] > yz[:, 1])) & (
-                        yz[:, 0]
-                        < (b[0] - a[0]) * (yz[:, 1] - a[1]) / (b[1] - a[1] + 1e-30)
-                        + a[0]
-                    )
-                return np.maximum(
-                    np.where(inside, -distance, distance),
-                    np.abs(v[:, 0] - cx) - p["latch_width"] / 2,
-                )
-
-            result = clipfield
-            for y, z in poly:
-                _planes(1, float(y))
-                _planes(2, float(z))
-            _planes(0, cx - p["latch_width"] / 2, cx + p["latch_width"] / 2)
-            bounds = (
-                cx - p["latch_width"] / 2 - 1,
-                cx + p["latch_width"] / 2 + 1,
-                float(poly[:, 0].min() - 1),
-                float(poly[:, 0].max() + 1),
-                float(poly[:, 1].min() - 1),
-                float(poly[:, 1].max() + 1),
-            )
-        else:
-            # Detachable flexure clip; middle relief leaves two connected spring arms.
-            result = _difference(
-                _box(cx - 4, cx + 4, -d / 2 - 6, -d / 2 - 1, h - 9, zcap + lh + 1),
-                _box(
-                    cx - 3 - c,
-                    cx + 3 + c,
-                    -d / 2 - 4.6,
-                    -d / 2 + 0.2,
-                    h - 7.2 - c,
-                    zcap + lh - 0.4,
-                ),
-            )
-            # Inward return toe engages the base's catch boss.
-            result = _union(
-                result, _box(cx - 4, cx + 4, -d / 2 - 4, -d / 2 - 0.1, h - 9, h - 7.5)
-            )
-            result = _union(
-                result,
-                _box(
-                    cx - 4,
-                    cx + 4,
-                    -d / 2 - 6,
-                    -d / 2 + 1.4,
-                    zcap + lh + 0.25,
-                    zcap + lh + 1,
-                ),
-            )
-            bounds = (cx - 6, cx + 6, -d / 2 - 8, -d / 2 + 2, h - 11, zcap + lh + 3)
-            levels.extend([h - 9, h - 7.5, h - 7.2 - c, zcap + lh - 0.4, zcap + lh + 1])
     else:
         raise ValueError(f"Unknown part: {part}")
     if style == "snap_latch" and part == "base":
@@ -997,80 +919,7 @@ def build_part_field(
                 ),
             )
             result = _union(result, catch)
-    if style == "rugged_box" and part in ("base", "lid"):
-        hg = hinge_geometry(p)
-        cy, cz, pr, hr, span, kl = (
-            hg[k]
-            for k in ("y", "z", "radius", "outer_radius", "span", "knuckle_length")
-        )
-        barrel = []
-        if part == "base":
-            for x in (-span / 2, span / 2):
-                barrel.append(
-                    _difference(
-                        _cylinder_x(x - kl / 2, x + kl / 2, cy, cz, hr),
-                        _cylinder_x(x - kl, x + kl, cy, cz, pr + c),
-                    )
-                )
-                barrel.append(
-                    _box(
-                        x - kl / 2,
-                        x + kl / 2,
-                        d / 2 - 0.4,
-                        cy,
-                        cz - hr * 0.8,
-                        cz - hr * 0.1,
-                    )
-                )
-            # Reinforcing ribs run to the floor; integrated front catch bosses.
-            for x in (-w * 0.3, 0, w * 0.3):
-                barrel.extend(
-                    [
-                        _box(x - 1, x + 1, -d / 2 - 1.2, -d / 2 + 0.4, 1, h - 7),
-                        _box(x - 1, x + 1, d / 2 - 0.4, d / 2 + 1.2, 1, h - 8),
-                    ]
-                )
-            for x in (-w * 0.24, w * 0.24):
-                barrel.append(
-                    _box(x - 3, x + 3, -d / 2 - 2.2, -d / 2 + 0.3, h - 7.2, h - 5.5)
-                )
-        else:
-            barrel.append(_cylinder_x(-kl / 2, kl / 2, cy, cz, hr))
-            # Arm behind the box; a negative X rotation opens the lid upward.
-            barrel.append(
-                _box(-kl / 2, kl / 2, d / 2 + c, cy + hr * 0.7, cz, zcap + 0.5)
-            )
-            barrel.append(
-                _box(-kl / 2, kl / 2, d / 2 - 0.8, cy + hr * 0.7, zcap, zcap + 0.5)
-            )
-            if p["hinge_mode"] == "pin":
-                barrel[0] = _difference(barrel[0], _cylinder_x(-kl, kl, cy, cz, pr + c))
-            else:
-                end = span / 2 + kl / 2
-                barrel.extend(
-                    [
-                        _cylinder_x(-end - c, end + c, cy, cz, pr),
-                        _cylinder_x(-end - c - 1, -end - c, cy, cz, pr + 1),
-                        _cylinder_x(end + c, end + c + 1, cy, cz, pr + 1),
-                    ]
-                )
-        result = _union(result, *barrel)
-        if part == "base":
-            for x in (-span / 2, span / 2):
-                result = _difference(
-                    result,
-                    _cylinder_x(x - kl / 2 - 0.2, x + kl / 2 + 0.2, cy, cz, pr + c),
-                )
-        elif p["hinge_mode"] == "pin":
-            # The lid arm is fused after the barrel. Bore the final union so
-            # the arm cannot refill the upper half of the separate pin passage.
-            result = _difference(
-                result, _cylinder_x(-kl / 2 - 0.2, kl / 2 + 0.2, cy, cz, pr + c)
-            )
-        circles.extend([(1, 2, cy, cz, hr), (1, 2, cy, cz, pr + c), (1, 2, cy, cz, pr)])
-        levels.extend([cz - hr, cz, cz + hr, cz - hr * 0.8, cz - hr * 0.1])
-        bounds = (-w / 2 - 3, w / 2 + 3, -d / 2 - 4, d / 2 + 12, -2, h + c + lh + 3)
-    if part == "lid" and style != "rugged_box":
+    if part == "lid":
         bounds = (*bounds[:4], h - p["lip_depth"] - 2, zcap + lh + 2)
         if style == "snap_latch":
             bounds = (*bounds[:4], h - p["lid_wall_height"] - 2, zcap + lh + 2)
@@ -1600,6 +1449,10 @@ def _rectangle_loop(w, d, r, z, n, edge_stops=None):
 
 def _analytic_profile_mesh(p, part):
     """Exact planar/profile patches with curved chords below the interface budget."""
+    if p["style"] == "rugged_box":
+        from .rugged_geometry import generate_rugged_mesh
+
+        return generate_rugged_mesh(p, part)
     if p["style"] == "snap_latch":
         if part in ("clip_left", "clip_right"):
             return _analytic_snap_lever(p, part)
@@ -2272,10 +2125,16 @@ def generate_box_mesh(
     print_orientation: bool = False,
 ) -> MeshData:
     p = normalize_params(raw)
-    field, bounds, hints = build_part_field(p, part)
-    mesh = _analytic_profile_mesh(p, part)
-    if mesh is None:
-        mesh = mesh_field(field, bounds, hints, part)
+    if p["style"] == "rugged_box":
+        errors = validate_params(p)
+        if errors:
+            raise ValueError("\n".join(errors))
+        mesh = _analytic_profile_mesh(p, part)
+    else:
+        field, bounds, hints = build_part_field(p, part)
+        mesh = _analytic_profile_mesh(p, part)
+        if mesh is None:
+            mesh = mesh_field(field, bounds, hints, part)
     return orient_mesh_for_print(mesh, p, part) if print_orientation else mesh
 
 
@@ -2284,7 +2143,14 @@ def orient_mesh_for_print(mesh: MeshData, raw: dict[str, Any], part: str) -> Mes
     p = normalize_params(raw)
     verts = mesh.vertices.copy()
     triangles = mesh.triangles.copy()
-    if part == "lid" and p["style"] == "clamshell_pip":
+    if p["style"] == "rugged_box" and part.startswith("clip_"):
+        # Lay the latch's broad XZ face on the bed (original Y thickness is Z).
+        verts[:, 0] *= -1
+        verts = verts[:, [0, 2, 1]]
+    elif p["style"] == "rugged_box" and part == "lid":
+        # Proper half-turn around Y, retaining the part's handedness.
+        verts[:, [0, 2]] *= -1
+    elif part == "lid" and p["style"] == "clamshell_pip":
         verts = clamshell_open_transform(verts, p, 180.0)
     elif part == "lid" and p["style"] != "sliding_lid":
         verts[:, 2] *= -1
@@ -2325,7 +2191,7 @@ def generate_fit_test_kit(
     raw: dict[str, Any] | None = None,
 ) -> list[tuple[str, MeshData]]:
     p = normalize_params(raw)
-    if p["style"] in ("open_bin", "snap_latch", "stackable_bin", "clamshell_pip"):
+    if p["style"] in ("open_bin", "snap_latch", "stackable_bin", "clamshell_pip", "rugged_box"):
         raise ValueError(
             "Kit de encaixe indisponível para este mecanismo; exporte base/tampa/travas / fit kit unavailable for this mechanism; export the actual parts."
         )
@@ -2427,14 +2293,6 @@ def collect_target_meshes(
     p = normalize_params(raw)
     generate = mesh_factory or generate_box_mesh
     target = target or p["export_target"]
-    if (
-        p["style"] == "rugged_box"
-        and p["hinge_mode"] == "print_in_place"
-        and target in ("base_only", "lid_only")
-    ):
-        raise ValueError(
-            "Dobradiça cativa: use Base + tampa ou Conjunto completo / captive hinge: use Base + lid or Full suite to preserve the assembly."
-        )
     if p["style"] == "clamshell_pip":
         if target not in ("base_and_lid", "full_suite"):
             raise ValueError(
@@ -2479,8 +2337,6 @@ def collect_target_meshes(
     ):
         parts.append("lid")
     if p["style"] == "rugged_box" and target in ("base_and_lid", "full_suite"):
-        if p["hinge_mode"] == "pin":
-            parts.append("pin")
         parts.extend(("clip_left", "clip_right"))
     if p["style"] == "snap_latch" and target in ("base_and_lid", "full_suite"):
         parts.extend(("clip_left", "clip_right"))
@@ -2488,20 +2344,6 @@ def collect_target_meshes(
         parts.append("gasket")
     if not parts:
         raise ValueError(f"Unknown export target: {target}")
-    if (
-        not assembled
-        and p["style"] == "rugged_box"
-        and p["hinge_mode"] == "print_in_place"
-        and target in ("base_and_lid", "full_suite")
-    ):
-        connected = [generate(p, part, False) for part in ("base", "lid")]
-        assembly = combine_meshes(connected, "print_in_place_assembly")
-        result = [("Conjunto cativo / Captive assembly", assembly)]
-        return result + [
-            (names[part][lang == "en"], generate(p, part, True))
-            for part in parts
-            if part not in ("base", "lid")
-        ]
     return [
         (names[part][lang == "en"], generate(p, part, not assembled)) for part in parts
     ]

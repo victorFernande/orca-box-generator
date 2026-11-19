@@ -114,32 +114,33 @@ class GeometryTests(unittest.TestCase):
             error = float(np.max(np.abs(field(centers))))
             self.assertLess(error, min(p["fit_clearance"] / 4, 0.04))
 
-    def test_05_hinged_lid_sweep_and_captive_axis(self):
-        p = normalize_params({"style": "rugged_box", "hinge_mode": "print_in_place"})
-        base, _, _ = build_part_field(p, "base")
-        lid, bounds, _ = build_part_field(p, "lid")
-        rng = np.random.default_rng(8172)
-        points = rng.uniform(
-            [bounds[0], bounds[2], p["height_z"] - 10],
-            [bounds[1], bounds[3], p["height_z"] + 5],
-            (50000, 3),
-        )
-        points = points[lid(points) < -0.04]
-        hinge = hinge_geometry(p)
-        for degrees in range(0, 181, 5):
-            a = -np.deg2rad(degrees)
-            q = points.copy()
-            y = points[:, 1] - hinge["y"]
-            z = points[:, 2] - hinge["z"]
-            q[:, 1] = hinge["y"] + y * np.cos(a) - z * np.sin(a)
-            q[:, 2] = hinge["z"] + y * np.sin(a) + z * np.cos(a)
-            self.assertFalse(
-                np.any(base(q) < -0.025), f"Hinge collides at {degrees} degrees"
-            )
-        items = collect_target_meshes(p, "base_and_lid", assembled=False)
-        self.assertEqual(items[0][1].part, "print_in_place_assembly")
-        self.assertSolid(items[0][1], components=2)
-        self.assertAlmostEqual(items[0][1].bounds_mm["min"][2], 0, places=4)
+    def test_05_rugged_snap_hinge_keeps_four_separate_printable_parts(self):
+        p = normalize_params({"style": "rugged_box"})
+        expected = ["base", "lid", "clip_left", "clip_right"]
+        canonical = collect_target_meshes(p, "base_and_lid", assembled=True)
+        printed = collect_target_meshes(p, "base_and_lid", assembled=False)
+        self.assertEqual([mesh.part for _, mesh in canonical], expected)
+        self.assertEqual([mesh.part for _, mesh in printed], expected)
+        for (_, closed), (_, placed) in zip(canonical, printed):
+            with self.subTest(part=closed.part):
+                self.assertSolid(closed)
+                self.assertSolid(placed)
+                self.assertAlmostEqual(placed.bounds_mm["min"][2], 0, places=4)
+                self.assertEqual(len(placed.vertices), len(closed.vertices))
+                self.assertEqual(len(placed.triangles), len(closed.triangles))
+                self.assertAlmostEqual(placed.volume_cm3, closed.volume_cm3, places=6)
+        # A snapped spherical hinge is assembled after printing; it must never
+        # be serialized as the previous captive pair, nor require a fifth pin.
+        with self.assertRaises(ValueError):
+            generate_box_mesh(p, "pin")
+        for target, parts in (("base_only", ["base"]), ("lid_only", ["lid"]),
+                              ("full_suite", expected)):
+            self.assertEqual([mesh.part for _, mesh in collect_target_meshes(p, target)], parts)
+        for target in ("gasket", "fit_test_kit"):
+            with self.subTest(unsupported=target), self.assertRaises(ValueError):
+                collect_target_meshes(p, target)
+        with self.assertRaises(ValueError):
+            generate_fit_test_kit(p)
 
     def test_06_fit_kit_and_tpu_gasket(self):
         for _, mesh in generate_fit_test_kit():

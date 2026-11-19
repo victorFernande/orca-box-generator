@@ -30,7 +30,7 @@ def main():
     from box_studio.schema import VALID_STYLES, normalize_params, validate_params
     from box_studio.mesh_generator import np
     if args.ignore_prepared:
-        plugin_main.load_standard_preset_mesh = lambda *_: None
+        plugin_main.load_standard_preset_mesh = lambda *_, **__: None
 
     if any(style not in VALID_STYLES for style in args.styles):
         parser.error("A requested style is unavailable in this checkout.")
