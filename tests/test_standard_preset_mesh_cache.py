@@ -28,6 +28,16 @@ class StandardPresetCacheTests(unittest.TestCase):
     def test_approved_resource_bits_and_fresh_rugged_geometry(self):
         reference = json.loads((ROOT / "tests/fixtures/standard_mesh_reference.json").read_text(encoding="utf-8"))
         self.assertEqual(reference["reference_commit"], "75f3be346516ff7c4be557e9ee05d999dc476a3b")
+        # Keep the original oracle/provenance unchanged. The analytic pole fix
+        # has a new source fingerprint, explicitly bound to the same 24 arrays.
+        binding = json.loads((ROOT / "docs/validation/1.3.0-decimal-hinge.json").read_text(encoding="utf-8"))
+        self.assertEqual(binding["reference_geometry_source_fingerprint"],
+                         reference["rugged_reference"]["geometry_source_fingerprint"])
+        original_parts = {**reference["parts"], **reference["rugged_reference"]["parts"]}
+        self.assertEqual(binding["approved_array_sha256"],
+                         {name: part["array_sha256"] for name, part in original_parts.items()})
+        self.assertEqual(binding["original_reference_fixture_sha256"], hashlib.sha256(
+            (ROOT / "tests/fixtures/standard_mesh_reference.json").read_bytes()).hexdigest())
         observed = set()
         observed_rugged = set()
         latch._clear_latch_cache()
@@ -41,7 +51,7 @@ class StandardPresetCacheTests(unittest.TestCase):
                     if design["id"] == "tool_rugged":
                         approved = reference["rugged_reference"]["parts"][name]
                         self.assertEqual(cache.PRESET_MESH_SOURCE_HASH,
-                                         reference["rugged_reference"]["geometry_source_fingerprint"])
+                                         binding["geometry_source_fingerprint"])
                         self.assertEqual(len(mesh.vertices), approved["vertices"])
                         self.assertEqual(len(mesh.triangles), approved["triangles"])
                         for field, array in (("vertices", mesh.vertices), ("triangles", mesh.triangles),

@@ -14,7 +14,7 @@ const {isDeepStrictEqual} = require('node:util');
 const root = path.resolve(__dirname, '..');
 const output = process.env.ORCA_E2E_OUTPUT || path.join(os.tmpdir(), 'orca-box-e2e-'+crypto.randomUUID());
 const timeout = Number(process.env.ORCA_E2E_TIMEOUT || 240000);
-const report = {started: new Date().toISOString(), output, complete:false, checks: [], failures: [], consoleErrors: [], exports: []};
+const report = {started: new Date().toISOString(), output, complete:false, checks: [], failures: [], consoleErrors: [], exports: [], randomizations: []};
 const presets = ['everyday','screw_corner_standard','tool_rugged','pencil','open_bin_handles','snap_latch_case','stackable_parts_bin','clamshell_pip_short'];
 const styles = ['lip_snap','rugged_box','sliding_lid','screw_corner','open_bin','snap_latch','stackable_bin','clamshell_pip'];
 const stylePresets = {lip_snap:'everyday',rugged_box:'tool_rugged',sliding_lid:'pencil',screw_corner:'screw_corner_standard',open_bin:'open_bin_handles',snap_latch:'snap_latch_case',stackable_bin:'stackable_parts_bin',clamshell_pip:'clamshell_pip_short'};
@@ -65,6 +65,23 @@ async function observeUi(page) {
   }));
 }
 
+async function withCleanup(run, cleanup) {
+  let primaryError = null;
+  try {
+    return await run();
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    try {
+      await cleanup();
+    } catch (error) {
+      if (!primaryError) throw error;
+      primaryError.e2eDetails = {...primaryError.e2eDetails, cleanup_error:String(error.stack || error)};
+    }
+  }
+}
+
 class Studio {
   constructor(page, url) { this.page = page; this.url = url; this.mode = 'page'; }
   async messages() { return this.page.evaluate(() => window.__hostMessages || []); }
@@ -88,7 +105,7 @@ class Studio {
       return true;
     } catch (error) {
       delete report.running;
-      const failure = {section, name, error:String(error.stack || error)};
+      const failure = {section, name, error:String(error.stack || error), ...(error.e2eDetails ? {diagnostics:error.e2eDetails} : {})};
       report.failures.push(failure);
       try {await this.page.screenshot({path:path.join(output, `failure-${report.failures.length}.png`)});} catch {}
       try {fs.writeFileSync(path.join(output,`failure-${report.failures.length}.json`),JSON.stringify(await observeUi(this.page),null,2));} catch {}
@@ -104,11 +121,16 @@ class Studio {
       const request=window.__sentMessages.slice(mark.sent).filter(m=>m.type==='preview').at(-1);
       if(!request)return false;
       return window.__hostMessages.slice(mark.host).some(m => m.type === 'preview_result' && m.request_id===request.request_id &&
-        (success ? m.ok && m.meshes > 0 && Object.entries(expected).every(([k,v]) => JSON.stringify(stable(m.params?.[k])) === JSON.stringify(stable(v))) : !m.ok));
+        (success ? m.ok === false || m.ok && m.meshes > 0 && Object.entries(expected).every(([k,v]) => JSON.stringify(stable(m.params?.[k])) === JSON.stringify(stable(v))) : !m.ok));
     }, {mark, expected, success}, {timeout});
     const request=await this.page.evaluate(mark=>window.__sentMessages.slice(mark.sent).filter(m=>m.type==='preview').at(-1),mark);
     const events = (await this.messages()).slice(mark.host);
-    const message = events.filter(m => m.type === 'preview_result' && m.request_id===request.request_id && (success ? m.ok && m.meshes && Object.entries(expected).every(([key,value])=>isDeepStrictEqual(m.params?.[key],value)) : !m.ok)).at(-1);
+    const message = events.filter(m => m.type === 'preview_result' && m.request_id===request.request_id && (success ? m.ok === false || m.ok && m.meshes && Object.entries(expected).every(([key,value])=>isDeepStrictEqual(m.params?.[key],value)) : !m.ok)).at(-1);
+    if (success && message?.ok === false) {
+      const error = Error('Preview rejected for latest request '+request.request_id+': '+message.message);
+      error.e2eDetails = {request,reply:message,expected};
+      throw error;
+    }
     if (success) {
       const actual = await this.state();
       for (const [key,value] of Object.entries(expected)) assert.deepEqual(actual[key], value, 'UI state differs from accepted mesh ' + key);
@@ -357,16 +379,66 @@ async function styleChecks(studio) {
       return {parts:(await studio.snapshot()).parts};
     });
     await studio.check(style, 'actual rendered opening and animation', () => motionChecks(studio,style));
+    let restoredAfterSurprise = false;
     await studio.check(style, 'Surprise keeps a valid style', async () => {
       const previous = await studio.state(), before=await studio.mark();
-      await studio.page.locator('#btn-randomize').click();
-      const next = await studio.waitPreview(before);
-      assert.equal(next.params.style,style);
-      if (style==='stackable_bin') for(const k of ['width_x','depth_y','corner_radius','wall_thickness','stack_foot_height','stack_clearance']) assert.equal(next.params[k],previous[k], 'Stacking family '+k);
-      // Restore a small predictable design for every target; Surprise has its own proof above.
-      await studio.preset('everyday'); await studio.select('#style',style,'style');
-      if (style==='clamshell_pip') await studio.number('height_z',14);
+      const diagnostic = {style,input_params:previous,restoration:{ok:false}};
+      report.randomizations.push(diagnostic);saveReport();
+      const capture = async () => studio.page.evaluate(mark=>{
+        const request=window.__sentMessages.slice(mark.sent).filter(m=>m.type==='randomize').at(-1);
+        const result=window.__hostMessages.slice(mark.host).filter(m=>
+          (m.type==='randomize_result'||m.type==='action_result'&&m.action==='randomize')&&
+          (request?.request_id == null ? m.request_id == null : m.request_id===request.request_id)).at(-1);
+        return {seed:request?.seed,request,result};
+      },before);
+      return withCleanup(async()=>{
+        try {
+          await studio.page.locator('#btn-randomize').click();
+          // Observe the real seed chosen by the UI; never replace it with a
+          // favorable fixture. An explicit generation rejection is a failure
+          // of this positive check, not a successful "valid style" observation.
+          await studio.page.waitForFunction(mark=>{
+            const request=window.__sentMessages.slice(mark.sent).filter(m=>m.type==='randomize').at(-1);
+            return !!request&&window.__hostMessages.slice(mark.host).some(m=>
+              (m.type==='randomize_result'||m.type==='action_result'&&m.action==='randomize')&&
+              (request.request_id == null ? m.request_id == null : m.request_id===request.request_id));
+          },before,{timeout});
+          Object.assign(diagnostic,await capture());saveReport();
+          if(diagnostic.result?.ok !== true)throw Error('Surprise rejected seed '+diagnostic.seed+': '+diagnostic.result?.message);
+          const next = await studio.waitPreview(before);
+          diagnostic.preview_result=next;
+          assert.equal(next.params.style,style);
+          if (style==='stackable_bin') for(const k of ['width_x','depth_y','corner_radius','wall_thickness','stack_foot_height','stack_clearance']) assert.equal(next.params[k],previous[k], 'Stacking family '+k);
+          return {seed:diagnostic.seed,request:diagnostic.request,result:diagnostic.result,preview_result:next};
+        } catch(error) {
+          diagnostic.error=String(error.stack||error);
+          try {diagnostic.failure_state=await observeUi(studio.page);} catch {}
+          error.e2eDetails={...error.e2eDetails,randomization:diagnostic};
+          throw error;
+        } finally {
+          try {Object.assign(diagnostic,await capture());} catch {}
+          saveReport();
+        }
+      },async()=>{
+        // Even a failed random candidate must not contaminate target/export
+        // coverage. A cleanup error must not replace the original failure.
+        try {
+          await studio.preset('everyday'); await studio.select('#style',style,'style');
+          if (style==='clamshell_pip') await studio.number('height_z',14);
+          restoredAfterSurprise=true;
+          diagnostic.restoration={ok:true,params:await studio.state()};
+        } catch(error) {
+          diagnostic.restoration={ok:false,error:String(error.stack||error)};
+          throw error;
+        } finally {saveReport();}
+      });
     });
+    if(!restoredAfterSurprise) {
+      report.blocked_sections ||= [];
+      report.blocked_sections.push({style,reason:'Surprise cleanup failed; dependent target/export checks were not run.'});
+      report.full_scope=false;saveReport();
+      continue;
+    }
     await studio.check(style,'gasket export availability follows a supported channel',async()=>{
       assert.equal(await studio.optionDisabled('gasket'),true,'No gasket export without an enabled channel');
       if(['lip_snap','screw_corner','snap_latch'].includes(style)) {
@@ -702,5 +774,5 @@ async function main() {
   process.exitCode=report.ok ? 0 : 1;
 }
 
-module.exports={Studio};
+module.exports={Studio,withCleanup};
 if(require.main===module)main();

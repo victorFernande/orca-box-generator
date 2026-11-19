@@ -1,6 +1,37 @@
 # Generation measurements / Medições de geração
 
-## Rugged SnapLock 1.3.0 — 2026-11-19
+## Compactação e memória da revisão final 1.3.0
+
+O banco preparado passou de **34.427.046 para 15.910.205 bytes (−53,8%)**, com oito peças em sete arquivos. A compactação agrupa planos de bytes antes do DEFLATE, conservando os preditores XOR de float32 e diferenças de índices. A segunda trava referencia o recurso da primeira com uma translação float32 cuja reconstrução é comprovada pelo hash original de seus vértices. Os **24 hashes V/T/N** continuam idênticos aos da revisão aprovada, assim como dimensões, volumes, topologia e orçamento de erro dos modelos padrão. Um decoder independente verificou esses mesmos dados, sem chamar o carregador do produto nem gerar CAD. A correção posterior da ponta exata da dobradiça altera somente uma das sete fontes geométricas; o [novo vínculo de fonte](../docs/validation/1.3.0-decimal-hinge.json) foi aprovado após reconstruir as oito peças e conferir novamente os 24 hashes originais, sem editar a referência aprovada.
+
+Na comparação final de três processos isolados por caso, a importação do bundle `d2ef9c58…`, incluindo NumPy, teve mediana de **3759,0 → 1970,9 ms**. O pico de working set desse processo passou de **229,76 → 135,43 MiB**. A nova importação variou de 1926,9 a 2233,3 ms; são processos Python nesta máquina com cache de arquivos não esvaziado, não a abertura nativa do Orca ou uma garantia para outros computadores. As observações anteriores do bundle `33023595…` permanecem identificadas separadamente no relatório.
+
+No Chromium isolado, quatro cargas Rugged intercaladas com três caixas abertas mantiveram os dados realmente desenhados bit a bit idênticos. Remover o texto base64 retido reduziu o heap após GC em aproximadamente **76,34 MB por WebView**. A comparação exata de índices/normais permitiu compartilhar apenas esses buffers: os arrays CPU retidos passaram de **57.256.332 para 43.728.324 bytes**, e os buffers GL únicos solicitados de **82.703.676 para 62.411.640 bytes**. Posições e identificadores de material permanecem individuais. Esses valores descrevem categorias diferentes e não devem ser somados como economia física total.
+
+Com wireframe ligado, os buffers GL únicos passaram de **159.045.324 para 111.697.272 bytes**. Ao desligar, a revisão final retorna a **62.411.640 bytes**, liberando todos os buffers de arestas; a revisão anterior os retinha até trocar a malha. Trocas repetidas não deixaram buffers órfãos ou erros GL no ensaio. A contagem de bytes GL é uma medição das alocações pedidas, não da memória física do driver/GPU, e o teste não mede FPS sustentado.
+
+Compactação não torna a geometria decodificada menor. No carregador final, a mediana de três leituras do Rugged completo foi 601 ms; a referência privada do decoder anterior foi 604 ms. O Screw base teve 139 contra 95 ms e aproximadamente 5,6 MiB adicionais de pico incremental no decoder. Não se afirma redução de tempo ou de pico de memória em todas as etapas. O transporte da prévia ainda contém a superfície completa, e um cálculo personalizado ativo pode atrasar a próxima seleção. Veja [evidência, hashes, amostras e escopos separados](performance/1.3.0-package-memory-optimization.json).
+
+The final revision reduces the prepared bank by 53.8%, preserving every approved V/T/N byte. It releases retained preview transport strings, shares only bit-identical GPU normals/indices and CPU indices, and frees wire buffers when disabled. Independent decoding and actual bound-render-input hashes verify surface identity. Python import, post-GC browser heap, CPU arrays and requested GL buffer bytes are separate measurements, not native-Orca startup, physical GPU memory or sustained-FPS guarantees.
+
+### Seleção dos modelos na revisão final
+
+Com os artefatos finais `d2ef9c58…` / `057e3c8a…` e fonte geométrica `f35120b6…`, a rodada completa passou nas **32 seleções medidas e nas 32 seleções de aquecimento abaixo de 2000 ms**. O pior tempo medido foi **1881,7 ms**, Rugged na página em seleção fria; os outros três casos Rugged foram 1627,4 ms na página após duas voltas e 1680,9 / 1633,3 ms no painel. Todos os tempos, inclusive aquecimentos, parâmetros, buffers realmente usados e hashes das fontes/recursos/artefatos estão no [relatório final completo](performance/1.3.0-optimized-standard-selection.json).
+
+| Modelo padrão | Pior seleção medida |
+| --- | ---: |
+| Lip Snap | 296,3 ms |
+| Screw Corner | 896,8 ms |
+| Rugged SnapLock | 1881,7 ms |
+| Sliding | 529,3 ms |
+| Open bin | 313,8 ms |
+| Lever latch | 880,0 ms |
+| Stackable | 214,3 ms |
+| PIP clamshell | 479,4 ms |
+
+O ensaio usa o controlador real com Chromium isolado e GPU Intel UHD 630/D3D11, incluindo a sequência completa de índices, buffers correlacionados e fence da GPU. São pedidos sequenciais concluídos, sem esvaziar o cache do sistema operacional. Não mede o WebView nativo, uma fila já ocupada com extração personalizada ou FPS sustentado. A redução de pacote/memória não implica que toda seleção tenha ficado mais rápida que a revisão anterior; ambas as rodadas estão preservadas. As medições abaixo pertencem aos snapshots anteriores.
+
+## Snapshot anterior do Rugged SnapLock 1.3.0 — 2026-11-19
 
 A geometria Rugged foi substituída. A rodada final com GPU Intel UHD 630/D3D11 passou nas **32 seleções medidas abaixo de 2000 ms**, incluindo primeira seleção em processos novos e seleção após duas voltas pela galeria, na página e no painel. O pior tempo medido foi **1748,3 ms**, Rugged no painel após as duas voltas. A caixa completa manteve seus 3.180.902 triângulos, incluindo as duas travas. Veja [relatório completo, hashes e método](performance/1.3.0-standard-selection.json).
 

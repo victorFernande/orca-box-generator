@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,17 @@ spec.loader.exec_module(builder)
 
 
 class PackagingTests(unittest.TestCase):
+    def test_wheel_bytes_do_not_depend_on_builder_platform_zip_defaults(self):
+        # The same source release must not change its asset digest merely
+        # because ZipInfo otherwise chooses DOS versus Unix producer metadata.
+        outputs = []
+        for platform in ("win32", "linux", "darwin"):
+            with patch.object(zipfile.sys, "platform", platform):
+                wheel = builder.build_wheel()
+                outputs.append(wheel.read_bytes())
+        self.assertEqual(outputs[0], outputs[1])
+        self.assertEqual(outputs[0], outputs[2])
+
     def test_installer_replaces_linked_files_without_overwriting_external_content(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder) / "OrcaSlicer"

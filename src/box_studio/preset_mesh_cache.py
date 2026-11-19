@@ -75,6 +75,8 @@ def load_standard_preset_mesh(raw, part, reuse_from=None):
     A digest is checked both before decompression and after reconstructing each
     original array. XOR on float bits and integer deltas are reversible, without
     quantization, smoothing, triangle removal or a change of coordinate order.
+    Byte planes improve DEFLATE locality. An exactly translated part can reuse
+    a source blob; its independently approved final vertex digest still applies.
     No trust decision is accepted from a UI message or a user-preset file.
     A caller-owned immutable mesh may share exactly hash-matching index/normal
     arrays. This function retains no decoded array after returning.
@@ -99,6 +101,15 @@ def load_standard_preset_mesh(raw, part, reuse_from=None):
             return None
         expected = {"vertices": (vertices_count, "<u4"),
                     "triangles": (faces_count, "<i4"), "normals": (faces_count, "<u4")}
+        encoding = entry.get("encoding", "xor-delta-v1")
+        if encoding not in ("xor-delta-v1", "xor-delta-shuffle12-v1"):
+            return None
+        translation = entry.get("vertex_translation")
+        if translation is not None:
+            translation = np.asarray(translation, dtype="<f4")
+            if (translation.shape != (3,) or not np.isfinite(translation).all()
+                    or not re.fullmatch(r"[0-9a-f]{64}", entry.get("vertex_source_sha256", ""))):
+                return None
         with zipfile.ZipFile(io.BytesIO(blob)) as archive:
             if set(archive.namelist()) != {name + ".npy" for name in expected}:
                 return None
@@ -118,19 +129,39 @@ def load_standard_preset_mesh(raw, part, reuse_from=None):
                         == entry["array_sha256"][name]):
                     arrays[name] = reusable
                     continue
-                encoded = archive[name]
-                shape = (count * 3,) if name == "triangles" else (count, 3)
-                if (encoded.shape != shape or encoded.dtype != np.dtype(dtype)
-                        or not encoded.flags.c_contiguous):
-                    return None
-                if name == "triangles":
-                    # Indices are bounded below 5M. Modular int32 accumulation
-                    # reconstructs the same bits without an int64 temporary.
-                    np.cumsum(encoded, dtype="<i4", out=encoded)
-                    array = encoded.reshape(-1, 3)
+                source_vertices = getattr(reuse_from, "vertices", None) if name == "vertices" else None
+                if (translation is not None and isinstance(source_vertices, np.ndarray)
+                        and source_vertices.shape == (count, 3)
+                        and source_vertices.dtype == np.dtype("<f4")
+                        and source_vertices.flags.c_contiguous and not source_vertices.flags.writeable
+                        and hashlib.sha256(memoryview(source_vertices).cast("B")).hexdigest()
+                        == entry["vertex_source_sha256"]):
+                    array = source_vertices.copy()
                 else:
-                    np.bitwise_xor.accumulate(encoded, axis=0, out=encoded)
-                    array = encoded.view("<f4")
+                    encoded = archive[name]
+                    if encoding == "xor-delta-shuffle12-v1":
+                        if (encoded.shape != (4, 3, count) or encoded.dtype != np.dtype("u1")
+                                or not encoded.flags.c_contiguous):
+                            return None
+                        words = np.empty((count, 3), dtype="<u4")
+                        words.view("u1").reshape(count, 3, 4)[:] = encoded.transpose(2, 1, 0)
+                        del encoded
+                        encoded = words.view(dtype).reshape(-1) if name == "triangles" else words
+                    else:
+                        shape = (count * 3,) if name == "triangles" else (count, 3)
+                        if (encoded.shape != shape or encoded.dtype != np.dtype(dtype)
+                                or not encoded.flags.c_contiguous):
+                            return None
+                    if name == "triangles":
+                        # Modular accumulation preserves the original int32 bits.
+                        np.cumsum(encoded, dtype="<i4", out=encoded)
+                        array = encoded.reshape(-1, 3)
+                    else:
+                        np.bitwise_xor.accumulate(encoded, axis=0, out=encoded)
+                        array = encoded.view("<f4")
+                    del encoded
+                if name == "vertices" and translation is not None:
+                    np.add(array, translation, out=array)
                 if hashlib.sha256(memoryview(array).cast("B")).hexdigest() != entry["array_sha256"][name]:
                     return None
                 arrays[name] = array

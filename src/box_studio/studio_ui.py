@@ -4739,11 +4739,24 @@ const INITIAL = __BOX_CONTEXT__;
       $("play").textContent = "▶";
     }
     if (!gl) return;
+    const deletedBuffers = new Set();
     for (const m of meshes) {
       for (const b of [m.pb, m.nb, m.rb, m.ib, m.wireBuffer])
-        if (b) gl.deleteBuffer(b);
+        if (b && !deletedBuffers.has(b)) {
+          gl.deleteBuffer(b);
+          deletedBuffers.add(b);
+        }
       gl.deleteVertexArray(m.vao);
     }
+    // Float32 values compare through their bits, including signed zero. These
+    // candidates live only for this load; CPU normals are not kept in meshes.
+    const normalBuffers = [], indexBuffers = [];
+    const sameBits = (a, b) => {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++)
+        if (a[i] !== b[i]) return false;
+      return true;
+    };
     meshes = items.map((item) => {
       const pos = decode(item.vertices, Float32Array),
         tri = decode(item.triangles, Uint32Array),
@@ -4798,22 +4811,36 @@ const INITIAL = __BOX_CONTEXT__;
       }
       const vao = gl.createVertexArray();
       gl.bindVertexArray(vao);
-      const upload = (loc, data, size) => {
-        const b = gl.createBuffer();
+      const upload = (loc, data, size, sharedBuffer = null) => {
+        const b = sharedBuffer || gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, b);
-        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        if (!sharedBuffer) gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
         return b;
       };
+      const normBits = new Uint32Array(norm.buffer, norm.byteOffset, norm.length),
+        sharedNormal = normalBuffers.find(entry => sameBits(entry.bits, normBits)),
+        sharedIndices = indexBuffers.find(entry => sameBits(entry.indices, tri));
       const pb = upload(0, pos, 3),
-        nb = upload(1, norm, 3),
+        nb = upload(1, norm, 3, sharedNormal?.buffer),
         rb = upload(2, roles, 1),
-        ib = gl.createBuffer();
+        ib = sharedIndices?.buffer || gl.createBuffer(),
+        indices = sharedIndices?.indices || tri;
+      if (!sharedNormal) normalBuffers.push({ bits: normBits, buffer: nb });
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, tri, gl.STATIC_DRAW);
+      if (!sharedIndices) {
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+        indexBuffers.push({ indices, buffer: ib });
+      }
       return {
-        ...item,
+        // Keep the decoded scene, without retaining its base64 transport strings.
+        name: item.name,
+        part: item.part,
+        preview_offset: item.preview_offset,
+        volume_cm3: item.volume_cm3,
+        interface_error_mm: item.interface_error_mm,
+        triangle_count: item.triangle_count,
         bounds: { min: lo, max: hi, size: hi.map((x, i) => x - lo[i]) },
         vao,
         pb,
@@ -4821,13 +4848,26 @@ const INITIAL = __BOX_CONTEXT__;
         rb,
         ib,
         count: tri.length,
-        indices: tri,
+        indices,
         maxOverhang,
         positions: pos,
       };
     });
+    normalBuffers.length = 0;
+    indexBuffers.length = 0;
     zoom = 1;
     if (drawImmediately) render();
+  }
+  function releaseWireBuffers() {
+    const deletedBuffers = new Set();
+    for (const m of meshes) {
+      if (m.wireBuffer && !deletedBuffers.has(m.wireBuffer)) {
+        gl.deleteBuffer(m.wireBuffer);
+        deletedBuffers.add(m.wireBuffer);
+      }
+      m.wireBuffer = null;
+      m.wireCount = 0;
+    }
   }
   function drawLines(buffer, count, mvp, color) {
     gl.useProgram(lineProg);
@@ -4954,17 +4994,25 @@ const INITIAL = __BOX_CONTEXT__;
       } else gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
       if (wire && clipMode === 0) {
         if (!m.wireBuffer) {
-          const edges = new Uint32Array(m.indices.length * 2);
-          for (let i = 0, k = 0; i < m.indices.length; i += 3) {
-            const a = m.indices[i],
-              b = m.indices[i + 1],
-              c = m.indices[i + 2];
-            for (const e of [a, b, b, c, c, a]) edges[k++] = e;
+          const shared = meshes.find(other => other.indices === m.indices && other.wireBuffer);
+          if (shared) {
+            m.wireBuffer = shared.wireBuffer;
+            m.wireCount = shared.wireCount;
+          } else {
+            const edges = new Uint32Array(m.indices.length * 2);
+            for (let i = 0, k = 0; i < m.indices.length; i += 3) {
+              const a = m.indices[i],
+                b = m.indices[i + 1],
+                c = m.indices[i + 2];
+              edges[k++] = a; edges[k++] = b;
+              edges[k++] = b; edges[k++] = c;
+              edges[k++] = c; edges[k++] = a;
+            }
+            m.wireBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.wireBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, edges, gl.STATIC_DRAW);
+            m.wireCount = edges.length;
           }
-          m.wireBuffer = gl.createBuffer();
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.wireBuffer);
-          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, edges, gl.STATIC_DRAW);
-          m.wireCount = edges.length;
         }
         gl.useProgram(lineProg);
         gl.uniformMatrix4fv(
@@ -5539,6 +5587,7 @@ const INITIAL = __BOX_CONTEXT__;
   };
   $("btn-vp-wire").onclick = () => {
     wire = !wire;
+    if (!wire) releaseWireBuffers();
     viewButtons();
     render();
   };

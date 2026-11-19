@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "status": "pass",
+  "verified_utc": "2026-11-19T19:50:42.356794+00:00",
+  "scope": "Exact rear-mouth endpoint repair and freshly regenerated standard-bank binding; original approved array fixture is unchanged. No native application or physical print approval.",
+  "baseline_commit": "c5f8b25720e6e1931a7c377769db09e89df18b35",
+  "reference_geometry_source_fingerprint": "a468c6f1e25805795b58cb221c955901a846001141089371284210ea58eee0dd",
+  "geometry_source_fingerprint": "f35120b6fd6a542be6071c3a1ce845dd085c107f3f97981bf9cb788315a79ae3",
+  "changed_geometry_dependencies": [
+    "rugged_geometry.py"
+  ],
+  "geometry_dependency_source_sha256": {
+    "src/box_studio/schema.py": {
+      "before_sha256": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+      "after_sha256": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c"
+    },
+    "src/box_studio/mesh_generator.py": {
+      "before_sha256": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+      "after_sha256": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07"
+    },
+    "src/box_studio/presets_catalog.py": {
+      "before_sha256": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+      "after_sha256": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f"
+    },
+    "src/box_studio/rugged_geometry.py": {
+      "before_sha256": "4bdc4ede360ddba729aade731a2128e340d65fbca2f0c9cc009aacdd2549b70c",
+      "after_sha256": "35abe9fc9106d3a8acf0cb955ac7f5c1231f118695a80ed4445a3665c76a5856"
+    },
+    "src/box_studio/rugged_latch_geometry.py": {
+      "before_sha256": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+      "after_sha256": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c"
+    },
+    "src/box_studio/rugged_front_geometry.py": {
+      "before_sha256": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+      "after_sha256": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6"
+    },
+    "src/box_studio/rugged_front_mesh.py": {
+      "before_sha256": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+      "after_sha256": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765"
+    }
+  },
+  "original_reference_fixture_sha256": "ae511e86dc1da46f41ab3c847ccde08977f990bb2b365cf766f4a82063b9fc7b",
+  "approved_array_sha256": {
+    "screw_corner_standard-base": {
+      "vertices": "efaba8bdd14c1be37afe81595eebc369ff747fcda6b3add2a8560bb63afb6069",
+      "triangles": "3dc2eb8babea699118a91de7ec097dffe0022aacc492329956f70d555352058a",
+      "normals": "1fc184882da3e3afcc85a0c05bcc9445cbe632554c34bb0e7f257d42434e40aa"
+    },
+    "screw_corner_standard-lid": {
+      "vertices": "b1d5caa66f02f32279b209c38212cc70364d0a430a80a37cb3c56b4237c5d6a8",
+      "triangles": "8b54ad267b99491eb799bf67822dd50c9a7a35733ed8db1047cc8d114b2d96c1",
+      "normals": "4f95cf285fbebcaa073f6a0c5d188789322eba28d09ce50398cdd7053cd35958"
+    },
+    "tool_rugged-base": {
+      "vertices": "f4def7fc2b1d3adf71d35d86f31947c6c9f2dd412c53c6d7cc11c4266fa84e6a",
+      "triangles": "df91a4aaa88bf83434f59a63c37c97baf4467c7bc9e3648753c22fc9b629d13f",
+      "normals": "3fdf497e5001fc850039a31f5e9dd4abe5de7078bbeac3a133936ad936fcd6e0"
+    },
+    "tool_rugged-lid": {
+      "vertices": "cd28792bd6cbdb0f97f1e2aabfd8a712bcbf6825009407ec96d277499d349265",
+      "triangles": "4dc7794709c564549e02b886f08bd45b5115bb5df274958dbfe93f3df40bf494",
+      "normals": "f1e0f292953850f677d47c6315ea5aa9f6c0bf754a427103031c3fe894f666ef"
+    },
+    "tool_rugged-clip_left": {
+      "vertices": "88c409027bfaf771c9b11d4442c1c95fb3738c41c409a1d33490367fe137cdd0",
+      "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+      "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+    },
+    "tool_rugged-clip_right": {
+      "vertices": "d15e2e0d0bc4a207d38b252e20b22bde4579b8d4e527e76d644ac617f155cbff",
+      "triangles": "e26721c5ee845953524611361087d92e101bf94ed2bebd8921bf7b5051a5564e",
+      "normals": "9f002e371cabe6fe79c14c33d62edb72b9105022e3bbe34aa68a8a637346fca6"
+    },
+    "pencil-base": {
+      "vertices": "17655321a7ba477ac408cd4e605d70e1ec22db7ac7fe15b094adcd6982a55f85",
+      "triangles": "776716f09b6e34039a36ae0534ee9fd546208f93d4ac788a8fad01b2c346af88",
+      "normals": "b7654ced1ce8c2b7c9b27b0b172fb26ef51d030fd124800438729d0b2cb60891"
+    },
+    "pencil-lid": {
+      "vertices": "4aca63c4d2adb669e91c58c027b82d922a38fba657ef6972012fba2b7b429a56",
+      "triangles": "72cbae0390b99db1328c9d4b97aae15b115672d062366a037054e7a86f7b85d2",
+      "normals": "d3883143b2865809cc1bf18d6be75fe0f4ede44af97774304b85551b9ae967dc"
+    }
+  },
+  "pieces": 8,
+  "approved_arrays_preserved": 24,
+  "resources": {
+    "screw_corner_standard-base.npz": {
+      "sha256": "0ae9369ff4312917d98b765299676c16f1a2eaefa75e0cdfb33729f176a0fbed",
+      "bytes": 668214
+    },
+    "screw_corner_standard-lid.npz": {
+      "sha256": "70108241386c043a3b3f94c3659f02a90d7eea90a794f17f03b8b36119473993",
+      "bytes": 574048
+    },
+    "tool_rugged-base.npz": {
+      "sha256": "82ac798809252ad9f581e4b27cb296d941fa1ef25890461555082a0c0036a482",
+      "bytes": 3979775
+    },
+    "tool_rugged-lid.npz": {
+      "sha256": "fdc50e11cb5495f4f0a669b992354e3e0def5823b9fdde94fefbca0d5e17c658",
+      "bytes": 2290923
+    },
+    "tool_rugged-clip_left.npz": {
+      "sha256": "adb8df8f6a49c1ee509038c6bced79ce1ccd4addd0c14833a682ced9e7f61f13",
+      "bytes": 7842080
+    },
+    "pencil-base.npz": {
+      "sha256": "ed1e6c954438d40b9af4c6d2476119ee0ea019665983814dca081fb7158bbdcd",
+      "bytes": 378257
+    },
+    "pencil-lid.npz": {
+      "sha256": "028358afc060aa201f3d297f8211808f658caccdcdfaf0f2737d6af52c3ca14f",
+      "bytes": 176908
+    }
+  },
+  "resource_bytes": 15910205,
+  "fresh_generator_method": "scripts/build_preset_meshes.py clears latch/front caches and disables the canonical latch loader, then regenerates all eight pieces, checks closed/oriented/positive volume and repacks the resulting arrays. All 24 resulting array digests match the unchanged original oracle.",
+  "repair": {
+    "function": "_append_rear_socket",
+    "condition": "x == mouth_tip (the explicit analytic cylinder endpoint)",
+    "value": "yh = 0.0",
+    "other_samples": "Original sqrt expression is unchanged for every non-endpoint sample. No distance tolerance, general vertex weld, quantization or triangle simplification is introduced."
+  },
+  "reproduction": {
+    "seed": 1103020891,
+    "params": {
+      "style": "rugged_box",
+      "width_x": 152.2,
+      "depth_y": 92.9,
+      "height_z": 36.7,
+      "rugged_lid_height": 22,
+      "corner_radius": 12,
+      "wall_thickness": 2.5,
+      "floor_thickness": 2.5,
+      "fit_clearance": 0.23
+    },
+    "before": {
+      "closed": false,
+      "oriented": false,
+      "euler": 0,
+      "triangles": 475226
+    },
+    "cause": "Cancellation left a nonzero radius at an exact cylinder-mouth pole. Two lower-face endpoint coordinates rounded to adjacent float32 Z values at some fractional heights."
+  },
+  "focused_regression": {
+    "file": "tests/test_rugged_decimal_height.py",
+    "sha256": "326a4b8e8e52f35efa9fe73742313fffc05088cd02ee557f9c14fdd537814091",
+    "tests": 3,
+    "seconds": 36.713,
+    "fractional_base_cases": 10,
+    "socket_cases": 16,
+    "checks": [
+      "independent directed edges",
+      "independent manifold vertex links",
+      "one connected shell",
+      "Euler 2",
+      "nondegenerate facets",
+      "finite correct normals",
+      "positive independently recomputed volume",
+      "one exact analytic pole",
+      "six original default base/lid array hashes from fresh generation"
+    ]
+  },
+  "limitations": [
+    "Representative fractional heights and clearances are checked, not the continuum of every possible edited design.",
+    "The historical original source fingerprint remains attached to its original reference commit; this record explicitly approves the new source binding without editing the array oracle.",
+    "Native Mac/Linux, physical fit/force/fatigue and sustained animation FPS remain unverified."
+  ]
+}
