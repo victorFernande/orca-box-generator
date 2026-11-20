@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 import ast
 import base64
+import importlib.util
+import json
 import csv
 import hashlib
 import io
@@ -24,6 +26,7 @@ import tempfile
 import tokenize
 import tomllib
 import zipfile
+import zlib
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -36,6 +39,8 @@ DIST_ANY_BUNDLE_PATH = DIST_DIR / "orca_box_generator_any.py"
 ICON_SRC_PATH = SRC_PKG_DIR / "icon.svg"
 
 MODULE_ORDER: list[str] = [
+    "language_packs.py",
+    "locale_catalog.py",
     "schema.py",
     "mesh_generator.py",
     "rugged_geometry.py",
@@ -51,7 +56,7 @@ MODULE_ORDER: list[str] = [
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.3.0"
+DEFAULT_PLUGIN_VERSION = "1.4.0"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION
@@ -325,6 +330,22 @@ def _read_preset_resources() -> tuple[str, dict[str, bytes]]:
     return actual, resources
 
 
+def _read_language_resources() -> tuple[dict, dict[str, bytes]]:
+    """Validate every catalog without importing the plugin or its host callbacks."""
+    spec = importlib.util.spec_from_file_location(
+        "_orca_box_language_pack_validator", SRC_PKG_DIR / "language_packs.py"
+    )
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    folder = SRC_PKG_DIR / "locales"
+    packs, _ = validator.read_language_pack_files(folder, strict=True)
+    if "en" not in packs:
+        raise ValueError("The language pack directory must contain the English fallback catalog.")
+    resources = {path.name: path.read_bytes().replace(b"\r\n", b"\n")
+                 for path in sorted(folder.glob("*.json"))}
+    return packs, resources
+
+
 def build_bundle() -> Path:
     """Compile all `src/box_studio/*.py` modules into `dist/orca_box_generator.py`."""
     missing = [m for m in MODULE_ORDER if not (SRC_PKG_DIR / m).is_file()]
@@ -351,6 +372,10 @@ def build_bundle() -> Path:
     colliding_privates = {nm for nm, count in def_counts.items() if count > 1}
 
     preset_source_hash, preset_resources = _read_preset_resources()
+    language_packs, _ = _read_language_resources()
+    language_data = json.dumps(language_packs, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":")).encode("utf-8")
+    language_data = base64.b85encode(zlib.compress(language_data, 9))
     geometry_sections: dict[str, bytes] = {}
     all_future_features: set[str] = {"annotations"}
     sections: list[str] = []
@@ -358,6 +383,12 @@ def build_bundle() -> Path:
     for mod_file in MODULE_ORDER:
         mod_stem = Path(mod_file).stem
         src = raw_sources[mod_file]
+        if mod_file == "language_packs.py":
+            marker = "_BUNDLED_LANGUAGE_PACKS = {}"
+            if src.count(marker) != 1:
+                raise ValueError("Language pack embedding marker must occur exactly once.")
+            src = src.replace(marker, "_BUNDLED_LANGUAGE_PACKS = json.loads(zlib.decompress(base64.b85decode(" +
+                              repr(language_data) + ")).decode('utf-8'))")
         if mod_file == "preset_mesh_cache.py":
             src = src.replace("_BUNDLED_PRESET_DATA = {}", "_BUNDLED_PRESET_DATA = " + repr(
                 {name: base64.b64encode(data).decode("ascii") for name, data in preset_resources.items()}))
@@ -517,6 +548,10 @@ def build_wheel() -> Path:
     _, preset_resources = _read_preset_resources()
     for fname, data in preset_resources.items():
         entries.append((f"box_studio/preset_meshes/{fname}", data))
+
+    _, language_resources = _read_language_resources()
+    for fname, data in language_resources.items():
+        entries.append((f"box_studio/locales/{fname}", data))
 
     if (PROJECT_ROOT / "LICENSE").is_file():
         entries.append(

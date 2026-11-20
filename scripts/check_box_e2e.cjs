@@ -487,7 +487,7 @@ async function generalChecks(studio) {
   });
   await studio.check('preferences','PT/EN and light/dark preserve geometry',async()=>{
     const key=(await studio.snapshot()).geometry_key;
-    for(const lang of ['en','pt']) {await studio.page.locator('#lang').click();await studio.page.waitForFunction(lang=>document.documentElement.lang===lang,lang);}
+    for(const lang of ['en','pt']) {await studio.page.locator('#lang-select').selectOption(lang);await studio.page.waitForFunction(lang=>document.documentElement.lang===lang,lang);}
     for(const theme of ['light','dark']) {await studio.page.locator('#theme').click();await studio.page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);}
     assert.equal((await studio.snapshot()).geometry_key,key);
     assert.ok(await studio.page.locator('#quality option[value="standard"]').textContent());
@@ -696,9 +696,9 @@ async function dockChecks(studio) {
     return {parts:(await studio.snapshot()).parts};
   });
   await studio.check('dock','PT/EN and themes',async()=>{
-    await studio.page.locator('#lang').click();await studio.page.waitForFunction(()=>document.documentElement.lang==='en');
+    await studio.page.locator('#lang-select').selectOption('en');await studio.page.waitForFunction(()=>document.documentElement.lang==='en');
     await studio.page.locator('#theme').click();await studio.page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
-    await studio.page.locator('#lang').click();await studio.page.locator('#theme').click();
+    await studio.page.locator('#lang-select').selectOption('pt');await studio.page.locator('#theme').click();
   });
 }
 

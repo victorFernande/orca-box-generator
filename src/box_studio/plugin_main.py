@@ -3,7 +3,7 @@
 from __future__ import annotations
 from collections.abc import Sequence
 from collections import OrderedDict
-import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64, hashlib
+import copy, ctypes, json, locale, os, re, sys, threading, time, types, base64, hashlib, tempfile
 from pathlib import Path
 from typing import Any, Callable
 from .schema import DEFAULT_PARAMS, normalize_params, validate_params
@@ -25,6 +25,7 @@ from .presets_catalog import (
     generate_random_printable_params,
 )
 from .studio_ui import get_studio_html
+from .locale_catalog import normalize_language, translate_text
 from .linux_ipc import send_linux_plater_request
 from .preset_mesh_cache import load_standard_preset_mesh
 
@@ -62,7 +63,7 @@ def _build_fallback_orca_module() -> types.ModuleType:
             return self._stored_config
 
         def get_config_version(self) -> str:
-            return "1.3.0"
+            return "1.4.0"
 
         def save_config(self, config: str) -> bool:
             self._stored_config = str(config or "{}")
@@ -933,22 +934,13 @@ def _bundle_get_value(bundle: Any, key: str) -> Any:
 
 
 def _detect_language(app_info: dict[str, Any]) -> str:
-    raw = str(app_info.get("language") or app_info.get("lang") or "").strip().lower()
-    if raw.startswith("en"):
-        return "en"
-    if raw.startswith("pt"):
-        return "pt"
+    raw = app_info.get("language") or app_info.get("lang")
     if raw:
-        return "en" if not raw.startswith("pt") else "pt"
+        return normalize_language(raw)
     try:
-        loc = (locale.getlocale()[0] or "").lower()
-        if loc.startswith("en"):
-            return "en"
-        if loc.startswith("pt"):
-            return "pt"
+        return normalize_language(locale.getlocale()[0])
     except Exception:
-        pass
-    return "pt"
+        return "pt"
 
 
 def _detect_theme(app_info: dict[str, Any]) -> str:
@@ -1005,6 +997,10 @@ class BoxStudioController:
         self._inflight_geometry = {}
         self._subscriptions = {}
         self._preview_waiters = {}
+        self._language_override = None
+        self._language_loaded = False
+        self._language_revision = 0
+        self._language_request_ids = OrderedDict()
 
     def current_params(self):
         with self._lock:
@@ -1023,6 +1019,37 @@ class BoxStudioController:
         path = _resolve_storage_dir() / "exports"
         path.mkdir(parents=True, exist_ok=True)
         return path
+
+    def preferred_language(self, host_language=None):
+        """Manual UI locale is independent of legacy manufacturing-label params."""
+        with self._lock:
+            if not self._language_loaded:
+                self._language_loaded = True
+                try:
+                    data = json.loads((_resolve_storage_dir() / "ui_preferences.json").read_text(encoding="utf-8"))
+                    if isinstance(data, dict) and data.get("language"):
+                        self._language_override = normalize_language(data["language"])
+                except (OSError, ValueError, TypeError):
+                    pass
+            return self._language_override or normalize_language(host_language)
+
+    def set_language(self, value):
+        language = normalize_language(value)
+        folder = _resolve_storage_dir()
+        folder.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=folder, prefix=".ui_language_", suffix=".tmp", delete=False) as handle:
+                temporary = Path(handle.name)
+                json.dump({"language": language}, handle, ensure_ascii=False)
+            os.replace(temporary, folder / "ui_preferences.json")
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+        with self._lock:
+            self._language_loaded = True
+            self._language_override = language
+        return language
 
     def read_host_context(self) -> dict[str, Any]:
         """Defensively inspect `orca.host.app_language()` and `orca.host.preset_bundle()`."""
@@ -1049,7 +1076,7 @@ class BoxStudioController:
                 except Exception:
                     pass
 
-        lang = _detect_language(app_info)
+        lang = self.preferred_language(_detect_language(app_info))
         theme = _detect_theme(app_info)
         theme_explicit = bool(
             app_info.get("theme")
@@ -1255,7 +1282,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.3.0",
+            "version": "1.4.0",
         }
 
     @staticmethod
@@ -1360,7 +1387,7 @@ class BoxStudioController:
             items = collect_target_meshes(
                 p,
                 target=target,
-                lang=p["lang"],
+                lang="pt" if p["lang"] == "pt" else "en",
                 assembled=assembled,
                 mesh_factory=factory,
             )
@@ -1607,6 +1634,32 @@ class BoxStudioController:
                 raise ValueError("Invalid plugin message.")
             self._subscriptions[default_mode] = send_fn
             action = msg.get("type", "")
+            if action == "set_language":
+                with self._lock:
+                    client_id = str(msg.get("language_client_id", ""))[:80]
+                    request_id = msg.get("language_request_id", 0)
+                    request_id = request_id if isinstance(request_id, int) and request_id > 0 else 0
+                    key = (default_mode, client_id)
+                    previous_id = self._language_request_ids.get(key, 0)
+                    if request_id and request_id < previous_id:
+                        send_fn({"type": "language_changed", "lang": self.preferred_language(),
+                                 "revision": self._language_revision, "origin": default_mode,
+                                 "language_request_id": previous_id, "language_client_id": client_id})
+                        return
+                    language = self.set_language(msg.get("lang"))
+                    self._language_request_ids[key] = request_id
+                    self._language_request_ids.move_to_end(key)
+                    if len(self._language_request_ids) > 16:
+                        self._language_request_ids.popitem(last=False)
+                    self._language_revision += 1
+                    for post in list(self._subscriptions.values()):
+                        try:
+                            post({"type": "language_changed", "lang": language,
+                                  "revision": self._language_revision, "origin": default_mode,
+                                  "language_request_id": request_id, "language_client_id": client_id})
+                        except Exception:
+                            pass
+                return
             if action == "randomize":
                 previous = normalize_params(msg.get("params") or self.current_params())
                 candidate = generate_random_printable_params(

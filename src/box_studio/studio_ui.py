@@ -3,12 +3,14 @@
 from __future__ import annotations
 import copy
 import json
+from html import escape as _box_locale_html_escape
 from typing import Any
 from .schema import normalize_params
+from .locale_catalog import TRANSLATIONS, LANGUAGE_NAMES, SUPPORTED_LANGUAGES, LANGUAGE_METADATA, normalize_language
 from .presets_catalog import BUILTIN_PRESETS
 
 _BOX_HTML = r"""<!doctype html>
-<html lang="__INITIAL_LANG__" data-theme="__INITIAL_THEME__">
+<html lang="__INITIAL_LANG__" dir="__INITIAL_DIR__" data-theme="__INITIAL_THEME__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -86,6 +88,7 @@ html, body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
+input[type="number"], .ctrl-num, canvas { direction: ltr; }
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -268,6 +271,10 @@ button, input, select {
   gap: 5px;
   flex-shrink: 0;
 }
+/* Seven native language names must fit alongside the original dock actions. */
+#lang-select { max-width: 112px; }
+body[data-mode="dock"] #lang-select { max-width: 88px; }
+body[data-mode="dock"] #btn-randomize { max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
 
 .btn {
   display: inline-flex;
@@ -1494,7 +1501,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                 type="text"
                 maxlength="80"
                 value="Caixa de projeto"
-                aria-label="Design Name"
+                aria-label="Design Name" data-locale-aria="Name" data-locale-aria-pt="Nome"
               />
             </div>
           </div>
@@ -1502,7 +1509,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
             id="sync"
             type="button"
             class="printer-pill"
-            title="Clique para sincronizar impressora ativa do OrcaSlicer"
+            title="Clique para sincronizar impressora ativa do OrcaSlicer" data-locale-title="Sync active printer" data-locale-title-pt="Sincronizar impressora ativa"
           >
             <span class="printer-dot"></span>
             <span id="printer-pill-text" class="printer-pill-text">
@@ -1523,27 +1530,26 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
         </div>
 
         <div class="header-actions">
-          <button id="undo" class="btn btn-icon" title="Undo (Ctrl+Z)" disabled>
+          <button id="undo" class="btn btn-icon" title="Undo (Ctrl+Z)" data-locale-title="Undo" data-locale-title-pt="Desfazer" disabled>
             ↶
           </button>
-          <button id="redo" class="btn btn-icon" title="Redo (Ctrl+Y)" disabled>
+          <button id="redo" class="btn btn-icon" title="Redo (Ctrl+Y)" data-locale-title="Redo" data-locale-title-pt="Refazer" disabled>
             ↷
           </button>
           <button id="btn-randomize" class="btn btn-soft">
             <span>🎲</span>
             <span data-i18n="btn_surprise">Surpreenda-me</span>
           </button>
-          <button id="reset" class="btn btn-icon" title="Reset">↺</button>
-          <button id="lang" class="btn btn-icon" title="Português / English">
-            PT
-          </button>
-          <button id="theme" class="btn btn-icon" title="Dark / Light">
+          <button id="reset" class="btn btn-icon" title="Reset" data-locale-title="Reset" data-locale-title-pt="Restaurar">↺</button>
+          <button id="lang" class="btn btn-icon" title="Português / English" hidden style="display:none">PT</button>
+          <select id="lang-select" class="btn" aria-label="Language" data-locale-title="Language" data-locale-title-pt="Idioma" style="width:auto;padding:4px 5px">__BOX_LANGUAGE_OPTIONS__</select>
+          <button id="theme" class="btn btn-icon" title="Dark / Light" data-locale-title="Theme" data-locale-title-pt="Tema">
             ☾
           </button>
         </div>
       </header>
 
-      <nav class="dock-tabs" aria-label="Studio Sections">
+      <nav class="dock-tabs" aria-label="Studio Sections" data-locale-aria="Studio sections" data-locale-aria-pt="Seções do estúdio">
         <button class="dock-tab-btn active" data-tab="shape" data-i18n="shape">
           Forma</button
         ><button class="dock-tab-btn" data-tab="textures" data-i18n="features">
@@ -1591,12 +1597,12 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
                   data-i18n="cat_all"
                 >
                   Todos</button
-                ><button class="filter-chip" data-cat="lip_snap">Snap</button
-                ><button class="filter-chip" data-cat="rugged_box">
+                ><button class="filter-chip" data-cat="lip_snap" data-i18n="filterSnap">Snap</button
+                ><button class="filter-chip" data-cat="rugged_box" data-i18n="filterRugged">
                   Rugged</button
-                ><button class="filter-chip" data-cat="sliding_lid">
+                ><button class="filter-chip" data-cat="sliding_lid" data-i18n="filterSliding">
                   Sliding</button
-                ><button class="filter-chip" data-cat="screw_corner">
+                ><button class="filter-chip" data-cat="screw_corner" data-i18n="filterScrew">
                   Screw</button
                 ><button class="filter-chip" data-cat="open_bin" data-i18n="openBin">Caixa aberta</button
                 ><button class="filter-chip" data-cat="snap_latch" data-i18n="snapLatch">Travas</button
@@ -1788,7 +1794,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
 
           <!-- Top-Left Material & View Controls -->
           <div class="vp-toolbar-left">
-            <select id="sel-material" class="vp-select" aria-label="Material">
+            <select id="sel-material" class="vp-select" aria-label="Material" data-locale-aria="Material">
               <option value="emerald_silk" data-i18n="mat_emerald">
                 Seda Esmeralda Orca
               </option>
@@ -1824,8 +1830,8 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
             <button id="btn-vp-wire" class="vp-chip" data-i18n="vp_wire">
               ⌗ Malha
             </button>
-            <button id="play" class="vp-chip" title="Animate lid">▶</button>
-            <button id="btn-vp-spin" class="vp-chip" title="Auto-Rotate">
+            <button id="play" class="vp-chip" title="Animate lid" data-locale-title="Animate lid" data-locale-title-pt="Animar tampa">▶</button>
+            <button id="btn-vp-spin" class="vp-chip" title="Auto-Rotate" data-locale-title="Auto-Rotate" data-locale-title-pt="Rotação automática">
               ⟳
             </button>
           </div>
@@ -1991,7 +1997,7 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
               50%
             </button>
             <button
-              id="btn-cut-off"
+              id="btn-cut-off" data-i18n="off"
               class="btn"
               style="padding: 3px 7px; font-size: 10.5px"
             >
@@ -2817,6 +2823,27 @@ body[data-mode="dock"][data-dock-tab="print"] #card-textures {
     ></div>
     <script>
 const INITIAL = __BOX_CONTEXT__;
+const OFFLINE_LANGUAGES = __BOX_LANGUAGES__;
+const OFFLINE_TRANSLATIONS = __BOX_TRANSLATIONS__;
+function normalizeLanguage(value, fallback = "pt") {
+  const raw = String(value || "").trim().toLowerCase().replace(/_/g, "-").split(".")[0];
+  if (!raw) return OFFLINE_LANGUAGES.some(item => item[0] === fallback) ? fallback : "en";
+  let code = raw.split("@")[0];
+  while (code) {
+    if (OFFLINE_LANGUAGES.some(item => item[0] === code)) return code;
+    code = code.includes("-") ? code.slice(0, code.lastIndexOf("-")) : "";
+  }
+  return "en";
+}
+function localeText(english, portuguese = english, code = null, context = null) {
+  const chosen = code || document.documentElement.lang || "pt";
+  const contextual = context && OFFLINE_TRANSLATIONS[chosen]?.[context + "::" + english];
+  if (contextual) return contextual;
+  return OFFLINE_TRANSLATIONS[chosen]?.[english] || (chosen === "pt" ? portuguese : english);
+}
+function localeFormat(english, portuguese, values) {
+  return localeText(english, portuguese).replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? "{" + key + "}"));
+}
 (() => {
   "use strict";
   const $ = (id) =>
@@ -2830,7 +2857,7 @@ const INITIAL = __BOX_CONTEXT__;
       ),
     clone = (o) => JSON.parse(JSON.stringify(o));
   let p = clone(INITIAL.params),
-    lang = INITIAL.lang || p.lang || "pt",
+    lang = normalizeLanguage(INITIAL.lang || p.lang || "pt"),
     theme = INITIAL.theme || "dark",
     tab = "shape",
     history = [],
@@ -2848,6 +2875,8 @@ const INITIAL = __BOX_CONTEXT__;
     playing = false,
     angle = 25,
     drag = null;
+  let pendingLanguageRequest = 0, languageRequestSerial = 0, lastLanguageRevision = 0;
+  const languageClientId = window.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36);
   let userOverrodeTheme = false;
   let hostThemeExplicit =
     INITIAL.theme_explicit ?? INITIAL.host?.theme_explicit ?? true;
@@ -3177,7 +3206,7 @@ const INITIAL = __BOX_CONTEXT__;
       right: "Right",
     },
   };
-  const tr = (k) => texts[lang][k] || k;
+  const tr = (k) => localeText(texts.en[k] || k, texts.pt[k] || texts.en[k] || k, lang, "ui:" + k);
   function send(m) {
     if (window.orca && typeof window.orca.postMessage === "function") {
       window.orca.postMessage(m);
@@ -3262,7 +3291,7 @@ const INITIAL = __BOX_CONTEXT__;
     label.dataset.en = clamshell
       ? "Gap between halves Z"
       : rugged ? "Joint clearance" : "Clearance per side";
-    label.textContent = label.dataset[lang];
+    label.textContent = localeText(label.dataset.en, label.dataset.pt);
     document.querySelector('[data-i18n="hud_mouth_hole"]').textContent = tr(
       clamshell ? "hingeClearance" : rugged ? "latchClearance" : "clearance",
     );
@@ -3276,9 +3305,10 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function updatePreviewText() {
     if (Number.isFinite(lastInterfaceError)) {
-      $("surface").textContent =
-        (lang === "pt" ? "Alvo de erro nas interfaces curvas ≤ " : "Curved interface chord-error target ≤ ") +
-        lastInterfaceError.toFixed(3) + " mm";
+      $("surface").textContent = localeFormat(
+        "Curved interface chord-error target ≤ {error} mm",
+        "Alvo de erro nas interfaces curvas ≤ {error} mm",
+        {error: lastInterfaceError.toFixed(3)});
     }
     if (statusTranslationKey === "ready") {
       $("status").textContent = tr("ready");
@@ -3287,17 +3317,29 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function translate() {
     p.theme = theme;
-    p.lang = lang;
+    p.lang = lang === "pt" ? "pt" : "en";
     document.documentElement.lang = lang;
+    document.documentElement.dir = OFFLINE_LANGUAGES.find(item => item[0] === lang)?.[2] || "ltr";
     document.documentElement.dataset.theme = theme;
     $("lang").textContent = lang.toUpperCase();
+    if ($("lang-select")) $("lang-select").value = lang;
+    document.querySelectorAll("[data-locale-title]").forEach(e => {
+      e.title = localeText(e.dataset.localeTitle, e.dataset.localeTitlePt || e.dataset.localeTitle);
+    });
+    document.querySelectorAll("[data-locale-aria]").forEach(e => {
+      e.setAttribute("aria-label", localeText(e.dataset.localeAria, e.dataset.localeAriaPt || e.dataset.localeAria));
+    });
+    if ($("lang-select")) $("lang-select").setAttribute("aria-label", localeText("Language", "Idioma"));
+    if ($("lbl-cross-cut") && $("cut")?.value === "0") $("lbl-cross-cut").textContent = tr("off");
+    const presetName = $("inp-save-preset-name");
+    if (presetName) presetName.placeholder = localeText("Preset name", "Nome do preset");
     $("theme").textContent = theme === "dark" ? "☾" : "☀";
     document
       .querySelectorAll("[data-i18n]")
       .forEach((e) => (e.textContent = tr(e.dataset.i18n)));
     document
       .querySelectorAll("[data-pt]")
-      .forEach((e) => (e.textContent = e.dataset[lang]));
+      .forEach((e) => (e.textContent = localeText(e.dataset.en, e.dataset.pt)));
     updatePreviewText();
     updateClearanceLabels();
     updateOpeningCaption();
@@ -3361,7 +3403,7 @@ const INITIAL = __BOX_CONTEXT__;
         : p.style === "stackable_bin"
           ? "Total height Z"
           : "Height Z";
-    heightLabel.textContent = heightLabel.dataset[lang];
+    heightLabel.textContent = localeText(heightLabel.dataset.en, heightLabel.dataset.pt);
     document.querySelector('[data-slider="snap_retention"]').style.display =
       p.style === "lip_snap" ? "grid" : "none";
     $("open-bin-handles").hidden = !openBin;
@@ -3392,7 +3434,7 @@ const INITIAL = __BOX_CONTEXT__;
     diameterLabel.dataset.en = clamshell
       ? "Integral axle diameter"
       : "Pin diameter";
-    diameterLabel.textContent = diameterLabel.dataset[lang];
+    diameterLabel.textContent = localeText(diameterLabel.dataset.en, diameterLabel.dataset.pt);
     $("open").disabled = lidless || INITIAL.preview_mode === "calibration";
     $("play").disabled = lidless || INITIAL.preview_mode === "calibration";
     for (const key of ["lid_height", "lip_depth", "fit_clearance"]) {
@@ -3461,7 +3503,7 @@ const INITIAL = __BOX_CONTEXT__;
         (e) => (e.style.display = p.style === "screw_corner" ? "grid" : "none"),
       );
     $("pipNote").textContent = rugged
-      ? (lang === "pt" ? `Fechada: ${p.height_z + p.rugged_lid_height} mm · base ${p.height_z} + tampa ${p.rugged_lid_height} mm` : `Closed: ${p.height_z + p.rugged_lid_height} mm · base ${p.height_z} + lid ${p.rugged_lid_height} mm`)
+      ? localeFormat("Closed: {height} mm · base {base} + lid {lid} mm", "Fechada: {height} mm · base {base} + tampa {lid} mm", {height: p.height_z + p.rugged_lid_height, base: p.height_z, lid: p.rugged_lid_height})
       : "";
     document
       .querySelectorAll("[data-param-range]")
@@ -3480,7 +3522,7 @@ const INITIAL = __BOX_CONTEXT__;
     if (!commit) return;
     timer = setTimeout(() => {
       status(tr("generating"));
-      p.lang = lang;
+      p.lang = lang === "pt" ? "pt" : "en";
       p.theme = theme;
       if (!send({ type: "preview", params: p, request_id }))
         status(tr("noHost"));
@@ -3556,11 +3598,15 @@ const INITIAL = __BOX_CONTEXT__;
     requestPreview();
   };
   $("reset").onclick = () => setDesign(INITIAL.params);
-  $("lang").onclick = () => {
-    lang = lang === "pt" ? "en" : "pt";
+  function selectLanguage(value, persist = true) {
+    lang = normalizeLanguage(value);
+    if (persist) pendingLanguageRequest = ++languageRequestSerial;
     translate();
     sync();
-  };
+    if (persist) send({type: "set_language", lang, language_request_id: pendingLanguageRequest, language_client_id: languageClientId});
+  }
+  $("lang-select").onchange = () => selectLanguage($("lang-select").value);
+  $("lang").onclick = () => selectLanguage(lang === "pt" ? "en" : "pt");
   $("theme").onclick = () => {
     userOverrodeTheme = true;
     theme = theme === "dark" ? "light" : "dark";
@@ -3689,7 +3735,7 @@ const INITIAL = __BOX_CONTEXT__;
           },
         ),
         selectInput(
-          "Modo / Mode",
+          localeText("Mode", "Modo"),
           s.mode,
           [
             ["insert", tr("insert")],
@@ -3951,7 +3997,7 @@ const INITIAL = __BOX_CONTEXT__;
   }
   function manufacture(type, format) {
     p.export_target = $("target").value;
-    p.lang = lang;
+    p.lang = lang === "pt" ? "pt" : "en";
     busy(true);
     status(tr("generating"));
     if (!send({ type, format, params: p, export_target: p.export_target })) {
@@ -3970,6 +4016,15 @@ const INITIAL = __BOX_CONTEXT__;
       return;
     }
     if (!m || typeof m !== "object") return;
+    if (m.type === "language_changed") {
+      const own = m.origin === INITIAL.mode && m.language_client_id === languageClientId;
+      if (own && m.language_request_id < pendingLanguageRequest) return;
+      if (own && m.language_request_id === pendingLanguageRequest) pendingLanguageRequest = 0;
+      if (m.revision && m.revision < lastLanguageRevision) return;
+      lastLanguageRevision = m.revision || lastLanguageRevision;
+      selectLanguage(m.lang, false);
+      return;
+    }
     if (m.type === "randomize_result") {
       if (m.ok) setDesign(m.params);
       else status(m.message, true);
@@ -3983,6 +4038,7 @@ const INITIAL = __BOX_CONTEXT__;
       return;
     }
     if (m.type === "init_state") {
+      if (m.lang) selectLanguage(m.lang, false);
       if (m.host) {
         INITIAL.host = m.host;
         updatePrinter();
@@ -4031,7 +4087,7 @@ const INITIAL = __BOX_CONTEXT__;
       }
       localDirty = false;
       p = clone(m.params);
-      p.lang = lang;
+      p.lang = lang === "pt" ? "pt" : "en";
       p.theme = theme;
       meshParams = clone(m.params);
       INITIAL.hinge = m.hinge;
@@ -4054,7 +4110,11 @@ const INITIAL = __BOX_CONTEXT__;
     }
     if (m.type === "action_result") {
       busy(false);
-      status(m.message || String(m.ok), !m.ok);
+      const known = {
+        "Arquivos exportados / Files exported.": ["Files exported.", "Arquivos exportados."],
+        "Pedido enviado à mesa / Import request sent to Plater.": ["Import request sent to Plater.", "Pedido enviado à mesa."],
+      }[m.message];
+      status(known ? localeText(...known) : (m.message || String(m.ok)), !m.ok);
     }
   }
   window.addEventListener("message", receive);
@@ -4905,7 +4965,7 @@ const INITIAL = __BOX_CONTEXT__;
       "hud-status-pill " + (fits ? "ok" : "warn");
     $("bed-alert-banner").classList.toggle("visible", !fits);
     $("wall-perim-hint").textContent =
-      `≈ ${Math.ceil(p.wall_thickness / (h.line_width_mm || 0.42))} ${lang === "pt" ? "perímetros de" : "walls of"} ${(h.line_width_mm || 0.42).toFixed(2)} mm`;
+      `≈ ${Math.ceil(p.wall_thickness / (h.line_width_mm || 0.42))} ${localeText("walls of", "perímetros de")} ${(h.line_width_mm || 0.42).toFixed(2)} mm`;
   }
   function render() {
     if (!gl || !program) return;
@@ -5254,6 +5314,7 @@ const INITIAL = __BOX_CONTEXT__;
     }
   });
   Object.assign(texts.pt, {
+    filterSnap: "Snap", filterRugged: "Rugged", filterSliding: "Sliding", filterScrew: "Screw", off: "Off",
     sec_presets: "Galeria de Modelos",
     btn_save_preset: "+ Salvar",
     cat_all: "Todos",
@@ -5292,6 +5353,7 @@ const INITIAL = __BOX_CONTEXT__;
     btn_surprise: "Surpreenda-me",
   });
   Object.assign(texts.en, {
+    filterSnap: "Snap-fit", filterRugged: "Rugged", filterSliding: "Sliding", filterScrew: "Screw", off: "Off",
     sec_presets: "Model Gallery",
     btn_save_preset: "+ Save",
     cat_all: "All",
@@ -5432,9 +5494,7 @@ const INITIAL = __BOX_CONTEXT__;
         '</div><div class="preset-meta"><div class="preset-name"></div><div class="preset-sub"></div></div>';
       card.querySelector(".preset-name").textContent = item.user
         ? item.name
-        : lang === "pt"
-          ? item.name_pt
-          : item.name_en;
+        : localeText(item.name_en, item.name_pt);
       card.querySelector(".preset-sub").textContent =
         item.params.style === "rugged_box"
           ? `${item.params.width_x}×${item.params.depth_y} · ${item.params.height_z}+${item.params.rugged_lid_height} mm`
@@ -5644,7 +5704,7 @@ const INITIAL = __BOX_CONTEXT__;
   };
   $("cut").oninput = () => {
     $("lbl-cross-cut").textContent =
-      $("cut").value === "0" ? "Off" : $("cut").value + "%";
+      $("cut").value === "0" ? tr("off") : $("cut").value + "%";
     render();
   };
   $("btn-cut-half").onclick = () => {
@@ -5742,13 +5802,7 @@ def get_studio_html(
     ctx["params"] = normalize_params(ctx.get("params"))
     ctx.setdefault("presets", BUILTIN_PRESETS)
     ctx["mode"] = "dock" if str(mode).strip().lower() == "dock" else "page"
-    lang = (
-        "en"
-        if str(ctx.get("lang") or ctx["params"].get("lang", "pt"))
-        .lower()
-        .startswith("en")
-        else "pt"
-    )
+    lang = normalize_language(ctx.get("lang") or ctx["params"].get("lang", "pt"))
     theme = (
         "light"
         if str(ctx.get("theme") or ctx["params"].get("theme", "dark")).lower()
@@ -5764,7 +5818,11 @@ def get_studio_html(
     )
     return (
         _BOX_HTML.replace("__INITIAL_LANG__", lang)
+        .replace("__INITIAL_DIR__", next(m["direction"] for m in LANGUAGE_METADATA if m["code"] == lang))
         .replace("__INITIAL_THEME__", theme)
         .replace("__INITIAL_MODE__", ctx["mode"])
         .replace("__BOX_CONTEXT__", payload)
+        .replace("__BOX_LANGUAGES__", json.dumps([[m["code"], m["native_name"], m["direction"]] for m in LANGUAGE_METADATA], ensure_ascii=False).replace("</", "<\\/"))
+        .replace("__BOX_TRANSLATIONS__", json.dumps(TRANSLATIONS, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+        .replace("__BOX_LANGUAGE_OPTIONS__", "".join(f'<option value="{code}">{_box_locale_html_escape(name)}</option>' for code, name in zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)))
     )

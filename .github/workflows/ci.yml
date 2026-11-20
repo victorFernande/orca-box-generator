@@ -53,8 +53,12 @@ jobs:
         env:
           ORCA_PLAYWRIGHT_MODULE: ${{ runner.temp }}/orca-ui-tools/node_modules/playwright
           ORCA_UI_OUTPUT: test-output/ui
+          ORCA_LANGUAGE_OUTPUT: test-output/ui/languages
+          ORCA_LANGUAGE_EXTENSION_OUTPUT: test-output/ui/language-extension
         run: |
           node scripts/check_ui_template.cjs
+          node scripts/check_offline_languages.cjs
+          python -B -W error -m unittest discover -s tests -p "test_language_packs.py" -v
           python -B -W error -m unittest discover -s tests -p "test_*adapter.py" -v
       - name: Verify every Box style, preset and supported export through the UI
         if: ${{ !cancelled() && runner.os == 'Linux' && steps.browser_tools.outcome == 'success' }}
