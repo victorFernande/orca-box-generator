@@ -3,13 +3,14 @@
 from __future__ import annotations
 import copy
 import json
+from html import escape as _box_locale_html_escape
 from typing import Any
 from .schema import normalize_params
-from .locale_catalog import TRANSLATIONS, LANGUAGE_NAMES, SUPPORTED_LANGUAGES, normalize_language
+from .locale_catalog import TRANSLATIONS, LANGUAGE_NAMES, SUPPORTED_LANGUAGES, LANGUAGE_METADATA, normalize_language
 from .presets_catalog import BUILTIN_PRESETS
 
 _BOX_HTML = r"""<!doctype html>
-<html lang="__INITIAL_LANG__" data-theme="__INITIAL_THEME__">
+<html lang="__INITIAL_LANG__" dir="__INITIAL_DIR__" data-theme="__INITIAL_THEME__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -87,6 +88,7 @@ html, body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
+input[type="number"], .ctrl-num, canvas { direction: ltr; }
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -2825,14 +2827,19 @@ const OFFLINE_LANGUAGES = __BOX_LANGUAGES__;
 const OFFLINE_TRANSLATIONS = __BOX_TRANSLATIONS__;
 function normalizeLanguage(value, fallback = "pt") {
   const raw = String(value || "").trim().toLowerCase().replace(/_/g, "-").split(".")[0];
-  if (!raw) return fallback;
-  const code = raw.split("-")[0];
-  return OFFLINE_LANGUAGES.some(item => item[0] === code) ? code : "en";
+  if (!raw) return OFFLINE_LANGUAGES.some(item => item[0] === fallback) ? fallback : "en";
+  let code = raw.split("@")[0];
+  while (code) {
+    if (OFFLINE_LANGUAGES.some(item => item[0] === code)) return code;
+    code = code.includes("-") ? code.slice(0, code.lastIndexOf("-")) : "";
+  }
+  return "en";
 }
-function localeText(english, portuguese = english, code = null) {
+function localeText(english, portuguese = english, code = null, context = null) {
   const chosen = code || document.documentElement.lang || "pt";
-  if (chosen === "pt") return portuguese;
-  return OFFLINE_TRANSLATIONS[chosen]?.[english] || english;
+  const contextual = context && OFFLINE_TRANSLATIONS[chosen]?.[context + "::" + english];
+  if (contextual) return contextual;
+  return OFFLINE_TRANSLATIONS[chosen]?.[english] || (chosen === "pt" ? portuguese : english);
 }
 function localeFormat(english, portuguese, values) {
   return localeText(english, portuguese).replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? "{" + key + "}"));
@@ -3199,7 +3206,7 @@ function localeFormat(english, portuguese, values) {
       right: "Right",
     },
   };
-  const tr = (k) => localeText(texts.en[k] || k, texts.pt[k] || texts.en[k] || k, lang);
+  const tr = (k) => localeText(texts.en[k] || k, texts.pt[k] || texts.en[k] || k, lang, "ui:" + k);
   function send(m) {
     if (window.orca && typeof window.orca.postMessage === "function") {
       window.orca.postMessage(m);
@@ -3312,6 +3319,7 @@ function localeFormat(english, portuguese, values) {
     p.theme = theme;
     p.lang = lang === "pt" ? "pt" : "en";
     document.documentElement.lang = lang;
+    document.documentElement.dir = OFFLINE_LANGUAGES.find(item => item[0] === lang)?.[2] || "ltr";
     document.documentElement.dataset.theme = theme;
     $("lang").textContent = lang.toUpperCase();
     if ($("lang-select")) $("lang-select").value = lang;
@@ -5810,10 +5818,11 @@ def get_studio_html(
     )
     return (
         _BOX_HTML.replace("__INITIAL_LANG__", lang)
+        .replace("__INITIAL_DIR__", next(m["direction"] for m in LANGUAGE_METADATA if m["code"] == lang))
         .replace("__INITIAL_THEME__", theme)
         .replace("__INITIAL_MODE__", ctx["mode"])
         .replace("__BOX_CONTEXT__", payload)
-        .replace("__BOX_LANGUAGES__", json.dumps(list(zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)), ensure_ascii=False))
-        .replace("__BOX_TRANSLATIONS__", json.dumps(TRANSLATIONS, ensure_ascii=False, separators=(",", ":")))
-        .replace("__BOX_LANGUAGE_OPTIONS__", "".join(f'<option value="{code}">{name}</option>' for code, name in zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)))
+        .replace("__BOX_LANGUAGES__", json.dumps([[m["code"], m["native_name"], m["direction"]] for m in LANGUAGE_METADATA], ensure_ascii=False).replace("</", "<\\/"))
+        .replace("__BOX_TRANSLATIONS__", json.dumps(TRANSLATIONS, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+        .replace("__BOX_LANGUAGE_OPTIONS__", "".join(f'<option value="{code}">{_box_locale_html_escape(name)}</option>' for code, name in zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)))
     )

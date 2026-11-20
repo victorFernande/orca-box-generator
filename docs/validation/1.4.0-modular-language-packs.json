@@ -1,0 +1,228 @@
+{
+  "version": "1.4.0",
+  "baseline_commit": "16a876058d830b6688893f06bd7a96799ed1739d",
+  "method": "Data-only JSON catalogs, automatic discovery/metadata and strict automatic packaging. Actual extra JSON fixtures rebuilt/imported as source, standalone, any and wheel; new locale checked in real Chromium page/dock. No registry/Python/JavaScript edits in fixture projects.",
+  "catalogs": {
+    "de.json": {
+      "code": "de",
+      "native_name": "Deutsch",
+      "direction": "ltr",
+      "entries": 200,
+      "sha256": "874788d3ee111dd22889ae003513c0fa004f501b6a6b00b545e2f28bff5814f8"
+    },
+    "en.json": {
+      "code": "en",
+      "native_name": "English",
+      "direction": "ltr",
+      "entries": 205,
+      "sha256": "04a82f981ead4ffbfbb7f18c4ca609d4458cf13a829c4ce54c52f38445a956f3"
+    },
+    "es.json": {
+      "code": "es",
+      "native_name": "Español",
+      "direction": "ltr",
+      "entries": 200,
+      "sha256": "e57c3baca766121df26fcd81e96fc7e64c43821cdc1457a2ce01dc38e654052b"
+    },
+    "fr.json": {
+      "code": "fr",
+      "native_name": "Français",
+      "direction": "ltr",
+      "entries": 200,
+      "sha256": "6016740c5b0c1810d426e72a5d86d1eb39e0d5f749891730b19534520c126468"
+    },
+    "it.json": {
+      "code": "it",
+      "native_name": "Italiano",
+      "direction": "ltr",
+      "entries": 200,
+      "sha256": "9e97e3b96dd0e14c70a13f70b8f735052e3053939260211660fe74d65f5c8dc7"
+    },
+    "ja.json": {
+      "code": "ja",
+      "native_name": "日本語",
+      "direction": "ltr",
+      "entries": 200,
+      "sha256": "6943ecdae779b89e3b750414bcd06235cc2e4ec3a0df269b4911ec1b1c9102bb"
+    },
+    "pt.json": {
+      "code": "pt",
+      "native_name": "Português",
+      "direction": "ltr",
+      "entries": 171,
+      "sha256": "1b4a1cae8a069977b88c5137eb72d618f38faf2463a157fdfece1458370f7980"
+    }
+  },
+  "runtime_source_sha256": {
+    "language_packs.py": "765537ce2de4220e6328ba72f55b9662031af43da9462455641cacf5ece5eac9",
+    "locale_catalog.py": "d27f76366c693e0c5b84ae706a8913ffcd30fa29e642b6511c863442036bbd4a",
+    "studio_ui.py": "108910d881a7058dadd44da69f95ca6338b32288a5a3bf2af9bbf255f93347a5"
+  },
+  "artifacts": {
+    "orca_box_generator-1.4.0-py3-none-any.whl": {
+      "bytes": 15896146,
+      "sha256": "982b7c9ae86f78e5a311d1367992595e89b28c68a9dfe4376789a4cf21935402"
+    },
+    "orca_box_generator.py": {
+      "bytes": 21824611,
+      "sha256": "eba48b17af54e7ded2d9b55f0c4e49e03c321006d8712d9bbd5e71db1ad2bb6d"
+    },
+    "orca_box_generator_any.py": {
+      "bytes": 21824611,
+      "sha256": "eba48b17af54e7ded2d9b55f0c4e49e03c321006d8712d9bbd5e71db1ad2bb6d"
+    }
+  },
+  "unchanged_manufacturing_reference_sha256": {
+    "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+    "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+    "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+    "src/box_studio/rugged_geometry.py": "35abe9fc9106d3a8acf0cb955ac7f5c1231f118695a80ed4445a3665c76a5856",
+    "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+    "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+    "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+    "src/box_studio/preset_mesh_index.py": "2f9c2b2b16d280b542219762d872c78ab031a65095a38d3dd985f3edeb617307",
+    "src/box_studio/preset_mesh_cache.py": "ea260eebb5244764ba85fbb431a87dbd69c5a1d3e0dec09ff59cea84823254a1",
+    "src/box_studio/preset_meshes/pencil-base.npz": "ed1e6c954438d40b9af4c6d2476119ee0ea019665983814dca081fb7158bbdcd",
+    "src/box_studio/preset_meshes/pencil-lid.npz": "028358afc060aa201f3d297f8211808f658caccdcdfaf0f2737d6af52c3ca14f",
+    "src/box_studio/preset_meshes/screw_corner_standard-base.npz": "0ae9369ff4312917d98b765299676c16f1a2eaefa75e0cdfb33729f176a0fbed",
+    "src/box_studio/preset_meshes/screw_corner_standard-lid.npz": "70108241386c043a3b3f94c3659f02a90d7eea90a794f17f03b8b36119473993",
+    "src/box_studio/preset_meshes/tool_rugged-base.npz": "82ac798809252ad9f581e4b27cb296d941fa1ef25890461555082a0c0036a482",
+    "src/box_studio/preset_meshes/tool_rugged-clip_left.npz": "adb8df8f6a49c1ee509038c6bced79ce1ccd4addd0c14833a682ced9e7f61f13",
+    "src/box_studio/preset_meshes/tool_rugged-lid.npz": "fdc50e11cb5495f4f0a669b992354e3e0def5823b9fdde94fefbca0d5e17c658",
+    "tests/fixtures/standard_mesh_reference.json": "ae511e86dc1da46f41ab3c847ccde08977f990bb2b365cf766f4a82063b9fc7b"
+  },
+  "shipped_language_browser": {
+    "ok": true,
+    "cases": 28,
+    "errors": [],
+    "persistence": true,
+    "cross_view_sync": true,
+    "printer_sync": true,
+    "exports": [
+      {
+        "format": "stl",
+        "ok": true,
+        "verified": true,
+        "files": 2
+      },
+      {
+        "format": "3mf",
+        "ok": true,
+        "verified": true,
+        "files": 1
+      }
+    ]
+  },
+  "extra_language_browser": {
+    "ok": true,
+    "cases": [
+      {
+        "format": "source",
+        "mode": "page",
+        "code": "nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "source",
+        "mode": "dock",
+        "code": "nl-nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "orca_box_generator.py",
+        "mode": "page",
+        "code": "nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "orca_box_generator.py",
+        "mode": "dock",
+        "code": "nl-nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "orca_box_generator_any.py",
+        "mode": "page",
+        "code": "nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "orca_box_generator_any.py",
+        "mode": "dock",
+        "code": "nl-nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "wheel",
+        "mode": "page",
+        "code": "nl",
+        "discovered": true,
+        "fallback": true
+      },
+      {
+        "format": "wheel",
+        "mode": "dock",
+        "code": "nl-nl",
+        "discovered": true,
+        "fallback": true
+      }
+    ],
+    "errors": [],
+    "scope": "Synthetic language data only; four real distribution formats, page/dock. No native OrcaSlicer."
+  },
+  "future_partial_catalog_ci": {
+    "ok": true,
+    "method": "Normal production CI language unit/browser commands copied unchanged into isolated current project source snapshot. Add only one eighth partial ar-eg JSON, including legal reordered placeholders; no registry or test edits. Box separately replaces QA ar-eg by legitimate regional it-it eighth file and reruns normal persistence/locale units. No full manufacturing geometry suite.",
+    "production_source_sha256": {
+      "src/box_studio/__init__.py": "c482aff37e5be445f0f2faa27a1c894fdf13c1c01ce3495c547f2759e79085f9",
+      "src/box_studio/exporters.py": "77cf8b72ad2ffff38165da4acdaf6ee918fb085f134245d9f718256a3c0c7891",
+      "src/box_studio/language_packs.py": "765537ce2de4220e6328ba72f55b9662031af43da9462455641cacf5ece5eac9",
+      "src/box_studio/linux_ipc.py": "f0a136e06e6e17531310d4b1a52d2cc4beec48ea270a2c171af0f41aa2b45c1b",
+      "src/box_studio/locale_catalog.py": "d27f76366c693e0c5b84ae706a8913ffcd30fa29e642b6511c863442036bbd4a",
+      "src/box_studio/mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+      "src/box_studio/plugin_main.py": "33de6e71b69a2b7b3a01a81165f538802003ee5c707c88775471d5fb1426a6ee",
+      "src/box_studio/preset_mesh_cache.py": "ea260eebb5244764ba85fbb431a87dbd69c5a1d3e0dec09ff59cea84823254a1",
+      "src/box_studio/preset_mesh_index.py": "2f9c2b2b16d280b542219762d872c78ab031a65095a38d3dd985f3edeb617307",
+      "src/box_studio/presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+      "src/box_studio/rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+      "src/box_studio/rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765",
+      "src/box_studio/rugged_geometry.py": "35abe9fc9106d3a8acf0cb955ac7f5c1231f118695a80ed4445a3665c76a5856",
+      "src/box_studio/rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+      "src/box_studio/schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+      "src/box_studio/studio_ui.py": "108910d881a7058dadd44da69f95ca6338b32288a5a3bf2af9bbf255f93347a5"
+    },
+    "results": [
+      {
+        "label": "partial-ar-legacy-units",
+        "exit_code": 0,
+        "ok": true
+      },
+      {
+        "label": "partial-ar-modular-units",
+        "exit_code": 0,
+        "ok": true
+      },
+      {
+        "label": "partial-ar-check_offline_languages",
+        "exit_code": 0,
+        "ok": true
+      },
+      {
+        "label": "regional-it-it-legacy-units",
+        "exit_code": 0,
+        "ok": true
+      }
+    ]
+  },
+  "limitations": [
+    "Isolated browser and CI do not establish native Orca sessions or native-speaker review.",
+    "Restart the plugin process after adding local optional JSON files; rebuild installers to distribute new languages.",
+    "Historic performance samples refer to their original source/artifact snapshots; no universal timing or FPS guarantee."
+  ]
+}

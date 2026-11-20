@@ -163,7 +163,7 @@ class ClamshellUiTests(unittest.TestCase):
         # These focused DOM stubs expose lang directly; use the production
         # catalog/formatter with that locale instead of a full document root.
         runtime = script[script.index("const OFFLINE_LANGUAGES"):script.index("(() => {")]
-        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang)=>productionLocaleText(en,pt,code);"
+        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang,context=null)=>productionLocaleText(en,pt,code,context);"
         translations = script[
             script.index("const texts =") : script.index("function send(")
         ]
@@ -199,7 +199,7 @@ class ClamshellUiTests(unittest.TestCase):
     def test_pip_gap_and_hinge_clearance_have_distinct_labels_and_values(self):
         script = re.search(r"<script>(.*?)</script>", get_studio_html(), re.S)[1]
         runtime = script[script.index("const OFFLINE_LANGUAGES"):script.index("(() => {")]
-        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang)=>productionLocaleText(en,pt,code);"
+        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang,context=null)=>productionLocaleText(en,pt,code,context);"
         translations = script[
             script.index("const texts =") : script.index("function send(")
         ]

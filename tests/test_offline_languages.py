@@ -13,6 +13,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from box_studio.locale_catalog import TRANSLATIONS, SUPPORTED_LANGUAGES, normalize_language
+from box_studio.language_packs import canonical_language_code
 from box_studio import plugin_main as bridge
 from box_studio.studio_ui import get_studio_html
 
@@ -21,19 +22,19 @@ class OfflineLanguageTests(unittest.TestCase):
     def test_locale_normalization(self):
         for raw, code in (("it_IT", "it"), ("es-MX", "es"), ("fr_FR.UTF-8", "fr"),
                           ("de-DE", "de"), ("ja_JP", "ja"), ("PT_br", "pt"),
-                          ("en_US", "en"), ("zh_CN", "en"), (None, "pt")):
-            self.assertEqual(normalize_language(raw), code)
+                          ("en_US", "en"), ("!unsupported!", "en"), (None, "pt")):
+            exact = canonical_language_code(raw)
+            expected = exact if exact in TRANSLATIONS else code
+            self.assertEqual(normalize_language(raw), expected)
             if raw:
-                self.assertEqual(bridge._detect_language({"language": raw}), code)
+                self.assertEqual(bridge._detect_language({"language": raw}), expected)
 
     def test_catalog_placeholders_and_no_empty_translation(self):
-        self.assertEqual(tuple(TRANSLATIONS), SUPPORTED_LANGUAGES[2:])
-        keys = set(TRANSLATIONS["it"])
+        self.assertEqual(tuple(TRANSLATIONS), SUPPORTED_LANGUAGES)
         for code, catalog in TRANSLATIONS.items():
-            self.assertEqual(set(catalog), keys)
             for english, text in catalog.items():
                 self.assertTrue(text.strip(), (code, english))
-                self.assertEqual(re.findall(r"\{\w+\}", english), re.findall(r"\{\w+\}", text), (code, english))
+                self.assertEqual(sorted(re.findall(r"\{\w+\}", english)), sorted(re.findall(r"\{\w+\}", text)), (code, english))
 
     @unittest.skipUnless(shutil.which("node"), "Node needed for production dictionary extraction")
     def test_all_ui_dictionary_and_owned_parameter_labels_are_translated(self):
@@ -46,7 +47,9 @@ class OfflineLanguageTests(unittest.TestCase):
         js = script[start:end] + extra + ";process.stdout.write(JSON.stringify(texts.en))"
         dictionary = json.loads(subprocess.check_output(["node", "-e", js], text=True, encoding="utf-8"))
         labels = re.findall(r'data-en="([^"]+)"', html)
-        for code, catalog in TRANSLATIONS.items():
+        reference = json.loads((ROOT / "tests/fixtures/1.4.0-translation-digests.json").read_text(encoding="utf-8"))
+        for code in reference["catalogs"]:
+            catalog = TRANSLATIONS[code]  # New partial catalogs use English fallback.
             for text in [*dictionary.values(), *labels, "Parameters", "Export"]:
                 self.assertIn(text, catalog, (code, text))
 
@@ -60,7 +63,7 @@ class OfflineLanguageTests(unittest.TestCase):
             controller.handle_message({"type": "init"}, dock.append, "dock")
             page.clear(); dock.clear()
             with patch.object(controller, "_enqueue_preview", side_effect=AssertionError("language generated geometry")):
-                controller.handle_message({"type": "set_language", "lang": "it_IT"}, page.append, "page")
+                controller.handle_message({"type": "set_language", "lang": "it"}, page.append, "page")
             self.assertEqual(page, [{"type": "language_changed", "lang": "it", "revision": 1,
                                      "origin": "page", "language_request_id": 0, "language_client_id": ""}])
             self.assertEqual(dock, page)

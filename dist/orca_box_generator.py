@@ -41,245 +41,170 @@ if __name__ not in _orca_init_sys.modules:
     _orca_init_sys.modules[__name__] = _orca_init_types.ModuleType(__name__)
 
 # ===========================================================================
+# MODULE: box_studio.language_packs
+# ===========================================================================
+
+"""Discover data-only offline language packs in source, wheels and standalone bundles.
+
+This module is self-contained so future Studio plugins can use the same format
+without importing another plugin. Catalogs never contain executable code.
+"""
+pass  # [bundled] hoisted __future__ import
+
+import base64
+import json
+from pathlib import Path
+import re
+import zlib
+
+_BUNDLED_LANGUAGE_PACKS = json.loads(zlib.decompress(base64.b85decode(b'c-q~4Tay&WweDZ3(8I=#GoXDtCr+TJ0S$;P$xJX<mh`ftx;v-4pt`DEmqCof5zLHagDysvE%~Ag*2Q7~gJdI17$hsg{d#`I9?bwxd;f&9zO^#5vTogt3<xViV!E=jvhuR-`Q@q~J=9YV?fub1-57syG51g}NK`iq;)n{uETNLf&w>^8pOHUArAJksrQHFQ$4O5m5AFTma}UwA8v6gaqLP#!{Fk|hvc!+l&__clUh%)YC4U9a(~pq~=z%1nHs-^S%IIIbdOiw<ex|%I=<$oX$5rV0R2Zm4aqZD4Jn0QpcR;0GKlIWt=mt@rYCkE3=!y4elGCF>lx8Xn^Qf;PYUPBAdeTUq#k-Hh8NCUwrYm|W9`t&N8c3Dr0&1KZ7|B$4-8@5G6syErOvaxt(*seEWmJ2g-#t!u9}A+4pWf%EXqo;5slN37mmU-s(v=L(-1Va#?t258B2WD=r<V^@&>v)byoKjRaguo%4QoInRXxv7Q#I_+Jj5dmEc5>5|NiseKA!VBaW?ScJfjXS`(2fK)Nef2QN2Ch<4TR_ifWHydSM{9Fnv@VucvwI9_PYQf`Rnpb$e`|bE>45Bn{|yKg23}gSb1`<L&eFev*$y%FBn+AFr>*pDr&)D)WXxMx6*~_PzOhd`?BF3Nmy(U-o)xD9hDRS>`DoEU)$+Z!t~-p8R0wElEeIm5v(tA)ZEmXgct0MuT0V<xe7dl=@GrLk%=eF7;fEm=ZEQ#i^ZRKMcL)IHwl;Bun>t>43;5^-csduQV}1(lWbq9??0?U+OK>k3HT}<d0-}M?~dJr^jNN)6~o2zM>m6<I5TMluBuqAJMaa5-(p4LSnQi+lA)Tb3rEvgY0DEIt=^{PlVqYj6aC_L0@@~jXxb=^1xBv3Z~<z3h1XZvwL~2LS6u@MtvRTyr+nhyMu82Inf$Mg*ARW@2imhQ_*qdMLzh&Jme9xB|foR^oVyr_rK`;_=BvrD9d3SCtfc;5zR3j(=2%T=!Bp2Xg&5@T0G%n1+aoV*GbUp(=_{?n3i&Y;(ij0(mC%04cb#Q5h0eNOx>eI(L|i!8H_=M-1i*JI_HhwAQ~kRA%$@VbN2(9%%0K&)>l-fqGj&LJ{kqheB_Nk?@-HV>@n&Ebz+$Yhxd|1)Wo{`sTgzU=e4m5-FeTNB^_YR=u+PX#b>F^&?D%5suCJ5MkK39ycs6}O)*PXFJAT(IuEKPt^rMP<z-^K<MjV>kfg<pV5mG{0VZK#b`b%iBqri>SY8Mt@?_drnqq}5Es?06&r_oCL53+jrZD=)<KZZ#8OxN*u6w*^bE2utTO{#CmDAMERz2ok++-?RC9&W!C1>6W^-aWh!V9s;eWR7%Q%qBMl6v|*Vi_xG<BWtk6@K4H;v^>~?s@xT5=~SuiKA7B=7Xv;{+xQFsFRQ9qh*zJ<ks9n`~4MSH}9Xk1DJn^^>`2_K8ZDSgJ%M@i1;GnK$^*Hz`e+5LY9?t>qO8qw>k*~9`1$8C%xFEm5f3^0WI^g`iVzMR}r(3xEX+76P5V^a|IJVX&C$lJM8g}Qpr<ZLSpeaN%ho=;$aYxkm<%m65R~z_oz=2aTHKDNGJD`@u$S-B;k62@}BUaBO^agQ=%Brj<isoN@S&Io{oUZPY_Aa!qDYYyN`f8Xeq}Zgc(!B_f!-e$Lo$~drITNG^YVu6Y~CJ%3HFdC)Ly2>-|U=;K$x@=>6?88XT?WkMQr0MNN7?qJMCgR|;|{rkROq4+@dmC$&(t57P^Y6ho|Ws-V6fm&**K$9HL+SiPsT+$>0_5=p)eDG8YuEcroZZmFMUM3UMzn$MRze$M3yCN1%ML5>y{K+^ik-c7rSIw3b{KtxX+ZZc02Xri=B^X`3TIQ%XeKAz>^G;e9umU7h<qGaY)C?HZ9WPj~eNkVco11)9Vf1UZj`w^Gu*?X2&VE2+5K!B+MOqaeoPSR*N1kY<$q;XaroFm(d=-PXRnm7uwre7#agMLH{)JgmVthW$lC-P)D?F5}LAmc+FN39^um=czgct{Fwgb{U6)?=oIh~;W4L?sF4>nKe@bb@6rZX|x+<LdG9GIRkXNg^VzACUBUnkb)$V9tAn*#g>|h@Oa_ri0i3wm?G0D9K{g3o>W~qTDcM`L8>YGNmWpYM@wIem_Y^-~?DIS<uHjSRD{gl6`<T@#TOGyglAQa1RL%`^HEtB33E<R+5b!KiOl3lf~5g4hc6RTGCWRq*SsR$9jpNyH<0kQvOMmo+R!h3gXgdsUA<+LewQj$P*D@#EW^V++v!wlc9SvJ2}FAF(>_Sg=U7@?lKo@B~;=mku27{WYv(CtxQbfK{otgYJ3nbXVT$*!KT^<skAI+LftsT9Ete_f+~y@TkP%mw<izKJ^XR47^lM0(I-%W{xnyB1nv9japI6vk<6nNqv3%dQ?h1=c8)H7zicy*wj7*H#luj32+^C6Sx%l232c?ZW@9O9G@owPeLc$#ZrEC{MB~JR&~|uk0BtuUDNGYhVw4?_zG7P;^G+!8t=M8XK)eoNs%7W_<!7|k;G1W2NaRo9p^?o+Ju}vUD1b}_phl~!xv?NZV+Y7w<13!@AR1xKb%{rV28Xk0ahz)ymA(6MzD12`35x2Nj!HcqgQ=pms8O5;NYA3~QxJ>h+IyH;*%Z^|!1z*f-|s>>T9vww^(ot0e4lBF-fZg|i?Wx*qlzFR>lG{3^z1=0+sXVrp=jPTzdXx&jHHFPdV+n+s37}i`4NznLkcK^4)sAJ<f*2E|2p*{411c_i1oDy2qB>FDKdgi1WAvy@2blC87l81T}ld>35%px&>=Dzf7&M+8ek1cAB~8KVKWGWVL@p^lxQk8Cd<{#v^lk`Me>+6qG9S-TNZZ;EA=sJpz1<na?&g<J2k`r)DtB2;X`5$jdy0sq-#(V?%fn7gRP>uO4O~b<BJS8wF-aOt<*98D5}MwvWD8ecmPSC8f%Sjj(_dk*-cj{kIAcv`hH)*nc>MHwN8w~6GSx*4OzHAE`SA6=y4M3i{t{50HFt@f*&oD3V;{t^~fkId|eWm@I#p|50OjE67Zlp0S^_i3*nzbHU<F(17iu19U}hdCnTTz=P<f}T&@hkn1>$ClkQ*$Q!-&954a*5>*RiS2dpy=Su4UgN8VwG`D{Q2)hNtK(Lx{|PP)F9T{N=3(6wT!Rw;&fn7p9naQp!nV@10=u=I!C0@E`!37rozr=Mhf!oXc@YG2d=OT7PpuUw)J>oaKbc*2kRxi5r8!n4Z+{{(z+uM_u9Vi?`y5zT?vb5KnrXH#-SljB9zQj`fX3fJk4Y_(y`qL94o6`x#N;>bPT5oISsA|}?uEMC`9Csdz3ONa*8;mhOC`!EYU>lsEW*PJgymp6`rl{j<Pv}knqvp#t%WS-hZwoe%@cY0u${0SYN5PI%GVZ+Q8OQ3i}ynT?kVrQQ16+J(Wf_EBZ+d#L5-_^Eac8iNv_`2nJGTO+i?@epM@6cSu!(mH1%bD?+WO*mH#gdn3Ne#4BT5Zqhkr~_5HVqn5%V6gxg6MdvFG;H<T3mB6uGzjc_c@59@51Y{>xc>tt;%H~{H4^$ecW<f<I*GP@c>Ss7KLKj_h`6MiMWj}bXAvy<hH{;aaYt^TYCq_pNlNDO+M*IImw$$tk(l1je@=ivL_)f10PXf`;$wFw|+2ynqQ2Qt_sPZmnx*61M+55l&_MX<YVEUB$4FAYqe?}74niR5Pgx8%i&_&<{%DV>-+hr=V!tniSi*xV$-PA)?})YJsqTwsO-Hea2Z+ZIxL(+vr~IwX)Od06u6cMJN;p=5SO8MklcC2t`uK~eMFZ7u6|MiKUvD5ZE6fcBP8y{Xul_sc>Xi@&|y+Xa7WSZVPQg!YH?K->m8oE!=P5>?Tept$|brvaIJu%9!o{>e{EZ0P<qR8$iaVYW0NNo6;j;PU5?|7y$B~*N`65atSa^jikB@Rwxl&lJsw$lhT0~z;VleFNQFIbDF|UWqHOolkW@y$mm=1Tdbx;C2|Aks(e_d%y8f^x3v#<g-go}?F`V%6TbeeG`v`M!>D)t$`}cYOL<*8Lr?v`E!tp8MUUDZBp*EC~MkKd$gm7hoc+N7s0y1Mwc$0&@U<p#<o!BQyG-RT{Qb3<zCuNVkVfXikNdSRE8Z?487N(?vxWQF&+WaiV#KAzMw+Sh6r;g}m+z902p+yq>{*Z&)X#UXR?#DxaH0m&2;P#+qprKODNL%y~5nq;YIJjCH0wdo~_%@<o-8_qPree%cCUGa(IZ<3G5iQ3x%mr=`Bk*sptK(@*qQ>0*{xBpef&JutFV7?<URdCZK^SwuM<r1h^Ip{=VzY%tUCKyPl(pz0Yh8EL@W)qK-`XL^X;ui{ax}pR;6>(JPw$o)u8o9O7cEme?7S%E1CLO%7qyv)ZLxSV8_){&RZM+PP7?JX5F|vEq3<CK&fX)MdPIb!9ucB(Y2jM+lbGgckGxlG56qc%kfXe?&%%y*=k9~@&OjmdPcMzMTWa155%`EVUkF4ACdtac@8un_gbZ=K8siL@XC$s0nG(Cf!t%lq6*lg_Y@Iry_BgY<V>H5UnD=xP6;IQB7~>}VZM-=WbSX%cJ$zaTqS;{(o}~NBF$Yd0zKZ#Ik{&xi!l7Yz3Nywk-}sJ2{Q97xW-|%o=fh>PS0zr0me}6orj{~)q(Yu(6MTb>&XbNP`*Yl_K$Z9vQ?xsXcC*wevu^2DiHl2j_8J#SA>u)EG><@YD%&YE?1$O(;z(IaJ`*T{BWA|z;RPZt#?}<aLPS9H{ZR^27-k#wi<F0%Pi;2ssr7L$QE8-i4(yiUo?=@ihR1@vBVybRD10d!f6la-^DYIihuB(risrm{0R2%2Com(aV~?!ukfSa8xoazW4YX=BZ;?qpqKKxl0WnE`uv_;&#g>WQd+BlzH=WblR%S=h24m?Z5=_QRNNz<bN0l)G8-yexOW0}}@m}B_4h9dXuk5jPFa-l@h@;1IddsEQ>l<luF;RM2#7LWmL!VTcL?DaUBk#=gNq?m$FxxW7UQ93jK>#m(Kz?t;g(UDuvzQ&se`>Vj!||u7?oOfN<xz~tJghDGR5qq0NZiy;VKI}JG03<rLxE_3?z0c%w9Vo+QiCDJX3Sbtq?JFRqT?&hYfO7eV$`zCwva?@kc#<gqRewfP0i8jNnD!O7~#8R9dLs!n5RlyWRA3A1<BG)L~cgj(UT)k8Eh$-G-d5DhxIUuZ_aaK-X>7Edm&__LRCpqHZPvdnMqQ1rBSYx&=KQ9aDjCqxVY*?2<TzTS_=rGy4HB|j+VM-gW1)k&ij3K^Nz%wJS|Gd2zrheH1bE}VH~$L#1wV!%sr&BBrcL<N$;>M$@WUmI6hpy8=Zx0M4U(L+FHE=>cP5Hn!<Vwwb8z$ppRlVY$4Ge5T_f>*j?z1)Synx!|oG})yUe#j@BH{FKfUPv6*&vdsm|qL|s;}2}W_6)yhYSph-Al>)aq|9BU(i){L1heT2+U5ef`CiR0r|uvh$Rcc&ieR%=)TAYm8<xMYcJ<Gr$7H)qHJ^tDQ^Tq)|Z$AKou)^iCkf@exZMzz?7E);R~w!BrWI8T`85syQ8RwK-J2H4}*!U?)ugG!tYGDjgV4M>TD_2UFPWwhcwK_F4r18S%sD7n*2dgYn`jEFK3CqdI5>2vl`A>nnk-OC(m*LO=T;Fj0;vRYMe(OxgbLxpLOa7dX|dxh)@X{?PiUi<IS{WxZ_iDa2=%N)K>1eJrArxu)Jm)*CTJQWGf#(bF=9%siFQL4yei=Fk@Qj9^a#9>Z`+;_Uezg_(<#}v}+`1sRgL<*a4Mdlto0sBsN0@)K5J4{Ta;$EDPz9cs@fvj0}_8p2RSoa)u>s9v<mb58ZI1;5Tac(B9Zj9T9*Z{Wvg#^`M-pX^!;DuD`M?LZwrA7IP(!3YMMC4r!y3-}Q_aQ_fLDHpM!oIXNG)X#C;zn_aWxxk|FnL0}oFd|DT;hb$14LNtRV|&2y6|Cx6~pz3Y+wiQ77TtPrCMZLMeHN6l!IdJR&Wwffi6}8b*#UKn~sBb6dmctS>}8D6*-MT7j;m09EH0d=RzooqXVT;i`cwI0dE8ymUv&unRr&<2G)*$wpyXd+la+^ARAzrdDo)K=47+y>4%?jEW)|Mk}Qx-L(#0(&;U>_!``E8F{&xf1)Csj9;Xm1Jq`nCis5G>bYjjJmJYb75N`&{C#EIFodje%hHQ5|ifyAVNB)jhWrFqASYz>?5PNezN0WGXP#|y<tV$VHwF#MER;s|#scMBH48`3R>20M3@2n^d0xEnhBh`!eW@;on26B>R_)*>=|9-@VF{57k0;HqTr$oSD$DG6nd(I+OOv&6sKk(TP`+;mn;mUj1;)YO4muBPh2Ox9r>0<ZtX)1ggXiNq<GHDElzTKe)b3eV?U?8z_9IgPoYUrn4pB!^CAz?l}y*u$wqF2m+0tC_!tdxiKX_WP)-vM!4!md{aR3JV4%;X+CGgA+QmScn=HF?pBQTczp{3{QERVv3%#7|NB);gA#N!;5{))rtUw(z(gYBQNZC;xNqwJ*KL;v`rF+9;H*bY|7c9rMt${LnAXdi#Cy`(Vj45{8SYFKH^eHxZo6|D5~f@4drCSeUPE>`yBE!Fzi55t`wLJ-yysW~UX!y#BSS-gk~N2s-c5Qhc}NLGL>}tB|Us?4sUxANui+=N^JtZeiI>Kht2@3&gHL>cF!9<&I(5_~9V3Yk+L`Y9bc9^;Q%3+FVUWT~~`O>YD$!m}}Jlxi%O7C~)fsyNlmKT=lnRG~X<|`kQ)nBe2@Jez1_$4?;)EAnM|`1ESVH+ELWa<qZ((N<keyUB0eksLR*)5l4NWUeto1ZYcbEDC#?ZrUsraUABRzn@VfI>C$B#K3%@90jNutEePs{!mkOS{u&Rt;A!)#0X$tPXa-K#%Sy;;`|}>drte|nGa#g=R44<Zi{DMi=xWJ5Ku6!@25ac(8Zg?us$!zut9uWJzPIgLC^Y{mA))QhCM0yVq(DIjf<Weg>H&6GoAJ+0r8V$#>9W8*8;xgh&+@m1doEqJpq?8Fr{SF^-EGA?Hx@fkXZ_=jfX*{lZN@j(%NhaBwW0=mv(-v2zPYdyTLI3E<psc5{x*S|t0j%-=2}q`y180Xfi^oAF0R@9YQ!{GN@hkiw^nel%=$+K!|Ys4Kry%6xO>RuyVFh+Sh-qKf-Bpft$5|e;xc5p`2F=T%6I-uD>AvUxQa-2ucm{MC*PllJ#M`<4RJi_?kp(dX*Fg+7Eh~DfQs>_jwyC8tBB&_!a#|ikQQAWv2#&^5!;_lAmVCC9X(vWZbc6_7FU78?$y_U4%f?@pu^RYI(oQ#JsWy>dL4@zeln<FhE*G6*j`s5!^K52T=+1bVbO5m!=oBj*!-M~6mGlKf)#EkyaS~0O!eB)!R4|79V~xK;9&c+85>+LYeNRRC3hVae3#m4gakX+6EMNG(mE)(eBFQwE?u_)g45}U;EA^jNU;2^;ekt+O<3S+Nfit1UR5!`?v)DxUbGx~UlG9f@nr?(SN=Ybh~EdUOLqYJE%WIEi~9Yhdh(4Sd%uy_T8J<InSkwWxiKrGca~bSL3*dxaiF~V$34OE-t{I6;I9020J~a8RPegaRXb3(xqL==?hKV&bgulEgwAcgQGjy=Pf*};C1PL2<Cd?Rak$l@$ynU>dkrw$O2M}kf&1+nRDr~mza=QH{?!D+t(LUFZ);^`{H^)f2)(Tp-5=EL-EFxIXxmiU2(fjp?*L{ywbl$6+t$0SP}|1hI|bSnB`rYPhQcby*1c-O*EW^5Vrna8bzE)XBekPy%Y_B1R{k1L?NQ!Us9|a=1rGqI_8aa%8D3lbzEAkt`|uJMV5<s*E&pjn);0la*{`VqYn@9MSZjVw$JI`{Jrz(p@%D5??c{go!Cv9V!%=v0@7{K1rHXnH7bH-=ckkaDSx1ur+L;o;rFse5ei~MCH(spweJ73BK^fbhHH<O;oQ5$j3hw}5Z11$=i`}9YZ1Lfh>Coa*+03}&2{jl|oVtkObQVN$I`YSVjKcy_{I7QkDL$B!#^h`Of+{{5_u{k}R}47K$e)HQrk_;PKZaw0DJqTMrApFf30aIE-C%qbC&{vSIDQwa-i|Te4{(6z^Ua>p_xbq(X*{1L<9E}Uu*P~Q|0rPNliXo1lk5^fAAR&g(p$diqwgt(s~yW>+4~(F;ikW)dvwS1honC|S{@&03zm%J4aXhm2%pM_)Yy}Ll#MS$o=SZdgR(*=S%4<F>iDSI2~xkG_+Bu?7KZ;V#T%FBTxL79!vgeErN!)rnA+UWl9*JsTJ>pEm6`4-spON>n^tEYQ%p++J7g64QH++Ou76A#&Lf=fptjQG@db>N2FRVE1qg;g@<@4o>}Yy^&qEN{j5Pj+;l~GJvM=ay|5!`|_B%wQG^w7SBtgeVM9mC>=t9BbJL!#bo@hH;^mdxOIr0{0HZl?}VrTn36mo70Zv~h<9yg6Ti2PohGy#z3c}1}->;pe|7-ShTmJid0H3nW|g_l@&K-g2dMN@#mbn%x-aF2J0>4SyJP!VNPTj)^_U|AwABr^y>;A9->PAMT%&DwDS!o*CH(xkpsQOV?K#yop2DtR8uI}wx|!{zJJ=tyyUT{Q~A&}X}|5tj@iJ}Gn108B>O>73Znkb2jTc$2vbP@a#vgScGdenFI<@X0z4`%LM>Q8>Qr<HW2t$Q9{DBNoU~KSr-fktTxHDL^X;R)SdpvKag4M9EmP4%9uU{VDQdB9>5E{NtUm=|n4R`7zxcA{)<4{nr64!}IL<QyyX|ItjL{byio(<5ui43q%$Q5CQG5Wn&doamz=1ga9yc=?`<7pE`8;C|wdURx33jm=|#6o6Xz52f@6+cjFE%KlyrM-00__Qi$QxNeE__0UB}4`y~0Z>auv~1*syNF`bNO4p29x>LQx!pk@*c>Yk&T=W&>s6dkim8nf)BcN|WTv(1C$OluqC9V`>6d$39Is)3Io_-qgEK|*zTA+1=CRWfw}tfu#BB2h^*VV!NC;1PQLfF_x-BDw16vIflaep2MkaOX4&gxtEi%H2jgKS|?*CS{vZ+7wfU=C97ZWKt<@Rj8^F*#LEB$Ds-AOp`JJ?u@(l6Y$K`0U;w2PhQc33Bt{HvA4pnfDz+b4MaJxGW_U=xnc(6ci@1o*eR(4dfrcMmO;<+2!|3M#Lckh`J_7_hEJ{fj?*&s*)K9cM`T*|5<h80KtC>OUEdJ1z^eH=7Ft)=)>f&afkkV5Tfm~h*-f};&WQ7{X0|qHbfJFvMl2Cy*29wl(nqL+$CRmFl}arDX`|mDA^4~>vp@+W{U0EQuLF^W1v@0w@1rVNr)W7<eIh+AOnPw}NLpK*SRy5Jk^0RzX_>BS#S&C{J{6yW41l-{me#MC1ePvrUp5zchDvDZed6LZ<E8cN!g8)uD<_2J3rmZYx+UPWH3G0<-p#d5QUXs`4L!e~A0wN#grpw-x^}Ays75R<>JDUD`DZ)}s2Y1J-5|?*z;p$eGZrdC?fzCE)p0YX+88G7siA}MyFm4b0dh>~+|V)`cMDkkly;BU%$GJ-_jvQ{Yao}CZc3G!5^cwgB|`o!;A)3BtW0s>)rZIg8~W|w>IIsoloLdR+99q$tB=B(L^MOY%U=^={bam?kCuVtzy#X$j$+tHqc{pmj~7lQx8P5JTe~Y5%57DHTRXl;X^0a7wEJ}rm5?u#1?sSEtrhuX<h5x)EA`@ODe$Kvuv;4-?<i<}e-($_)JmvU$cbUWs>5>AvDi)R`1taH+lrvE53RD!?)h~{w!KAV+Ip-av*krzplik!pM6xn#06*<Vl^x7y1uegTn1NHrQ5O}_C#1zWBmn(*w&iy+AU3b{hU0|dd6qWUe`Aw>duhc`Zrlo9r~9XjiKa=s3W%>K`6?LBuN8&`>B{z0HOocI@2KBsH>f_U=?DTsgPM063hu3yJ+t5<v1<Dx#I>n_d(=-hVza-;hsEG0(C<YQ@<qo?Et&uVJ9h|-Ag21yRZWbfH#TXASolf;WRkhIRWME)|5!E_{WV9Z+;V^kRv5(K%1Xt<!42EKZZ{r6|a@h8$y{gpuLyiEU8oqebzG$-h1IW33Zeq-=y1>bE5(E{UoFj4QNFZPdXX;eX<B}-(~3c6LHG1m^g_fz=Ot9nn}}S;HPf16JIxAf}%c2JDNSRoO|szVZh0C%sCggwU|7r(h3Hz8*Qd~4G*4(U6}YyaPT9FDK{1UhMNtTaIFJp0EO>IFb<(9RDwx#QXDl05I!%~94S+}j_b(qlF>9G((lF12ytf$L@}rJgwaNThbG=o!-@+p%kT}WS3%>20JyKX@h8e=3e6?4q|4qMWAph#BcX5J3y~&0(UB4fIRQn$zz3o&>;NGKL+srNV!lV7W|!}9*2aDgy~{fnE~fmD-k*3dVdW+|4vERensTHVjTkypyjyK$a6CXqPq;rPm3|Q6eZ$IP_G;e~VI3XgB`+(bb|r%}wG#;!c|H-gpJ;=60<OG);YX#~4>Z8sZcQS;H1&Otx3J=e<LkcN;fZaC4}w1N$Co<@neb*2%^usD2#zCXG>67h6ISQmzz7v0<sKE&3w`$u0?p_3E?3I3DUyIELUG)lZ0P7%Gv3WRWG4*~X(LY<bEsg<@t|lnxg)$W7I`$2{5yz9pK+Ma^r#FvAJ8z8Nw{+|QW2dq{?JL8y_s?6{5S?+8ZbUW5DmvySAuXx)HyqO1rcx{RJVwTYi5FKMG|SfVRCP<=eqS$7<vwyMEY0H1jJcru#G`A(JmXEc}i2tuC?NDZv}hK>!jDkelW)PB4rG^c1FZii6_9&4{}_(VHszEq2u9ci)caUVEk3_{#tS9Y@a5kW-}JO0HPQ;`g|t4G17Pyl+JBJa*GpNu3HDF!=@L;5uH8>oxXqwPf`SU@LW-^38G$o;@b*RH(@$6GM@XB9)b~?Sc*O82CPGx*Wf4GuF#ammYFJ`56&%U<~TKmo7Sl4#UlulDlPjZpyx<`9a~6@2C10cTFmO*?rQRAzXVx-RHg7KB??|gt(OV1SE}3qUq4h_24Zm9aG8T*U#OOO?Jq1haIc~4#)$w9MY-|5GCer*S{qlg3UGn7tqvVVzGN0pfV7*;uIczH-HzK)?cxfLBmg)ws$D0HMsMuH98s$7RZIr9I}Qf70t>C!VQ&GpJ1z$-(Bj!Lx_yDcE?Pp?;q9`ErQI^pDX7o}azDZsHU>kcAHW^mK-IDCF<p%>L_IYL>`taIa!0QcZ56N)LFKfd-YZ}XsLCqto%d(VjV9PT{UX0F=n_Tg+rEo?SIoTvd!IMkMK$ERp8Sl<9|+`o;bBOpYJLVR3UL`MCauS&P6qpNsPTJdyO$G77v^Pws}g2S8?f#~X5{n5_YLj-Xhm8?1u{-v!&_8&6r0c%^<LyWnZ-e8d?E3}i6Y+ty9cAV0K1bwHwN+SsiYS%gLTL|7voxQn--XNq4gOs?~5FbVkUli&TLY{Z6FaswK*CyEt9l=l4jy*?zJgrw*Zyn8L;n8AD(IJgM;!OAs{ND9*+<2RI%PVblVE{7F6$wxitgaTb>vc_ou<VK}zjtZxd*qm`GaB>chf5caTWB{Gj(80b-A@cgc?v(D!oUfWDWL89?6$sEzS?KS&GI_rKpM>U$wdRG)-KqFm&6-VFRE{T9M-&Z+S(E7d89rGp>l{0up|;|qO!LygvCe1Swg?ldF8*<NQLIQ^trlYro)uLKBA+HzMZ3yi^mle`~qCTb=mxI3_a6garbif+U7XTM{7aR^W@y)#ctSJkQ)?!wnuhHL`ik<1(a&h#>5iJ3pA`$$$f;KeEzn~c|e1Rn?A4A#L4YO$-Z3uNR7I<tbumIJ)a_vA|=n178V8ejOfrlhW|19Yoi0)~o@FJOGW3l+yCQLP^WD-OeYyomwqZCV1f){Vh4mDQj@qL>CjYdPX^E(|;I_=;&giL)GkeKOxRQ*D;<hbA8>FIGz26e|84RBlK60HDO76H<)01G7a47r;4Fj7i?(Jyi?^7K)$5L5fA;s~C&y=eubZ;du7AEa*o>j)EU&6IHHgiKy9KJ`~#d9CHEbNraF$LdPGIC4P{x<J3Du1`$v6EOea3f%|^x6wLw0Mg~3+l_p8+$gh%+^#M4>v@?2qmuzn^rFc(Zt715!`4w7c3v8D#zR%xE%P^hNzs9WAsmj9=fSl~IRFu&q2>B{?I1g4x#Sq2CX*#~pn%J7EsEntg1wc-B^l~PC5J~Q`DuDb6z;|nv?i+?&dB;@l!R3y6flzoD3#v(In=I@g3?))xP6~)-V7_3?9E3728Lubf$NPT5HnVxzRP6YFP&Y;hE{;FRWX`_^a{PcwpccF-PZh$o9Y4Ncw426{x5CHgMOCvoqOw93+;RSEn04~m8hb3bf+K&5#1OFw?zZ8_m%8Iky25TUDK_=@BFI6RU7(h@UoL>0)L2JNMUZO_m;@jnj5i@31pP4Hlz~soiA^k)2Uc8{LF7a=K`JNl?`>vm5=+>D5*5Llav8nZ;K=d$G6s@^8u2Dls6ApAd;;<rt!;L>tfP_SL}8#Efs*t4Ng_rZZYG7qJ1?{ztb0h5&4esJ7~%`kqzPeoWb{uYv8rJlYJ-c)QJ0N&7hb*(nm;HPTZs7*{<5ZWYTb2|In7uwzCiZKg}#BAYdgqWZsK)OFWM#%^{%X8+JH1yZAf!95oxaOGt!*NObkqqG!ngFd;ubwEyV%R9hR8u;5}k>D96_Dp4c_M0OlEtFR<R~(ZqV=i<uw-GHpt?=GkV*c^U`pskZTPr6jeAKW$65z2EPNcQ^~)yf0#>unW=_$oVenogb7;hzjQ1ft=4nfz=V`TnxZ@;pH_#&aJ}UMK@pt&k8x8@Az0IUbg~wUJ+$2$a82%+4;xR4-H$Cq35w=+Pf3z`S?PFKo_q7nNuX}LTEBPvqAy}!hu~ge7re=`%SzgvPg11H^I@36>DJTRwXuL(#?D}RWBja7ah&|Slwuzn8dp<thF_&r?3Q0-)}w4MtnNfKpLplD#6poXS#sG@G>`6FCo;enW5nqZ2Hsy>c)_S{}AUjY`Rn2giG)1&JYbGF$sj3(tSTlnlIwrmzDS=<gA}tr~Pgv`+k&ujyE$|cG8E>F*2QGeZtdlw~*=c#{FU!qQG4o&Q}tSJDA2;aJuMpsK&nV2!Dh;wH(rx1Dt6jH7ksY4SB#PWC0(a8L^a*)fRWW0#)B{tyf}3?XZ7sxH>hZDK)jue-M?>>a-qu3RVkWb|O~Yu4-=Xs_IZ`(zH6*Nm)g7KlwhyAjhT6q=;QGC11F1K`ewy15!9Wb@-$<7`)!ni&_rxdPAXFVdpt7g%M{+C0=i;h;dX~6BzqJKbJ4WRxs>R4gfowt+mYJ{3fz_%+qDktRmR00Iu|*z_Axp4adC|%wD+E#}Kb=Xs?}{N;TWT?Zqqjc;85Z7<?+Uui60aCSQ07-;OYnpHBz4!&_j4J3g>G8RA~m)D0ka?6rpRu+vm+D$ZT18>l<knhd2%$W(;1(N#tFYm_^D7aVy>rzS3Eq<c_x^~y+hMAL|IY=plAcDG3P`MjG)P8xF(<W-paKEGRV@&u53QICV3j*Zcr$(&yWgRK{*_^dIEPxF1ASuyV9O)=V+C9i&YITGv5f_9H-F5w3xey*WJWwg7F_%`9)om&lv_x&(nSS6&ImZo6d5%;)9`Od{Pj^Mba2JoJ-iUQNYuXm%hhOjtV>tmxxS`z%eAZHW#ns^oXK0cG>L1BhXM7`Hc!B)_FAjVBw7W7BQ7rNMZN?BJTGRX3xo(!E8>I}g5BN9XOMwpb*0RO_=rRg}P-2;n%hrhF18;&*Xd(|*&M7|qqM{r>^)Vme>yNdWo6YgCCxdqc#VDDvVa9@${#&V?Y>USZcPCbzbC>b9y*%}#ynuWSM!7(OP{az01JR<HJ;zW=($G`(A$q%A}oZ~!*e`x;`2<NDddRGrN>YbTz6aX1s7HD9|T|WERBJmjYZh|@7q0Brhy^&2uz5is5R9YZ8pUnG`+#h&P+;C6aV>KKFq3Eayxc4f*n@vTm!Gni;cfwkxf21Sq7Od{r_`)7<d}hTDbF+8FyH(`<>kbhs&}#yYBO-!W+JdJgjyU8w3Io|_KZZ?Q-Y&F~&Vb_e3p6TTrhiw=+VLAi#UD1-E@!eroK-{PiT%P*0J7vU$exvi*##UA`YfEblC>y2?Q}x+Pq}xzA)A^lTAFyhLmOm*mv`c}E@B?RxK0>M#LNo@Nh2PNYo?fc?gTrpp-f^oIxUslm0&oGJMvxlS#b1)t!}7^U#(l_2Yd<EIXT=xGs(S5;$9G>6N;b1=Ao$9Ie3q}F@Px?UkD|Bs?qci!+92vy$iLf8dABBFX%Nz6&F!&oTD<JUVBIEI!%DnAJx(L))k&TyZfxGTLA1M5;0wNQCk7_ya52?P1jY;82d8pXQ|k%lFid9#9p^b`mgBXimlv;u@@H%D>)rwAD_hDwGCEHhuBvh__l)VZKTl*t(bj~DkQz89%qj}tU^T~-Wnh!Dk~9jPjzAdDW0UE=~m1wX~x)$4&dHn#JvtP;k6R0Obgvk3M*7A72H_K{&(X4R-aeV_vM7~B+9TqCOZOk^nDYpc1w@6V(>8%-mT0<Ns3|XfbjRDREWNg!f$+W>4AHT#3w3oyc=VadfFUg{ZOGAEBB4%=PVKX>mK5}9Oa(|$fuR2n-h}E!)a$L?`y#EIT~ai)^PmtKF(w~K6^d8q=mjJgBDuA_)hqXZR6tcJIOU~um|FkWh#_i*Jdz2SvmSj!1!FJIqSTN)aveG98AnRKL8dV`muz<k*Y0l{5rIy5s}Y9^ht<(*e^qNV>3Rd*3Cud7Rl(xn@%?RM;Vya1j{$ezz}%#zyR|H<!)7dp~ct`ETT=+4VEmK0|}fHxQ)n7c8p5)DueZnv0I?oT-Pf7#*@=OS`#J8h!P9fANVXrR#ex^BPLJ*OH!fM76!Uc1kE_b$*Q9*UHyC%QT60bGS)9*S{w2EaiH=0CHTJKjTr&_!uY`N>)n6BC5qP(B>h}gY6cvC<O2Dj#0-vK&4}Zdt~@iXD=wTL3R*|7TJZcfN<9J6k4U_M^sCu0{dlCn^iR&=z6ilA`j!zh6VUx8!afb%A6b+>)5aaZ``srEzCZ7h;1GB}><0_)XBT4{y#El5KaiAe8r}bIcZ%*`@<Tp(rE&dvmIcij-DwJGZo30MDmD$&-{qvhF$vjKdS`%|K=jM5QXSBbO3EVoCuMeDQo3%M3Z_5s0;<A=1*ZQ9PMORI=r0EK4+H2gdW~I=h@59Wz=b1TY89!R7gC+cau?=FAwB1)p5mQ1zlI$KbS}f5;&bODGe|(=0GXd5i^Y?YGdN&yD9IL&jDavV{blAQJH5-tnW-cSaKMumemL^8Z)>*q`U=R@^Uwl4w7^*h#SnhZ_m1e+Uaz00-GEo2ZRVjFgPhTMII^cwC80^gvb=s6kdqJ-^{2}iUEuZN5of-TnXjzNGEn<62tXDexFqj%n~Z^!#>{joDN`_~M1N12ao|`~7I=!op8;|!Bs{ZZvj#LD3P;e02O%Hlm`HcQm}R3DL$);AlHMJh^WXyX8}hmvY(6g|5fGCaQWOSW+$VnJ+&#nyLJ%?!fzIh3z#c_vVw&JXA%pVqpib&;sE85yx-;=i>D>2W6{lhGV{#mZ=xI9gS65?V*SH;x|2t1jOy?d0;SL3lv%zgp`~fd+QRRLC@o8%NLEMcwm3zR{nkt(79;3K@f$Fl)6>%;?oxxoWOiB7O#R~)oKBTvk!adM$%8C^3suhQSkb8jwGuvM$gFEDrKNW><1Y<i2e~FJmO-bN>NC*@RZ#cXOe2*)m{p;BKexH-LLtK)j7l%O;{2sgFyZCn84#4O9?ODcp_U}&MPE6DZRHjq7hhdS$9j&0*86fyf_Kg_)ClHPyR}ZY)S7On%WABMGdcGksKHm?rYs}&v+-m?nS<a*vX{rOWw-r>N_heK^4tMfQ=*j@^WAH<wSfD+joR{I_G~lu{j$*xW)AgYVsU*v0OXF^P1qMoTGFTIK787!3k=78!4T;>By2NW?b1rurE{7OSi#m55X0JdXY#IhSle>t)IvXR!hOr#VmSP!QFFK|UuGeNxGq&E`yid^j)FyGKk&`(p{(^o9D@!Ofyk*s<a(7Ky-oYk;oKqtSBj7prIqaL|AcYH42Gw^1zY$i?%+ds^N03!3>!1x#e<=DP=Ww44sSnHz8KYL|K{K2lL-0#=T9dcOEy>$sN#34l@2V9@FX~oq*n}u*diM4JMxeH5%u|p}WXXlBDOzy!qTMoW4l>!7F!TotLijpK++}u6-BBI~209Np;9IF8A@G)5?mQ*fj<o8`Z%57#nroMU^G_B^@v*ugJ0+hx*D;1-F=G}pul=}2#JtRQw_2qHm$#awTCD_=pV!VQ5v8t{#VtU2R(8vAJ%zh1t77B<O7Lys_F$&O?MIm3krXpPlCBKtRg5D%OX7AX5-|}TZ*qRKe{K`EXLmDk`@HpitZ5PW<UvvyRApmJ&|^AnyAoDP2hE6hp#d?h9FgKe;sg9_hr}<9SV$`4<@z-|ys;xWf4g>t|DFWyI)6K?E$dlF*htZ^_<-98OcwXTdz^xb=fxZ$XG(o64Ngd<%A_>zrk7;K@@IB32~ig_g9`DKRPMHs5g(f?H6XfvdN%h-ZO{zGX-h9^3Ek@rrE!QHJhD1&G;W5p?)BDe_@LC1VB(j^k%P%tN5z{voY>v1VpA#VMMFwa+eVp88?w90dRHpA-gEU{BWj%`pBU%W`px|0R+@;1x4|H3y`KlYda8G-+p`W<L!x&z6$me>-UCkc9*_L4-wcE|vXiAw69B&BhpTbv?ljyx>aYu#M3Ci-d5`(SKC<I!Ug>6c4^&Wsy!#w8YsS5Y>|`<Ols(H5==}+NONOP88woEV--{&g-^1=E$MH>y_Yn(JH^V!uuP8ts*Me^+<$15wXG!Y#(#;v)p&%Ge4bMg!s;29+Lg5dQGd=7iM!+~x&6)DO(+cTy?{N(P&vDYYj(#u7o0GjGA228=n1XrdtupouSR~zL-1|Y+mpnOv!M(>8_r4N1;Z7l|*i*Iv&LfUIWjT$7WMi)})%*TD&B!42U8~BUh<h&^bS<EFMDhZ*897SPfO?-F=_5&ucn>+4Qir@Nu@q*>^sby#@9^3BB{SY2-Vekk-Milmc`rV&qA8>fc{k=vz;%MAOz$krbxa~|!n;>ly_V;_A_nd+<lS0>BrYAM=1d-p%LE-3Y2E`T%e#q4F{u_W$ATcNrsXTRg|1ds$eIzFE_I;*yh}X#!Gyc(SUKcmz$p}a?v9MdLDyw*gGI9848Do0=>FIz5$KOOP;X-G?4ow9Tn;opV{<2!T<>u7bf_LN`k`cd52k?Ln_2!JDBru;rQ~$)yy@eIIe&l;L>1duARC)2K@q-_D7Z02$)Q_C&<3y?BoyP|`@n?T_0+JDKg_8aPowXO3HRw&qQ1%e?}ZFyEMmav-vj$%Ux%?x?suB+Adgm!awz74`F0q{_Mr*{*`6`cF&}dhc<3UMr-%=_kx>`Z9*h)+kK2>Li)-R3p1j$Uzl&2|cw!}=0;hfBnPKa$C&I)bt(lhlw4^H%`Y(X%LIL*(xUR{|P_5n7R5trNZ)0Nh1*%SJ5P9FROH2}s<U}wkCw>oripu0Gk44^h?TJ*<z8hb~x-xA*^&^O6d#*cNEaI#fb*)4uucC#g2N9=r&n6~-*I{#7PE)%Xpl*;WHU<333NcpJl>gl{$)SY8`;`acR)D(L{v=k6KA!|qKZJ-;5if!`nG8~|Jn(Hrs5^ryrXB$5f^6(2b)az(q;qSS6jh>BGA}G@Oc3d1N=|ca%V`}e$=_2gtOAJ%7J^?#Are(mD2_Gm2D%KoC77H7eu;DhOP=Nw@Xa)tmL8gz3VzkX8oGvl3K;r)z0{k^59Md>by9fia1?vpwhI*kVI$007IBw#&`k%P<Js`%lhVOE9<!KU`h3l7K=kIvZD#oLPRL|1y7otm1t`HWXZOB6J3L#WVz`zczavPxfc7+XO->IV;6m@QP00;U0x%c`(^JE*y7&_Y^!O97=q|RS35o7({!Gab@0Sw9Psk82n^8^q;khpl6cF9ICoT@X?4_v0cpA#$*vL+y*QhyzHwnx}vVonm5o#e>Ml?19&c*n;KY(*rYVcNl#Nnp`ZXWn)H;+X2jd+hp=^Y|cL!uu-HB~dTrHN;dIq&D+3CLXWerrRPc;0WVr-?7<enzCZFtp7SpE1Y_xNcE2QxWFm<X1Aq2fA)B8@^mR@Jw3=%4y;`=0ozwZvd4`__q~MZt%f(1SvNUp~5Vna>*1QPr{OOuzE6*T;}v)jrh6~BzgHsMv@DVT<3{D<~u<0WBv?4@||D(e&?+}+`9Nqfh7MwcZwwc>dUvcFaO#?$+y;iv$gh@t+fwpaPqCSKX0v_+gg8ZYyG{gjhD7I-rd^xd~5x)t&Q_r8&@Zz%XcoE+j;Nf+Z&tPzgWBZ%gwE|E8DMpynXt!Tbq}+ul$zUyuEgT%4;a|TR*+H{nG2(Z@zQu#(VAP@>@5q?Y!}q?N@(J?e4sB`S#oI?R@ao&bb=}vV8lmFBiD-?dz{oPpZgrDWyvp=RXFpTspnAwy76q?W65iU*1~#_3cZ)-dcNoYwbLi^VB+b<MtabZLK{|EBn>8cWJt?1|PgZb49cN)it_xX>09Q)W*#hKizqOF3<10d2MU$mF=Hi=kmWwOIz!I+1j|Uwf@1@`k%4<Yv*~|U!g{BetLQ5<uz13wI-`84Q_3`M)a|@ehqcryMF89D_s8J*4o*vwcl|!pQo0;b&&Jg+FUWK^3nFGm$py;o~B&WKi26LJIDVnd}29~=B>0AG`$TA_aWA0V`FP$4KMi1)tg^j;YN$KlSLs`phs@Lx`BoM+3&YsJ&j%xSFe4vwZ3-iue7FL(kr$$Uf)`OpWA#F%eQeF%ysUUw{D!<Idy)vrTk{F=``<pW=^dU&2OK5Uk3QqwHM7?nF)D+4a;+CZRf2s+b{mbvH+9uyE|uSZm;lDSGG3Z*xI;=>18smbHNO=;h3C;G&Ds#SkQIdIhVMI;$D5;P~{bu7<YcN4nb0v0kvt^dF#~n>9@H-5E{`P%GWP5&7P)b9hp&mR&LR|ZolyhJihTOUJVi|U-I;C8a}$TwN6dFXjixbez)^ZH16WxX`~a-?^_$cW|hYazH#;Ti!a=M`!)Kv3H^Ta!u6d`-k~1Rs~Vv1JJ;XF1b+5M8d?MBU2bpx<%Ro+cHdh62(u|8#GDc%e01ymv)~SrJXc=gCAqk@_VU*HnOmo>ni-@OVp%~ecYR}P?KL~;Pi<eO2d><_#**lTKioY3F$tPm=RYhHNU=nX*!P=fe!9K(3Eoue-`51f-+to^sYc>&;kw$x+5)hTi`<?7h~Iu;b8F-0pummiTLJMUa$noDvZaoS-#P!%?Nh&N0L0%q{~B9NFK++!`8pC_?ryDJropuV;cuS(>-Jl`Y_Qj;zgPb*H2lt+e}a)^wFh<X^AB%b{9yaDD>vV~va|V{NjUiJ-~ayByQG6&X-2_sZTxg={ZnBz!*g%&(qC-B!;^@<dFi9AwU>xKsVlcWd;9jA@0Ee@U)^|p`!u!t;=M+~@BH$kopXPLir6@#74rJWC7tuLb2pj8zPfgK`-3YaTAv1&oV`lFp24rbzRbp%w%m3uzfY=#*l+v#d74*#4#wHd&o*zr`ICy_FbgQY+^_RuT5oOK*xGoLr<!Qv5}IAV&cA<G0mpBx|B<c!zcj+*?Om|{=9Sy;zH=`S^0eMG31aAqD5d^SV(zL1T-dmd&MD^50_R;tS3}R^PuVj2O$|hkKdp7{8J2!){SR0Itc6jnY;0DH$hr|jFJxEj+RlsbH0$AyenRsM`;Q3q%DJ0oE-(dNxpm>g+nc1BU*7)mg<Bu4S?Vni_arXLaQm-r{CfM3?~q@3YvYSX#626J?=nqZs#?HUEOssA6@meyg}?cyzux@hV++S8`TW%vzqs}8=FJbTw?gt=`F!i*mpiY2VvUkIBEKZeH-5rXc)C<y+X15f4K{!K%qw+ZJ{8i1c&3e*e5ydgRZLiG7EH$CS43f@1#5S-0P=;g*v7hY`?tTLA7wy(g|O}nl+S*|2J4^S-~8pdozt(91f&PFB!g){2Hell@%5Koc5FiCyB4~(@tN(LvHA7dGM6P_zN?rWWWHmew*m9XHim9K{gbjmZ&3Nx|80cj7v6D;rPBb@cb}m}y8YW<HsbVcHR3fk&&gxF!CLhVQKlut{>=-YxFk}b_34J#9d)oicob{;5gQ;cG2Oj53u2!w_&>0QAy&dTZe1k%<xA~;uD?c7Wap3TbzZkver+I#=wezdVft+Vs1?xv)wNR)4ma@fn{VnN-Ypov=^eW#5M<}AUNl4h1@VE1T^(7e@rU?I#k)`y4_|=l)-QO?Ms@05XC43VT5OHP=9~n$wRuVci!CPsY`9_Ptv}F2LfZW7w?aGafdE@g6Cnsi$Jf5jkpL&iab^3Z*T4GWEf5P!c*htbQ|1>urRAw6Mfj6f%-lA6>MaKb>}xCZQa&zF>Ksd$X=erO6WecIhXYG?m<i+=gXTkC-oJ|JFyX{N(Z%!c-~P=9<)$o+Om3<;JJ8x1&EW@cxO_R&34#gDiQMHd%WG4*SU*cJq21;|%b9}h&pxalC!j*;<Fi+*#|Y?#eUCjsP*AaZe4rBQD<2-PHzoQ|KRQrUfR?>v#A6|ptEUI-0|o0fA07DWi&t)bab@R^*U5TmYrK4b;MV(Jh%@RO9@yG=2S$&U8kZ&<A>f*9e6C%*`I|3pzQ5LZdcc)=R$^CA5V)0iZZ2})U*&(#vgrDF#-jzLreITkvh&8rB_*?QL;6wotn^6(>`1Vt-&#lHt2lJ9wecSJ=uE?*1HSiDHe^ZuOH>u3s2)Bj8kYzc)U~#>^zno3S6>lhQVt;SWV~LSKVYIiTRwqcChS+N`rpzDo5lTva|qTPGRDK?Mylr#O6EEg;026+<CKWuayMr<nNaiGuH4$ZOccHS(Y2kcuRE1xt(wj!ploY>lSx22bA}0l*5o7SqykB|?X^$J2Nh7p;=bvSLL)sI`u|n?v4!n(*LU9ja%*k#_6y+6yL@6nT1Usfc#q=?>$gsASX+a9x7)vc6LLd$;z~iGYnx1)zkqqkJ9|@O{neukVp);&;CI8~hAwjg2hHahN{>ymimT@ww$HvnrYF<t&#^T^I{MGgH=K6hc-<>J&MS6vpnBqgD_t-foL>r~PC5F3ss8yU2XHs*ev&!$K<*Wp)Aa)nTN}T`&>YL6e%e7ykLKAZ9edC*C`SpEPd!wG3yGA{nTNXUxvys)YWDGF+4a{uobp;C6_N<ptN7we-d8RHIXiFu>E>s@Mg7x1**^0p5G?tX*x0g^e#Iz&kC=T$q<zc=_J=Iz&LBi|<s64AU$3~O=3s<`kRHr~5x1WIEr%jqXX}zM3HEf(ykcbW&xx_?v9RqIHkpLrhDcM}uU>+GW-8pgKtkcm+dq8;(dYG-(BRr7S)ZF%Z)~6DZGbC(q>}CTFR|g{Zv9LXEA1yIrc0Oy=FCK;t0a|fUV3Tg+G%!kZx|!V`hbpO&jA?B`MH;1wP6S5d2Da3{RC8OEI$qhSN12LCsTO)XE(ObespW&3p@xf`E5-A6Q^Aiv#g_*G_1xPv%g`bzM)eWMvGm#^`}d>PyH5Cxc*YH<7*}r`y)i`*I#$1&E5H?`S|L~w;KnywSE=q0&)RrK+FxIVhLK=3En>a_Rd@9woiTFMn3gf3|bD-OeELE18F^xQ8<s}(26(1J+ijaY$r4-9?@6VF1wzfxS2B^(GZ;~>%RT@S-l;GjWWGyQ20dlgvR!n7wN6{=77f5+Ar+B0#Ecu*t!>G=Wg|%TC>|d^qbn%JJ&?R+`D!%mTkR?_A>`J#4{|P+Q7bzI}I&IHr%zP$*V5xET=Y{NC76lbzRM&joZKb`B&FYPdcz6H6R`wd%pS1hQ)}PLmRT&xO4eEi1W|SHk{q4)R3NPU!v?kG#ug(5SQywO*+EiM#!#Il-+IYbG+1aj-$Qex9~KF20mB;cxvrmx7I%3=_*22b$vv<zjNgV=&J%af*DnyjYy+0Lp7KXCCWGG3$|o0xh8wjGmX=E&6*QMjJaJ0Imo6vvoXvu5V0dm=Rk_>v5hmD#A}B^Ds?6idBd3ye)>hNU=cC=)6TUsw|{!Jd?duJrTbAo8B(b<r6c$Hh=>a%<KA4MrNPn{=1oD1yxe9VnpJq6Gz~eP<^YiPl|K6F+AEdK#^!S*TkBsKL*@+GVq~<oA0{bTw3V5g={Sko!1mdn-TdSg)|k#l+|*+vZWF>V8Vl3p`n8-XaoZrr2-dsf4?0Imb~b;rbN!9R110Rke#sW)MJ*mM7X{$A@o34dcQ?fWCj(@A<LvhJ4{OItbpH_z`kjR1TThpWUk7bxgJKTsiyRBGyIM|}P??LTDxEIjo$jiW-gv--1D+Sy4&30`xWT<YCzRowHQ|b+Oy02vPKdIb&YOr=^<bPcnd;#g$m*4wuYb&*#7pGQL97yet)JTd-6s&Vr`D(++BQD5rtR(b*O<i%VJybBc!vdOwI-6?b0}Y3J43CJaK2yXP@J9OO{;k9&Q)D7y=-)v6=06)Yuw>5YRxtA8zw;xsaOn+KBlt$!Uk|0r*DWaQ9G-mrCaT+$~MQ}D+g7m5c?erR4C4<5VOp3I^}8EQD7L!C1&P#wqL$(F;-JfraX<v%*KuFpS%F6$kzGv^C-_uex-93W&7uwf^MfD@+SIMq(J3din}2&>3queJL@+QD}q@%%h8mbk3ZS|%T--}(wUU4jh|spfDG^UQz>mb9<7H|Fuhn>UiBG|rxefp_vfd#UwQHNsk1x3{@H(jeuj^xjNES=jAr@9!D5_bc|RXtOpCKA|NOPSa*!0CIf#34I_)zC_=*9n@GQ^=Fsa`7J*pSCA0XKe)RE`&O&qer{qgzn`*CrC<Y+Q}H*NVEfk}<>kMku0lQ3n7JeVpS;y^nRu$exRjRT1Au^bbqKg;POm3623JpyV0-^=x#FOh-aN%xH6!0*wIh+pA5@gUBd0$%4i_M%vps~6+L1VCHiM6r3R)CuI1o8R6q6Ud5W<BLPR6sbEZl@=>QckopL&R#e^@6(XFe%g&wy_{^3=~XauKgS>7#6qbc!=mV~!Fe&D30*&U4l9@9V@3g5@<-#Vss3nNkUV17#CE;s<D_!@z<iH@UyboE=g6<3hmFJ-9i3Sadc^A@EhK`C%K=^a{H+`XlZ$5+X>0IN91w4anVrK#qdiDAOxqk<9`T2)eIC9h+m>$=a5|3%_Ui<->2iAGn=T0VNylggcyfg7%!di7s(hS48B+3mJ&#h8dPoKUHZ%BZ1<HP{K=X8*V4-?^Ql2_k{b0d7)%Vk;PZp?YUo22m+#zFcf!KrAuk~{UOwCl3w|}pIZdsz|L+dS{EZ`+~s@$(b9P`+E@B8M91;oRhI84WX*7Qs!Z#V$`>J=8M*5r?+gS3wKc!x>s(sB>=7YoK0hWcv-_G1OD-zqr3?<YF(LOs>x!xH<AI+^+jfdwOx{z>y;(+33j(&*^=7X<kG0a%7CuAi8|X76&Ima8-!o7gX(4}cEW$0f??{4G^9o@Ce;biyFcR2LaPz<$SQ)aitz{$!>g&50kQEN)2UKfX%NQF^b>FwB!1oQk5!kk%xXT>eBA$d!w1{xM#_5*3H-6DSqDiAypVN)WOcJ&(r6@2;o-vYi%nw#5CW1Kb|h@)Jqi-_wG;nzrAbKv+n#Ak+&RJa?}W^!v~mK|l9{RHx_%-!H=;?Nw9sA1(|j{b6%XDpIzj_SBQ}i^xq{vh&-!_bENUu{}JD#Q0^sQeOV9$<^T+bjZci(^_PCd>L;NSa2dnML8+IDxVQJqPlsKGRqX%_I(TQU(nh1lga7!mAPT0h0UO!S2O6VmJIqzGU#X82WZWpuNA&EI*PBDPD!D!m^n;+k<3{DJIaWHJ4%0_uzVl-B=b>mCGL(dl4$1dHtP)d!uM2dLh^eIVSJq!iU$Qz+@AZsv2F=qKhLrp>oJsdc&uhDxv=?1Np+Jv@BY8@&H3y_-@qi1isSPwN$uyC{nUJJsaNqU8gcXc>yA%Tdiy<OJvAh@&s!4PFVIEC_5-q&4B}Z5)4P7?-GZhslKHxubP3YJtZL5eDR(n|z5}sq+Kft@ZY+KKNHs6ymF{Urh%cl_ZmlgM2*<dB4L@qVP;pQG{xtDq_wb9@dEx}|<I5|GOeo?BNH1f%N3rBCR}+)OkKfZ-XpyOQW&BBf91YCRLzw~keL(sNbr7=_5f4x+k;z!^qvFl6objE9rC=(!TfbUVko!1uO3TZuknVaT^0-)*CL}T)!d)MWPwrr)6@hIpq);5ahE(w84pPC3J<^ca-7Ju4v_NKSAH%&<PrY8a0EMShX|9F(ol5PQ-5Z*pnxh>l+V>@#q8%{p<_zsth@d0Pv<)C@i)^jdnU<^_b;U#`Y0@iYYxntkfT+qS1~*;1;%`DX<Ywp8>@)*>i#2}<AdLs@r2#?X-y#D$5l>P{!46BX;EhSi*PWUYPBH#RbJBIZ3prmi?z8rijliB2+x$HfqY+k`Db+en^n%W{?$>gyOYEnfYyG(?xz>3Q_Fj9wb^7h2EGBF2US(Wgu<gKg!W&aB1r2kP<BM>V(jt@-OEXA7=u11A-bu|NVS7`?b#fKrW2NZkq-^UA=0;1(^+o>vvc9Y%kjbcpDJ=sdW>(>hdDWe?>NHHY!yRNX|Bahcsh6}^OD1(ax;Pa@mo}wRhbUuzu$m!VGvj?l2|rafV9Lygth_~JyPg{z?>6)#FUNC#R_P;FlIdoLWJ>lqMn*Ik#co3ML*mH^uRnm;UlW~!7^Ci!?<o=aQgoDh#J-J)JTm=^FUx5MrCWhKE<M7=fKh&k1SlO1WWB-DO+6Z4Mhr?v0jVCc6b?iIOaS%P`SBkp6}t8DITt#4Ro?sx5t7nD<%g*Q!u8xI7^Ofq#vNniAj94envEuxw-Qnb=%r<mgMMX5k`8M{3?~W0KofnF3DD6QWxfK3QTjpYwTQCet+}K>*Ce#Zdz9ZHaZ2`1`PE7@Cnhh}l9FE8^PPawo{8zr;}Fpi?F%TGpV_mV<7srXa3`#dEOCz+5wzmq*d-4cFQn~eOXg`Q!#V#*?oozw?y?T*%^?EKG^x{@OK{PX5DveVH=cyRkmsCpI^!SxSz(*e+*;gi_}7C097avB&T7m8e8sa^3;lG%LfAaz@?!$zRqVS2+)T{Wo0OqEanP>vw~ld@=GcF=U0SA@;%-estS%sjcw!=`Px2S<;wgE@%g;c7e_O$-CjMeZW<HJ1yUaoc#pYAT-98<WCa-Qp&v~x2gph?UlkLx<JhG;b*|B>BIb>yvR01|>q0x{&7Zk09cU?6W+hlg<I-QbsT>ol<nO5nH3<cOI60B@OmXeZCk@opw$D4FurTE#5C9S`$(!#xlk2)4MQlzRNaXV2aghGxA(m=1r64p7uqGA!_bb6BU@zp6=#(7r6lz{>YXGVk`mU{wkD4v%L<8FfSsld?k7Mq9yV_Z#4FRo*7FaisEtRcVnqTfrzpl!|?&KEY8Ac@1rmm4#O<BE)#p1+&Fm)4dB+}$s2N(25MyxlN40XR80*j6yNi;Uk#C3OCcqbw&{)r;;bTI>gPg?j?+EMJ-*Fkqoq*h`$!+Za{_kip_PWPhq5wfFeFsGm!4<vu0%Ze>^VfeGSP)i)`<2T1A7ve$X8P4w0>df!n3?_Ns+?;a=c&YKc=V;yHq-z`pMk-wX@0&y=HgVYYE8=soOJBW9eGk9ZVxh^l@Gc)(%nF+nfgT2CWhokW1-o33HNcA+eEJ##)@7}*V%#Ah!G}IbDHNjJ=nXqN2lRr*<w+=1iHlv<eUavPkE8{NqEoJQ0jOIE>+6oyJOrgE?okd2sc+Y%yI(qZ~Hc#FA6SJE0MteJY)Lu`_YR+W#uxEK<=A`DO2Ti5%^)4w>WHtZs{|9-E;wJ')).decode('utf-8'))  # Replaced with compressed JSON by the standalone builder.
+_PACK_CODE = re.compile(r"^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$")
+_PACK_PLACEHOLDER = re.compile(r"\{[A-Za-z_]\w*\}")
+_PACK_HTML_TAG = re.compile(r"<\s*/?\s*[A-Za-z][^>]*>")
+_PACK_MAX_BYTES = 2 * 1024 * 1024
+
+
+def canonical_language_code(value: object) -> str:
+    """BCP-47-style matching, accepting the host's underscore and encoding suffix."""
+    return str(value or "").strip().lower().replace("_", "-").split(".", 1)[0].split("@", 1)[0]
+
+
+def validate_language_pack(raw: object, filename: str = "catalog.json") -> dict:
+    if not isinstance(raw, dict) or type(raw.get("schema_version")) is not int or raw["schema_version"] != 1:
+        raise ValueError("Language pack requires schema_version 1: " + filename)
+    if not isinstance(raw.get("code"), str):
+        raise ValueError("Language code must be text: " + filename)
+    code = canonical_language_code(raw["code"])
+    if not _PACK_CODE.fullmatch(code):
+        raise ValueError("Invalid language code: " + filename)
+    name = raw.get("native_name")
+    if (not isinstance(name, str) or not 1 <= len(name.strip()) <= 80
+            or _PACK_HTML_TAG.search(name) or any(ord(char) < 32 for char in name)):
+        raise ValueError("Invalid native language name: " + filename)
+    direction = raw.get("direction", "ltr")
+    if direction not in ("ltr", "rtl"):
+        raise ValueError("Invalid text direction: " + filename)
+    order = raw.get("order", 1000)
+    if not isinstance(order, int) or isinstance(order, bool):
+        raise ValueError("Invalid language order: " + filename)
+    translations = raw.get("translations", {})
+    if not isinstance(translations, dict):
+        raise ValueError("Translations must be an object: " + filename)
+    checked = {}
+    for english, translated in translations.items():
+        if not isinstance(english, str) or not english.strip() or not isinstance(translated, str) or not translated.strip():
+            raise ValueError("Translations must contain nonempty text: " + filename)
+        if _PACK_HTML_TAG.search(translated):
+            raise ValueError("Translations are plain text, not HTML: " + filename)
+        if sorted(_PACK_PLACEHOLDER.findall(english)) != sorted(_PACK_PLACEHOLDER.findall(translated)):
+            raise ValueError("Translation placeholders differ: " + filename)
+        checked[english] = translated
+    return {"schema_version": 1, "code": code, "native_name": name.strip(),
+            "direction": direction, "order": order, "translations": checked}
+
+
+def _language_json_object(pairs: list) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON object key: " + str(key))
+        result[key] = value
+    return result
+
+
+def read_language_pack_files(folder: Path, strict: bool = False) -> tuple[dict, list[str]]:
+    """Read only immediate JSON files; invalid optional packs cannot disable the UI."""
+    found, errors = {}, []
+    if not folder.is_dir():
+        return found, errors
+    for path in sorted(folder.glob("*.json")):
+        try:
+            path.resolve().relative_to(folder.resolve())
+            if path.stat().st_size > _PACK_MAX_BYTES:
+                raise ValueError("Language pack exceeds size limit: " + path.name)
+            raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_language_json_object)
+            pack = validate_language_pack(raw, path.name)
+            if pack["code"] in found:
+                raise ValueError("Duplicate language code: " + path.name)
+            found[pack["code"]] = pack
+        except (OSError, ValueError, TypeError, UnicodeError) as exc:
+            if strict:
+                raise ValueError("Invalid language pack " + path.name + ": " + str(exc)) from exc
+            errors.append(path.name + ": " + type(exc).__name__)
+    return found, errors
+
+
+def load_language_packs(folder: str | Path | None = None, *, embedded: dict | None = None,
+                        strict: bool = False) -> tuple[dict, tuple[str, ...]]:
+    """Bundle data first, then optional local JSON overrides, sorted by metadata."""
+    packs, errors = {}, []
+    for filename, raw in (embedded if embedded is not None else _BUNDLED_LANGUAGE_PACKS).items():
+        try:
+            pack = validate_language_pack(raw, str(filename))
+            if pack["code"] in packs:
+                raise ValueError("Duplicate embedded language code: " + str(filename))
+            packs[pack["code"]] = pack
+        except (ValueError, TypeError) as exc:
+            if strict:
+                raise
+            errors.append(str(filename) + ": " + type(exc).__name__)
+    directory = Path(folder) if folder is not None else Path(__file__).resolve().parent / "locales"
+    files, issues = read_language_pack_files(directory, strict=strict)
+    errors.extend(issues)
+    for code, pack in files.items():
+        if code in packs:
+            pack = {**pack, "translations": {**packs[code]["translations"], **pack["translations"]}}
+        packs[code] = pack
+    packs.setdefault("en", {"schema_version": 1, "code": "en", "native_name": "English",
+                            "direction": "ltr", "order": 1, "translations": {}})
+    return dict(sorted(packs.items(), key=lambda item: (item[1]["order"], item[0]))), tuple(errors)
+
+
+def resolve_language(value: object, available: object, default: str = "pt") -> str:
+    code = canonical_language_code(value)
+    if not code:
+        return default if default in available else "en"
+    candidate = code
+    while candidate:
+        if candidate in available:
+            return candidate
+        candidate = candidate.rsplit("-", 1)[0] if "-" in candidate else ""
+    return "en"
+
+
+def language_pack_payload(packs: dict) -> list[dict]:
+    """Metadata is used by the UI directly; there is no second locale allowlist."""
+    return [{"code": code, "native_name": pack["native_name"], "direction": pack["direction"]}
+            for code, pack in packs.items()]
+
+# ===========================================================================
 # MODULE: box_studio.locale_catalog
 # ===========================================================================
 
-"""Small offline language pack. Source phrases, units and placeholders stay explicit."""
-
+"""Box translation adapter. Catalog content and available languages are JSON data."""
 pass  # [bundled] hoisted __future__ import
 
-SUPPORTED_LANGUAGES = ("pt", "en", "es", "it", "fr", "de", "ja")
-LANGUAGE_NAMES = ("Português", "English", "Español", "Italiano", "Français", "Deutsch", "日本語")
+pass  # [bundled] resolved intra-package import
+
+LANGUAGE_PACKS, LANGUAGE_PACK_ERRORS = load_language_packs()
+SUPPORTED_LANGUAGES = tuple(LANGUAGE_PACKS)
+LANGUAGE_NAMES = tuple(pack["native_name"] for pack in LANGUAGE_PACKS.values())
+LANGUAGE_METADATA = language_pack_payload(LANGUAGE_PACKS)
+TRANSLATIONS = {code: pack["translations"] for code, pack in LANGUAGE_PACKS.items()}
 
 
 def normalize_language(value: object, default: str = "pt") -> str:
-    raw = str(value or "").strip().lower().replace("_", "-").split(".", 1)[0]
-    if not raw:
-        return default if default in SUPPORTED_LANGUAGES else "en"
-    code = raw.split("-", 1)[0]
-    return code if code in SUPPORTED_LANGUAGES else "en"
+    return resolve_language(value, LANGUAGE_PACKS, default)
 
 
-# English | Spanish | Italian | French | German | Japanese.
-# Do not run this catalog over user names, printer names, paths or numeric inputs.
-_ROWS = """
-Enclosure|Caja|Scatola|Boîtier|Gehäuse|ケース
-Features|Accesorios|Accessori|Accessoires|Zubehör|付属機能
-Presets|Preajustes|Preimpostazioni|Préréglages|Vorlagen|プリセット
-Construction|Construcción|Costruzione|Construction|Aufbau|構造
-Enclosure style|Estilo de caja|Tipo di scatola|Style de boîtier|Gehäusetyp|ケースの種類
-Open bin|Caja abierta|Contenitore aperto|Bac ouvert|Offene Box|オープンボックス
-Latch lid|Tapa con cierres|Coperchio con chiusure|Couvercle à loquets|Deckel mit Verschlüssen|ラッチ付きのふた
-Stackable bin|Caja apilable|Contenitore impilabile|Bac empilable|Stapelbox|積み重ねボックス
-PIP clamshell|Estuche articulado PIP|Custodia incernierata PIP|Étui articulé PIP|PIP-Klappbox|一体造形の開閉ケース
-Hinged assembly|Conjunto articulado|Assieme incernierato|Ensemble articulé|Scharnierbaugruppe|ヒンジ付きアセンブリ
-Equal halves · closed height: {height} mm. The assembly prints open at 180°.|Mitades iguales · altura cerrada: {height} mm. Se imprime abierto a 180°.|Metà uguali · altezza chiusa: {height} mm. Si stampa aperto a 180°.|Moitiés égales · hauteur fermée : {height} mm. Impression ouverte à 180°.|Gleiche Hälften · geschlossene Höhe: {height} mm. Druck um 180° geöffnet.|上下同じ深さ・閉じた高さ: {height} mm。180°開いた状態で印刷します。
-Open footprint on the bed: {size} mm.|Huella abierta en la cama: {size} mm.|Ingombro aperto sul piatto: {size} mm.|Encombrement ouvert sur le plateau : {size} mm.|Offene Stellfläche auf dem Druckbett: {size} mm.|開いた状態の設置寸法: {size} mm。
-Remove existing standoffs, cutouts, dividers and TPU features to use this style.|Elimina los soportes, recortes, divisores y elementos TPU para usar este estilo.|Rimuovi supporti, aperture, divisori e parti TPU per usare questo tipo.|Retirez les entretoises, découpes, cloisons et éléments TPU pour utiliser ce style.|Für diesen Typ vorhandene Abstandshalter, Ausschnitte, Trennwände und TPU-Elemente entfernen.|この種類では、支柱、開口部、仕切り、TPU部品を削除してください。
-Total height includes the foot. To stack different heights, keep X/Y dimensions, corners, walls and mating features identical.|La altura total incluye el pie. Para apilar alturas distintas, mantén iguales X/Y, esquinas, paredes y encajes.|L'altezza totale include il piede. Per impilare altezze diverse, mantieni uguali X/Y, angoli, pareti e incastri.|La hauteur totale inclut le pied. Pour empiler différentes hauteurs, gardez les mêmes dimensions X/Y, angles, parois et emboîtements.|Die Gesamthöhe umfasst den Fuß. Für unterschiedliche Stapelhöhen X/Y, Ecken, Wände und Passungen gleich halten.|全高には脚を含みます。高さの異なる箱を積む場合、X/Y寸法、角、壁、はめ合い部を同じにしてください。
-Connections & grips|Encajes y asas|Incastri e maniglie|Assemblages et poignées|Verbindungen und Griffe|はめ合いと持ち手
-Hand grips|Asas de mano|Maniglie|Poignées|Handgriffe|持ち手
-Pair of faces|Par de caras|Coppia di facce|Paire de faces|Flächenpaar|取り付け面の組
-Left / right|Izquierda / derecha|Sinistra / destra|Gauche / droite|Links / rechts|左 / 右
-Front / back|Frente / atrás|Fronte / retro|Avant / arrière|Vorne / hinten|前 / 後
-Two latches pivot on the base, each with a grip and hook. Release them before lifting off the lid.|Dos cierres giran sobre la base, cada uno con asa y gancho. Libéralos antes de levantar la tapa.|Due chiusure ruotano sulla base, ciascuna con presa e gancio. Sganciale prima di sollevare il coperchio.|Deux loquets pivotent sur la base, chacun avec une prise et un crochet. Libérez-les avant de soulever le couvercle.|Zwei Verschlüsse mit Griff und Haken schwenken an der Basis. Vor dem Abheben des Deckels lösen.|持ち手とフック付きの2つのラッチが底部で回転します。ふたを持ち上げる前に解除してください。
-Release latches & open|Soltar cierres y abrir|Sgancia e apri|Libérer les loquets et ouvrir|Verschlüsse lösen und öffnen|ラッチを解除して開く
-Rotate latches & open|Girar cierres y abrir|Ruota le chiusure e apri|Tourner les loquets et ouvrir|Verschlüsse drehen und öffnen|ラッチを回して開く
-Latches engaged · lid closed|Cierres enganchados · tapa cerrada|Chiusure agganciate · coperchio chiuso|Loquets engagés · couvercle fermé|Verschlüsse eingerastet · Deckel geschlossen|ラッチ固定・ふたは閉じています
-Rotating latches · lid stationary|Girando cierres · tapa inmóvil|Rotazione chiusure · coperchio fermo|Rotation des loquets · couvercle immobile|Verschlüsse drehen · Deckel steht|ラッチ回転中・ふたは固定
-Latches open · opening the lid|Cierres abiertos · abriendo tapa|Chiusure aperte · apertura coperchio|Loquets ouverts · ouverture du couvercle|Verschlüsse offen · Deckel öffnet|ラッチ解除・ふたを開いています
-Latches open · lid open|Cierres abiertos · tapa abierta|Chiusure aperte · coperchio aperto|Loquets ouverts · couvercle ouvert|Verschlüsse offen · Deckel offen|ラッチ解除・ふたは開いています
-Releasing latches · lid stationary|Soltando cierres · tapa inmóvil|Sgancio chiusure · coperchio fermo|Libération des loquets · couvercle immobile|Verschlüsse lösen · Deckel steht|ラッチ解除中・ふたは固定
-Latches open · lifting the lid|Cierres abiertos · levantando tapa|Chiusure aperte · sollevamento coperchio|Loquets ouverts · levée du couvercle|Verschlüsse offen · Deckel wird angehoben|ラッチ解除・ふたを持ち上げています
-Latches open · lid removed|Cierres abiertos · tapa retirada|Chiusure aperte · coperchio rimosso|Loquets ouverts · couvercle retiré|Verschlüsse offen · Deckel abgenommen|ラッチ解除・ふたを外しました
-Latch motion unavailable. Regenerate the preview.|Movimiento de cierres no disponible. Regenera la vista previa.|Movimento delle chiusure non disponibile. Rigenera l'anteprima.|Mouvement des loquets indisponible. Régénérez l'aperçu.|Verschlussbewegung nicht verfügbar. Vorschau neu erzeugen.|ラッチの動作を表示できません。プレビューを再生成してください。
-Width X|Ancho X|Larghezza X|Largeur X|Breite X|幅 X
-Depth Y|Profundidad Y|Profondità Y|Profondeur Y|Tiefe Y|奥行き Y
-Base height Z|Altura de base Z|Altezza base Z|Hauteur de base Z|Basishöhe Z|底部の高さ Z
-Height Z|Altura Z|Altezza Z|Hauteur Z|Höhe Z|高さ Z
-Height of each half Z|Altura de cada mitad Z|Altezza di ogni metà Z|Hauteur de chaque moitié Z|Höhe jeder Hälfte Z|各半分の高さ Z
-Total height Z|Altura total Z|Altezza totale Z|Hauteur totale Z|Gesamthöhe Z|全高 Z
-Corner radius|Radio de esquina|Raggio degli angoli|Rayon des angles|Eckenradius|角の半径
-Wall|Pared|Parete|Paroi|Wand|壁
-Floor|Fondo|Fondo|Fond|Boden|底
-Lid thickness|Espesor de tapa|Spessore coperchio|Épaisseur du couvercle|Deckelstärke|ふたの厚さ
-Lid height|Altura de tapa|Altezza coperchio|Hauteur du couvercle|Deckelhöhe|ふたの高さ
-Clearance per side|Holgura por lado|Gioco per lato|Jeu par côté|Spiel je Seite|片側のクリアランス
-Gap between halves Z|Holgura entre mitades Z|Gioco tra le metà Z|Jeu entre les moitiés Z|Spalt zwischen Hälften Z|上下間の隙間 Z
-Joint clearance|Holgura de encaje|Gioco degli incastri|Jeu des assemblages|Passungsspiel|接合部のクリアランス
-Hinge clearance|Holgura de bisagra|Gioco cerniera|Jeu de charnière|Scharnierspiel|ヒンジのクリアランス
-Pivot clearance|Holgura de pivotes|Gioco dei perni|Jeu des pivots|Drehzapfenspiel|軸のクリアランス
-Locating skirt depth|Profundidad del faldón guía|Profondità del bordo guida|Profondeur de la jupe de centrage|Tiefe des Führungsrandes|位置決めスカートの深さ
-Hinge|Bisagra|Cerniera|Charnière|Scharnier|ヒンジ
-Pin diameter|Diámetro de pasador|Diametro del perno|Diamètre de l'axe|Stiftdurchmesser|ピンの直径
-Integral axle diameter|Diámetro de eje integrado|Diametro dell'asse integrato|Diamètre de l'axe intégré|Durchmesser der integrierten Achse|一体軸の直径
-Corner screw|Tornillo de esquina|Vite d'angolo|Vis d'angle|Eckschraube|角のねじ
-Surface resolution|Resolución de superficie|Risoluzione superficie|Résolution de surface|Oberflächenauflösung|表面の解像度
-Standard|Estándar|Standard|Standard|Standard|標準
-Fine|Fina|Fine|Fine|Fein|高精細
-TPU gasket|Junta TPU|Guarnizione TPU|Joint TPU|TPU-Dichtung|TPUガスケット
-Perimeter channel and gasket|Canal perimetral y junta|Canale perimetrale e guarnizione|Rainure périphérique et joint|Umlaufende Nut und Dichtung|外周溝とガスケット
-Channel width|Ancho del canal|Larghezza canale|Largeur de rainure|Nutbreite|溝の幅
-Channel depth|Profundidad del canal|Profondità canale|Profondeur de rainure|Nuttiefe|溝の深さ
-Export the gasket separately and select TPU in the slicer. Physical sealing requires testing.|Exporta la junta por separado y selecciona TPU en el laminador. La estanqueidad requiere pruebas.|Esporta la guarnizione separatamente e seleziona TPU nello slicer. La tenuta richiede prove fisiche.|Exportez le joint séparément et choisissez le TPU dans le trancheur. L'étanchéité doit être testée.|Dichtung separat exportieren und TPU im Slicer wählen. Dichtheit muss praktisch geprüft werden.|ガスケットを別に書き出し、スライサーでTPUを選択してください。密閉性は実物での試験が必要です。
-PCB & placement|PCB y posición|PCB e posizionamento|PCB et placement|PCB und Platzierung|基板と配置
-Drag standoffs. Centered origin; X right, Y back. Exact coordinates remain editable below.|Arrastra los soportes. Origen centrado; X a la derecha, Y hacia atrás. Las coordenadas exactas se editan abajo.|Trascina i supporti. Origine centrata; X a destra, Y verso il retro. Le coordinate esatte sono modificabili sotto.|Déplacez les entretoises. Origine centrée ; X à droite, Y vers l'arrière. Les coordonnées exactes restent modifiables ci-dessous.|Abstandshalter ziehen. Ursprung mittig; X nach rechts, Y nach hinten. Genaue Koordinaten sind unten editierbar.|支柱をドラッグします。原点は中央、Xは右、Yは後方です。正確な座標は下で編集できます。
-Panel cutouts|Recortes del panel|Aperture pannello|Découpes du panneau|Plattenausschnitte|パネルの開口部
-Real through-openings. Preserve corners, floor and lid interface. Connector dimensions are editable starting points.|Aberturas pasantes reales. Conserva esquinas, fondo y encaje de tapa. Las medidas de conectores son valores iniciales editables.|Aperture passanti reali. Preserva angoli, fondo e giunzione del coperchio. Le misure dei connettori sono valori iniziali modificabili.|Ouvertures traversantes réelles. Préservez angles, fond et assemblage du couvercle. Les dimensions des connecteurs sont des valeurs initiales modifiables.|Echte Durchbrüche. Ecken, Boden und Deckelpassung erhalten. Anschlussmaße sind editierbare Ausgangswerte.|実際に貫通する開口部です。角、底、ふたの接合部を確保してください。コネクター寸法は編集可能な初期値です。
-Dividers|Divisores|Divisori|Cloisons|Trennwände|仕切り
-X positions, comma separated|Posiciones X, separadas por comas|Posizioni X, separate da virgole|Positions X, séparées par des virgules|X-Positionen, durch Kommas getrennt|X位置、カンマ区切り
-Y positions, comma separated|Posiciones Y, separadas por comas|Posizioni Y, separate da virgole|Positions Y, séparées par des virgules|Y-Positionen, durch Kommas getrennt|Y位置、カンマ区切り
-Design library|Biblioteca de diseños|Libreria progetti|Bibliothèque de modèles|Entwurfsbibliothek|デザインライブラリ
-My presets|Mis preajustes|Le mie preimpostazioni|Mes préréglages|Meine Vorlagen|自分のプリセット
-Save|Guardar|Salva|Enregistrer|Speichern|保存
-PCB envelopes are references. Check your actual board model and revision.|Los contornos de PCB son referencias. Comprueba el modelo y revisión de tu placa.|Gli ingombri PCB sono indicativi. Verifica modello e revisione della tua scheda.|Les contours PCB sont indicatifs. Vérifiez le modèle et la révision de votre carte.|PCB-Umrisse dienen als Referenz. Tatsächliches Modell und Revision prüfen.|基板外形は参考です。実際の基板のモデルとリビジョンを確認してください。
-Open|Abrir|Apri|Ouvrir|Öffnen|開く
-Inspection|Inspección|Ispezione|Inspection|Prüfung|検査
-Volume · cm³|Volumen · cm³|Volume · cm³|Volume · cm³|Volumen · cm³|体積 · cm³
-Triangles|Triángulos|Triangoli|Triangles|Dreiecke|三角形
-X-ray · internal components|Rayos X · componentes internos|Raggi X · componenti interni|Rayons X · composants internes|Röntgen · innere Bauteile|X線・内部部品
-Axial inspection cut|Corte axial de inspección|Sezione assiale di ispezione|Coupe axiale d'inspection|Axialer Prüfschnitt|軸方向の断面検査
-Preview and export share the Python geometry. Curves are tessellated; model updates run in the background.|La vista previa y la exportación comparten la geometría Python. Las curvas se triangulan y los cambios se calculan en segundo plano.|Anteprima ed esportazione condividono la geometria Python. Le curve sono tessellate e gli aggiornamenti avvengono in background.|Aperçu et export partagent la géométrie Python. Les courbes sont tessellées ; les mises à jour s'exécutent en arrière-plan.|Vorschau und Export nutzen dieselbe Python-Geometrie. Kurven werden tesselliert; Aktualisierungen laufen im Hintergrund.|プレビューと書き出しは同じPython形状を使用します。曲線は分割され、モデルの更新はバックグラウンドで実行されます。
-Manufacture|Fabricación|Produzione|Fabrication|Fertigung|製造
-Base + lid|Base + tapa|Base + coperchio|Base + couvercle|Basis + Deckel|底部 + ふた
-Base only|Solo base|Solo base|Base seule|Nur Basis|底部のみ
-Lid only|Solo tapa|Solo coperchio|Couvercle seul|Nur Deckel|ふたのみ
-Fit calibration kit|Kit de calibración de encaje|Kit di calibrazione incastri|Kit de calibrage des ajustements|Passungs-Kalibriersatz|はめ合い調整キット
-Complete set|Conjunto completo|Set completo|Ensemble complet|Komplettsatz|全パーツ
-Send to Plater|Enviar a la mesa|Invia al piatto|Envoyer au plateau|An Druckbett senden|プレートに送る
-Apply mechanical slicing|Aplicar ajustes mecánicos|Applica impostazioni meccaniche|Appliquer les réglages mécaniques|Mechanische Druckeinstellungen anwenden|機械部品用の印刷設定を適用
-Open export folder|Abrir carpeta de exportación|Apri cartella esportazioni|Ouvrir le dossier d'export|Exportordner öffnen|書き出しフォルダーを開く
-Base on its floor; preserve the exported orientation of each part. Print the fit kit first. Print time depends on printer and profile.|Base sobre el fondo; conserva la orientación exportada de cada pieza. Imprime primero el kit de encaje. El tiempo depende de la impresora y del perfil.|Base sul fondo; conserva l'orientamento esportato di ogni parte. Stampa prima il kit di incastro. Il tempo dipende da stampante e profilo.|Base sur son fond ; conservez l'orientation exportée de chaque pièce. Imprimez d'abord le kit d'ajustement. Le temps dépend de l'imprimante et du profil.|Basis auf den Boden stellen; exportierte Ausrichtung jeder Komponente beibehalten. Zuerst Passungssatz drucken. Druckzeit hängt von Drucker und Profil ab.|底部を下にし、各部品の書き出し時の向きを維持してください。最初にはめ合いキットを印刷してください。印刷時間はプリンターと設定によります。
-Base and lid have independent heights. Export all four parts: shells with their outer faces on the bed, latches flat. Snap the spherical joints together after printing; check your filament's flexibility.|Base y tapa tienen alturas independientes. Exporta las cuatro piezas: caras externas de las carcasas sobre la cama y cierres planos. Encaja las uniones esféricas tras imprimir; comprueba la flexibilidad del filamento.|Base e coperchio hanno altezze indipendenti. Esporta le quattro parti: gusci con facce esterne sul piatto, chiusure distese. Assembla gli snodi sferici dopo la stampa e verifica la flessibilità del filamento.|Base et couvercle ont des hauteurs indépendantes. Exportez les quatre pièces : faces extérieures des coques sur le plateau, loquets à plat. Emboîtez les rotules après impression ; vérifiez la souplesse du filament.|Basis und Deckel haben unabhängige Höhen. Alle vier Teile exportieren: Schalen außen auf dem Druckbett, Verschlüsse flach. Kugelgelenke nach dem Druck einrasten; Filamentflexibilität prüfen.|底部とふたの高さは個別に設定できます。4部品すべてを書き出し、外面を下にしてラッチは平置きします。印刷後に球状接合部をはめ込み、フィラメントの柔軟性を確認してください。
-Base and lid have equal height. Export the hinged assembly open at 180°, both outer faces on the bed. Keep that pose in the slicer and check the printed hinge.|Base y tapa tienen igual altura. Exporta el conjunto abierto a 180°, con ambas caras externas sobre la cama. Mantén esa posición y comprueba la bisagra impresa.|Base e coperchio hanno uguale altezza. Esporta l'assieme aperto a 180°, con entrambe le facce esterne sul piatto. Mantieni la posa nello slicer e verifica la cerniera stampata.|Base et couvercle ont la même hauteur. Exportez l'ensemble ouvert à 180°, les deux faces extérieures sur le plateau. Conservez cette position et vérifiez la charnière imprimée.|Basis und Deckel sind gleich hoch. Baugruppe um 180° geöffnet mit beiden Außenseiten auf dem Druckbett exportieren. Position im Slicer beibehalten und gedrucktes Scharnier prüfen.|底部とふたは同じ高さです。180°開いて両方の外面を下にした状態で書き出します。スライサーで向きを維持し、印刷したヒンジを確認してください。
-Base floor down, opening upwards. Check the walls and the bridges above hand grips, when enabled, in the slicer preview.|Fondo abajo y abertura arriba. Comprueba paredes y puentes sobre las asas, si están activadas, en la vista del laminador.|Fondo in basso, apertura in alto. Verifica pareti e ponti sopra le maniglie, se attive, nell'anteprima dello slicer.|Fond vers le bas, ouverture vers le haut. Vérifiez les parois et les ponts au-dessus des poignées, si activées, dans l'aperçu du trancheur.|Boden nach unten, Öffnung nach oben. Wände und gegebenenfalls Brücken über den Handgriffen in der Slicer-Vorschau prüfen.|底を下、開口部を上にします。壁と、有効にした持ち手の上のブリッジをスライサーで確認してください。
-Print with the foot on the bed and the front open. Total height includes the foot. Test the fit between bins of the same family before stacking.|Imprime con el pie en la cama y el frente abierto. La altura incluye el pie. Prueba el encaje entre cajas de la misma familia antes de apilarlas.|Stampa con il piede sul piatto e il fronte aperto. L'altezza include il piede. Prova l'incastro tra contenitori della stessa famiglia prima di impilarli.|Imprimez le pied sur le plateau et l'avant ouvert. La hauteur inclut le pied. Testez l'emboîtement des bacs de même famille avant de les empiler.|Mit Fuß auf dem Druckbett und offener Front drucken. Gesamthöhe umfasst den Fuß. Vor dem Stapeln die Passung derselben Boxfamilie prüfen.|脚をプレートに付け、前を開けて印刷します。全高には脚を含みます。積み重ねる前に同じ系列の箱同士のはめ合いを確認してください。
-Set: base, lid and two latches. Print the shells on their outer faces and the latches upright. Fit the latches onto the base pivots; release the hooks before lifting the lid. Check the fit of the printed parts.|Conjunto: base, tapa y dos cierres. Imprime las carcasas sobre sus caras externas y los cierres de pie. Encaja los cierres en los pivotes de la base; libera los ganchos antes de levantar la tapa. Comprueba el encaje impreso.|Set: base, coperchio e due chiusure. Stampa i gusci sulle facce esterne e le chiusure in verticale. Monta le chiusure sui perni della base; sgancia i ganci prima di sollevare il coperchio. Verifica gli incastri stampati.|Ensemble : base, couvercle et deux loquets. Imprimez les coques sur leurs faces extérieures et les loquets debout. Montez les loquets sur les pivots de la base ; libérez les crochets avant de soulever le couvercle. Vérifiez l'ajustement imprimé.|Satz: Basis, Deckel und zwei Verschlüsse. Schalen auf den Außenseiten und Verschlüsse aufrecht drucken. Verschlüsse auf Basiszapfen setzen; Haken vor dem Abheben lösen. Gedruckte Passungen prüfen.|底部、ふた、2つのラッチのセットです。外殻は外面を下に、ラッチは立てて印刷します。ラッチを底部の軸に取り付け、ふたを上げる前にフックを外してください。印刷後のはめ合いを確認してください。
-Drag to orbit · wheel to zoom|Arrastra para girar · rueda para zoom|Trascina per ruotare · rotella per zoom|Glisser pour tourner · molette pour zoomer|Ziehen zum Drehen · Mausrad zum Zoomen|ドラッグで回転・ホイールでズーム
-Generating mesh… you can keep editing.|Generando malla… puedes seguir editando.|Generazione mesh… puoi continuare a modificare.|Génération du maillage… vous pouvez continuer à modifier.|Netz wird erzeugt… Bearbeitung bleibt möglich.|メッシュ生成中…編集を続けられます。
-Mesh updated · ready to inspect.|Malla actualizada · lista para inspección.|Mesh aggiornata · pronta per l'ispezione.|Maillage actualisé · prêt à inspecter.|Netz aktualisiert · bereit zur Prüfung.|メッシュを更新しました・検査できます。
-Interface preview. Open this plugin in OrcaSlicer to generate meshes.|Vista de la interfaz. Abre este plugin en OrcaSlicer para generar mallas.|Anteprima interfaccia. Apri il plugin in OrcaSlicer per generare le mesh.|Aperçu de l'interface. Ouvrez ce plugin dans OrcaSlicer pour générer des maillages.|Oberflächenvorschau. Zum Erzeugen von Netzen dieses Plugin in OrcaSlicer öffnen.|インターフェースのプレビューです。メッシュ生成にはOrcaSlicerでプラグインを開いてください。
-Print-in-place: assembled set. Assess bridging/removable support below the lid without filling hinge gaps. Remove clips before opening.|Print-in-place: conjunto montado. Evalúa puentes o soportes extraíbles bajo la tapa sin llenar las holguras. Retira los clips antes de abrir.|Print-in-place: assieme montato. Valuta ponti o supporti rimovibili sotto il coperchio senza riempire i giochi delle cerniere. Rimuovi le clip prima di aprire.|Impression en place : ensemble assemblé. Évaluez les ponts ou supports amovibles sous le couvercle sans remplir les jeux des charnières. Retirez les clips avant d'ouvrir.|Print-in-place: montierte Baugruppe. Brücken oder entfernbare Stützen unter dem Deckel prüfen, ohne Scharnierspalte zu füllen. Clips vor dem Öffnen entfernen.|一体造形の組立済みセットです。ヒンジの隙間を埋めないよう、ふたの下のブリッジや除去可能なサポートを確認してください。開く前にクリップを外してください。
-Remove|Eliminar|Rimuovi|Retirer|Entfernen|削除
-Post height|Altura del soporte|Altezza supporto|Hauteur d'entretoise|Abstandshalterhöhe|支柱の高さ
-Outer Ø|Ø exterior|Ø esterno|Ø extérieur|Außen-Ø|外径
-Hole Ø|Ø del agujero|Ø foro|Ø du trou|Bohrungs-Ø|穴径
-Hole depth|Profundidad del agujero|Profondità foro|Profondeur du trou|Bohrungstiefe|穴の深さ
-Insert|Inserto|Inserto|Insert|Gewindeeinsatz|インサート
-Pilot|Agujero piloto|Foro pilota|Avant-trou|Kernloch|下穴
-Face|Cara|Faccia|Face|Seite|面
-Type|Tipo|Tipo|Type|Typ|種類
-Front|Frente|Fronte|Avant|Vorne|前
-Back|Atrás|Retro|Arrière|Hinten|後
-Left|Izquierda|Sinistra|Gauche|Links|左
-Right|Derecha|Destra|Droite|Rechts|右
-SnapLock: snap-assembled rear hinge and two latches pivoting on the lid. No loose pins.|SnapLock: bisagra trasera de encaje y dos cierres giratorios en la tapa. Sin pasadores sueltos.|SnapLock: cerniera posteriore a scatto e due chiusure sul coperchio. Nessun perno separato.|SnapLock : charnière arrière emboîtable et deux loquets pivotant sur le couvercle. Aucun axe libre.|SnapLock: hinteres Schnappscharnier und zwei am Deckel schwenkende Verschlüsse. Keine losen Stifte.|SnapLock: はめ込み式の後部ヒンジと、ふた上で回転する2つのラッチです。別のピンは不要です。
-Clearance enlarges the ear recesses while retaining the backing wall. The V rim keeps nominal contact.|La holgura amplía los huecos de las orejetas sin eliminar la pared posterior. El borde en V mantiene el contacto nominal.|Il gioco amplia le sedi delle alette mantenendo la parete posteriore. Il bordo a V mantiene il contatto nominale.|Le jeu agrandit les logements des oreilles en conservant la paroi arrière. Le bord en V garde le contact nominal.|Das Spiel vergrößert die Laschenaussparungen bei erhaltener Rückwand. Der V-Rand behält den Nennkontakt.|クリアランスは裏壁を残しながら耳部のくぼみを広げます。V字の縁は公称接触を維持します。
-Grip clear width|Ancho libre del asa|Larghezza utile maniglia|Largeur libre de poignée|Freie Griffbreite|持ち手の開口幅
-Grip clear height|Altura libre del asa|Altezza utile maniglia|Hauteur libre de poignée|Freie Griffhöhe|持ち手の開口高さ
-Distance from top|Distancia desde arriba|Distanza dal bordo superiore|Distance depuis le haut|Abstand von oben|上端からの距離
-Lid skirt depth|Profundidad del faldón|Profondità bordo coperchio|Profondeur de jupe du couvercle|Tiefe des Deckelrandes|ふたのスカートの深さ
-Latch width|Ancho del cierre|Larghezza chiusura|Largeur du loquet|Verschlussbreite|ラッチの幅
-Latch body thickness|Espesor del cierre|Spessore chiusura|Épaisseur du loquet|Verschlussstärke|ラッチ本体の厚さ
-Hook engagement|Enganche del gancho|Presa del gancio|Engagement du crochet|Hakeneingriff|フックのかかり
-Latch pivot diameter|Diámetro del pivote|Diametro perno chiusura|Diamètre du pivot de loquet|Verschluss-Zapfendurchmesser|ラッチ軸の直径
-Snap interference|Interferencia del encaje|Interferenza dello scatto|Interférence du clipsage|Schnappübermaß|スナップの干渉量
-Front access width|Ancho del acceso frontal|Larghezza accesso frontale|Largeur d'accès frontal|Breite der Frontöffnung|前部開口の幅
-Front opening drop from top|Rebaje frontal desde arriba|Ribassamento frontale dall'alto|Abaissement frontal depuis le haut|Absenkung der Frontöffnung|上端からの前部開口の深さ
-Stacking foot height|Altura del pie de apilado|Altezza piede di impilamento|Hauteur du pied d'empilage|Höhe des Stapelfußes|積み重ね用脚の高さ
-Stacking clearance per side|Holgura de apilado por lado|Gioco di impilamento per lato|Jeu d'empilage par côté|Stapelspiel je Seite|積み重ね部の片側クリアランス
-PIP hinge clearance|Holgura de bisagra PIP|Gioco cerniera PIP|Jeu de charnière PIP|PIP-Scharnierspiel|一体造形ヒンジのクリアランス
-Hinge separation|Separación de bisagra|Distanza cerniera|Écartement de charnière|Scharnierabstand|ヒンジの間隔
-TPU channel width|Ancho del canal TPU|Larghezza canale TPU|Largeur de rainure TPU|TPU-Nutbreite|TPU溝の幅
-Parameters|Parámetros|Parametri|Paramètres|Parameter|パラメーター
-Export|Exportar|Esporta|Exporter|Exportieren|書き出し
-Model Gallery|Galería de modelos|Galleria modelli|Galerie de modèles|Modellgalerie|モデルギャラリー
-+ Save|+ Guardar|+ Salva|+ Enregistrer|+ Speichern|+ 保存
-All|Todos|Tutti|Tous|Alle|すべて
-Mine|Míos|Miei|Les miens|Eigene|自分のもの
-Shape|Forma|Forma|Forme|Form|形状
-Print|Imprimir|Stampa|Imprimer|Drucken|印刷
-Mesh inspection|Inspección de malla|Ispezione mesh|Inspection du maillage|Netzprüfung|メッシュ検査
-Wall / Floor|Pared / Fondo|Parete / Fondo|Paroi / Fond|Wand / Boden|壁 / 底
-Current scene (mm)|Escena actual (mm)|Scena attuale (mm)|Scène actuelle (mm)|Aktuelle Szene (mm)|現在のシーン (mm)
-Mesh overhang|Voladizo de malla|Sbalzo mesh|Surplomb du maillage|Netzüberhang|メッシュのオーバーハング
-Solid volume (cm³)|Volumen sólido (cm³)|Volume solido (cm³)|Volume solide (cm³)|Festkörpervolumen (cm³)|ソリッド体積 (cm³)
-Orca Emerald Silk|Seda esmeralda Orca|Seta smeraldo Orca|Soie émeraude Orca|Orca-Smaragdseide|Orcaエメラルドシルク
-Terracotta Ceramic|Cerámica terracota|Ceramica terracotta|Céramique terre cuite|Terrakotta-Keramik|テラコッタセラミック
-Matte White Porcelain|Porcelana blanca mate|Porcellana bianca opaca|Porcelaine blanche mate|Mattweißes Porzellan|マットな白磁
-Brushed Copper Bronze|Bronce cobrizo cepillado|Bronzo ramato spazzolato|Bronze cuivré brossé|Gebürstete Kupferbronze|ヘアライン銅青銅
-🔬 X-Ray / Wall (Translucent)|🔬 Rayos X / pared (translúcida)|🔬 Raggi X / parete (traslucida)|🔬 Rayons X / paroi (translucide)|🔬 Röntgen / Wand (durchscheinend)|🔬 X線 / 壁（半透明）
-Overhang Map (°)|Mapa de voladizos (°)|Mappa sbalzi (°)|Carte des surplombs (°)|Überhangkarte (°)|オーバーハングマップ (°)
-🔬 X-Ray / Wall|🔬 Rayos X / pared|🔬 Raggi X / parete|🔬 Rayons X / paroi|🔬 Röntgen / Wand|🔬 X線 / 壁
-📏 Calipers mm|📏 Calibre mm|📏 Calibro mm|📏 Pied à coulisse mm|📏 Messschieber mm|📏 ノギス mm
-🔥 Overhang|🔥 Voladizo|🔥 Sbalzo|🔥 Surplomb|🔥 Überhang|🔥 オーバーハング
-⌗ Mesh|⌗ Malla|⌗ Mesh|⌗ Maillage|⌗ Netz|⌗ メッシュ
-Top|Arriba|Alto|Dessus|Oben|上
-Bottom|Abajo|Basso|Dessous|Unten|下
-Fit|Encuadrar|Inquadra|Cadrer|Einpassen|全体表示
-✂ Vertical Cut Y|✂ Corte vertical Y|✂ Sezione verticale Y|✂ Coupe verticale Y|✂ Vertikalschnitt Y|✂ 垂直断面 Y
-💿 Horizontal Slice Z|💿 Corte horizontal Z|💿 Sezione orizzontale Z|💿 Coupe horizontale Z|💿 Horizontalschnitt Z|💿 水平断面 Z
-Outer|Exterior|Esterno|Extérieur|Außen|外側
-Cavity & Floor|Cavidad y fondo|Cavità e fondo|Cavité et fond|Hohlraum und Boden|空洞と底
-Send to OrcaSlicer Plater|Enviar a la mesa de OrcaSlicer|Invia al piatto di OrcaSlicer|Envoyer au plateau OrcaSlicer|An OrcaSlicer-Druckbett senden|OrcaSlicerのプレートに送る
-Export .3MF|Exportar .3MF|Esporta .3MF|Exporter .3MF|.3MF exportieren|.3MFを書き出す
-Export .STL|Exportar .STL|Esporta .STL|Exporter .STL|.STL exportieren|.STLを書き出す
-Surprise me|Sorpréndeme|Sorprendimi|Surprenez-moi|Überrasche mich|ランダム生成
-Snap-fit lid box|Caja con tapa de encaje|Scatola con coperchio a scatto|Boîte à couvercle clipsé|Box mit Schnappdeckel|スナップ式ふた付きボックス
-Screw-lid box|Caja con tapa atornillada|Scatola con coperchio avvitato|Boîte à couvercle vissé|Box mit Schraubdeckel|ねじ止め式ふた付きボックス
-Rugged box · SnapLock|Caja reforzada · SnapLock|Scatola rinforzata · SnapLock|Boîte renforcée · SnapLock|Robuste Box · SnapLock|頑丈なボックス · SnapLock
-Sliding-lid box|Caja con tapa deslizante|Scatola con coperchio scorrevole|Boîte à couvercle coulissant|Box mit Schiebedeckel|スライド式ふた付きボックス
-Open bin with hand grips|Caja abierta con asas|Contenitore aperto con maniglie|Bac ouvert à poignées|Offene Box mit Griffen|持ち手付きオープンボックス
-Removable lid · pivoting latches|Tapa extraíble · cierres giratorios|Coperchio rimovibile · chiusure girevoli|Couvercle amovible · loquets pivotants|Abnehmbarer Deckel · Schwenkverschlüsse|取り外し式ふた · 回転ラッチ
-Stackable organizer · front access|Organizador apilable · acceso frontal|Contenitore impilabile · accesso frontale|Organiseur empilable · accès frontal|Stapelbarer Organizer · Frontöffnung|積み重ね収納 · 前部開口
-Print-in-place clamshell|Estuche articulado print-in-place|Custodia incernierata print-in-place|Étui articulé imprimé en place|Print-in-place-Klappbox|一体造形の開閉ケース
-Curved interface chord-error target ≤ {error} mm|Error objetivo de interfaces curvas ≤ {error} mm|Errore obiettivo delle interfacce curve ≤ {error} mm|Erreur cible des interfaces courbes ≤ {error} mm|Ziel-Sehnenfehler gekrümmter Passungen ≤ {error} mm|曲面接合部の弦誤差目標 ≤ {error} mm
-Closed: {height} mm · base {base} + lid {lid} mm|Cerrada: {height} mm · base {base} + tapa {lid} mm|Chiusa: {height} mm · base {base} + coperchio {lid} mm|Fermée : {height} mm · base {base} + couvercle {lid} mm|Geschlossen: {height} mm · Basis {base} + Deckel {lid} mm|閉じた高さ: {height} mm · 底部 {base} + ふた {lid} mm
-walls of|perímetros de|perimetri da|périmètres de|Wände mit|周の外周線・線幅
-Mode|Modo|Modalità|Mode|Modus|モード
-Reset|Restablecer|Ripristina|Réinitialiser|Zurücksetzen|リセット
-Undo|Deshacer|Annulla|Annuler|Rückgängig|元に戻す
-Redo|Rehacer|Ripeti|Rétablir|Wiederholen|やり直す
-Language|Idioma|Lingua|Langue|Sprache|言語
-Theme|Tema|Tema|Thème|Design|テーマ
-Name|Nombre|Nome|Nom|Name|名前
-Preset name|Nombre del preajuste|Nome preimpostazione|Nom du préréglage|Vorlagenname|プリセット名
-Base|Base|Base|Base|Basis|底部
-Lid|Tapa|Coperchio|Couvercle|Deckel|ふた
-Left latch|Cierre izquierdo|Chiusura sinistra|Loquet gauche|Linker Verschluss|左ラッチ
-Right latch|Cierre derecho|Chiusura destra|Loquet droit|Rechter Verschluss|右ラッチ
-Gasket|Junta|Guarnizione|Joint|Dichtung|ガスケット
-Fit test kit|Kit de prueba de encaje|Kit prova incastri|Kit d'essai d'ajustement|Passungsprüfsatz|はめ合いテストキット
-Files exported.|Archivos exportados.|File esportati.|Fichiers exportés.|Dateien exportiert.|ファイルを書き出しました。
-Import request sent to Plater.|Solicitud enviada a la mesa.|Richiesta inviata al piatto.|Demande envoyée au plateau.|Importanfrage an das Druckbett gesendet.|プレートへの読み込みを要求しました。
-Animate lid|Animar tapa|Anima coperchio|Animer le couvercle|Deckel animieren|ふたをアニメーション
-Auto-Rotate|Rotación automática|Rotazione automatica|Rotation automatique|Automatisch drehen|自動回転
-Sync active printer|Sincronizar impresora activa|Sincronizza stampante attiva|Synchroniser l'imprimante active|Aktiven Drucker synchronisieren|使用中のプリンターと同期
-Material|Material|Materiale|Matériau|Material|マテリアル
-Studio sections|Secciones del estudio|Sezioni dello studio|Sections de l'atelier|Studio-Bereiche|スタジオのセクション
-Section cut mode|Modo de corte|Modalità sezione|Mode de coupe|Schnittmodus|断面モード
-Snap-fit|Encaje|A scatto|Clipsé|Schnappdeckel|スナップ式
-Rugged|Reforzada|Rinforzata|Renforcé|Robust|頑丈
-Sliding|Deslizante|Scorrevole|Coulissant|Schiebedeckel|スライド式
-Screw|Atornillada|Avvitata|Vissé|Schraubdeckel|ねじ止め式
-Off|Sin corte|Nessuno|Aucun|Aus|オフ
-"""
-
-TRANSLATIONS: dict[str, dict[str, str]] = {code: {} for code in SUPPORTED_LANGUAGES[2:]}
-for _line in _ROWS.strip().splitlines():
-    _parts = _line.split("|")
-    if len(_parts) != 6:
-        raise ValueError("Invalid offline translation row: " + _parts[0])
-    for _code, _text in zip(SUPPORTED_LANGUAGES[2:], _parts[1:]):
-        TRANSLATIONS[_code][_parts[0]] = _text
-del _line, _parts, _code, _text
-
-
-def translate_text(english: str, language: object, portuguese: str | None = None) -> str:
+def translate_text(english: str, language: object, portuguese: str | None = None,
+                   context: str | None = None) -> str:
     code = normalize_language(language)
-    if code == "pt":
-        return portuguese if portuguese is not None else english
-    return TRANSLATIONS.get(code, {}).get(english, english)
+    catalog = TRANSLATIONS.get(code, {})
+    if context and context + "::" + english in catalog:
+        return catalog[context + "::" + english]
+    return catalog.get(english,
+        portuguese if code == "pt" and portuguese is not None else english)
 
 # ===========================================================================
 # MODULE: box_studio.schema
@@ -7656,13 +7581,14 @@ def load_standard_preset_mesh(raw, part, reuse_from=None):
 pass  # [bundled] hoisted __future__ import
 import copy
 import json
+from html import escape as _box_locale_html_escape
 from typing import Any
 pass  # [bundled] resolved intra-package import
 pass  # [bundled] resolved intra-package import
 pass  # [bundled] resolved intra-package import
 
 _BOX_HTML = r"""<!doctype html>
-<html lang="__INITIAL_LANG__" data-theme="__INITIAL_THEME__">
+<html lang="__INITIAL_LANG__" dir="__INITIAL_DIR__" data-theme="__INITIAL_THEME__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7740,6 +7666,7 @@ html, body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
+input[type="number"], .ctrl-num, canvas { direction: ltr; }
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -10478,14 +10405,19 @@ const OFFLINE_LANGUAGES = __BOX_LANGUAGES__;
 const OFFLINE_TRANSLATIONS = __BOX_TRANSLATIONS__;
 function normalizeLanguage(value, fallback = "pt") {
   const raw = String(value || "").trim().toLowerCase().replace(/_/g, "-").split(".")[0];
-  if (!raw) return fallback;
-  const code = raw.split("-")[0];
-  return OFFLINE_LANGUAGES.some(item => item[0] === code) ? code : "en";
+  if (!raw) return OFFLINE_LANGUAGES.some(item => item[0] === fallback) ? fallback : "en";
+  let code = raw.split("@")[0];
+  while (code) {
+    if (OFFLINE_LANGUAGES.some(item => item[0] === code)) return code;
+    code = code.includes("-") ? code.slice(0, code.lastIndexOf("-")) : "";
+  }
+  return "en";
 }
-function localeText(english, portuguese = english, code = null) {
+function localeText(english, portuguese = english, code = null, context = null) {
   const chosen = code || document.documentElement.lang || "pt";
-  if (chosen === "pt") return portuguese;
-  return OFFLINE_TRANSLATIONS[chosen]?.[english] || english;
+  const contextual = context && OFFLINE_TRANSLATIONS[chosen]?.[context + "::" + english];
+  if (contextual) return contextual;
+  return OFFLINE_TRANSLATIONS[chosen]?.[english] || (chosen === "pt" ? portuguese : english);
 }
 function localeFormat(english, portuguese, values) {
   return localeText(english, portuguese).replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? "{" + key + "}"));
@@ -10852,7 +10784,7 @@ function localeFormat(english, portuguese, values) {
       right: "Right",
     },
   };
-  const tr = (k) => localeText(texts.en[k] || k, texts.pt[k] || texts.en[k] || k, lang);
+  const tr = (k) => localeText(texts.en[k] || k, texts.pt[k] || texts.en[k] || k, lang, "ui:" + k);
   function send(m) {
     if (window.orca && typeof window.orca.postMessage === "function") {
       window.orca.postMessage(m);
@@ -10965,6 +10897,7 @@ function localeFormat(english, portuguese, values) {
     p.theme = theme;
     p.lang = lang === "pt" ? "pt" : "en";
     document.documentElement.lang = lang;
+    document.documentElement.dir = OFFLINE_LANGUAGES.find(item => item[0] === lang)?.[2] || "ltr";
     document.documentElement.dataset.theme = theme;
     $("lang").textContent = lang.toUpperCase();
     if ($("lang-select")) $("lang-select").value = lang;
@@ -13463,12 +13396,13 @@ def get_studio_html(
     )
     return (
         _BOX_HTML.replace("__INITIAL_LANG__", lang)
+        .replace("__INITIAL_DIR__", next(m["direction"] for m in LANGUAGE_METADATA if m["code"] == lang))
         .replace("__INITIAL_THEME__", theme)
         .replace("__INITIAL_MODE__", ctx["mode"])
         .replace("__BOX_CONTEXT__", payload)
-        .replace("__BOX_LANGUAGES__", json.dumps(list(zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)), ensure_ascii=False))
-        .replace("__BOX_TRANSLATIONS__", json.dumps(TRANSLATIONS, ensure_ascii=False, separators=(",", ":")))
-        .replace("__BOX_LANGUAGE_OPTIONS__", "".join(f'<option value="{code}">{name}</option>' for code, name in zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)))
+        .replace("__BOX_LANGUAGES__", json.dumps([[m["code"], m["native_name"], m["direction"]] for m in LANGUAGE_METADATA], ensure_ascii=False).replace("</", "<\\/"))
+        .replace("__BOX_TRANSLATIONS__", json.dumps(TRANSLATIONS, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+        .replace("__BOX_LANGUAGE_OPTIONS__", "".join(f'<option value="{code}">{_box_locale_html_escape(name)}</option>' for code, name in zip(SUPPORTED_LANGUAGES, LANGUAGE_NAMES)))
     )
 
 # ===========================================================================

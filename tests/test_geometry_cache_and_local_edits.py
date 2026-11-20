@@ -211,7 +211,7 @@ class LocalEditTests(unittest.TestCase):
         runtime = production[production.index("const OFFLINE_LANGUAGES"):production.index("(() => {")]
         # Unit DOMs keep lang in a local variable. Run the actual catalog and
         # formatter, supplying that locale where the real DOM supplies html.lang.
-        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang)=>productionLocaleText(en,pt,code);"
+        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang,context=null)=>productionLocaleText(en,pt,code,context);"
         result = subprocess.run(
             ["node"], input=runtime + script, text=True, encoding="utf-8", capture_output=True, timeout=20
         )

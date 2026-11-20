@@ -2,6 +2,8 @@
 
 O menu do cabeçalho oferece Português, English, Español, Italiano, Français, Deutsch e 日本語 na aba principal e no painel lateral. Todos os textos e fontes de sistema são locais; o plugin não consulta serviços de tradução nem baixa fontes.
 
+Os idiomas são catálogos JSON descobertos automaticamente, não uma lista fixa no código. Para acrescentar outro idioma às próximas instalações, adicione um arquivo em `src/box_studio/locales/` e gere os instaladores. Veja o [formato dos pacotes, exemplo e passos de contribuição](LANGUAGE_PACKS.md).
+
 Na primeira abertura, o plugin reconhece o idioma informado pelo OrcaSlicer, incluindo variantes como `it_IT`, `es-MX` e `ja_JP`. Idiomas não suportados usam inglês. A escolha manual é gravada atomicamente em `ui_preferences.json` na pasta de dados do plugin e prevalece nas próximas aberturas e sincronizações de impressora. Uma mudança avisa a outra vista aberta. A troca não recalcula geometria, limpa o histórico nem altera valores numéricos.
 
 O catálogo cobre os controles, ajuda, materiais, nomes dos oito modelos internos, inspeção e mensagens comuns de conclusão. Nomes de projetos e presets pessoais, nomes de impressoras, caminhos, extensões e valores numéricos permanecem como foram fornecidos. Diagnósticos técnicos vindos do gerador ou do sistema podem manter o texto original em português/inglês; mensagens desconhecidas são preservadas integralmente. Os campos numéricos mantêm o formato existente, com ponto decimal, e as unidades continuam em milímetros. As traduções editoriais ainda podem receber ajustes de falantes nativos.

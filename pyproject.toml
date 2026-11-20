@@ -16,7 +16,7 @@ dependencies = ["numpy>=1.26"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-box_studio = ["icon.svg", "preset_meshes/*.npz"]
+box_studio = ["icon.svg", "preset_meshes/*.npz", "locales/*.json"]
 
 [tool.orcaslicer.plugin]
 id = "orca-box-studio"

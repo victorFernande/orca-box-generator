@@ -6,6 +6,8 @@ Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.4.0 reúne
 
 Selecione o idioma pelo menu no cabeçalho. A escolha fica salva e sincronizada entre aba e painel; trocar de idioma preserva o projeto e a malha, sem gerar outra prévia. O pacote de idiomas funciona offline. Veja [idiomas, persistência e limites da tradução](docs/LANGUAGES.md).
 
+Novos idiomas são módulos JSON: basta adicionar o catálogo em `src/box_studio/locales/` e reconstruir os instaladores. O seletor e os três formatos de distribuição reconhecem os arquivos automaticamente. Veja [como criar um pacote de idioma](docs/LANGUAGE_PACKS.md).
+
 A revisão final compacta o banco de malhas em **53,8%**, preservando todos os bits das malhas padrão aprovadas. A prévia libera o texto de transporte e compartilha buffers de índices/normais somente quando são idênticos; desligar a malha de arame também libera seus buffers. As medições isoladas mostram menor retenção de memória e menor custo de importação, sem prometer o mesmo tempo em qualquer máquina. Veja [método, resultados e limites](docs/PERFORMANCE.md).
 
 A interface utiliza o template do **Orca Vase Studio**: cabeçalho compacto, galeria com filtros, cartões de parâmetros, sliders com valores numéricos, ferramentas flutuantes de inspeção e exportação fixa. Veja a [referência visual e sua origem](docs/UI_TEMPLATE.md).

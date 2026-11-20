@@ -1,0 +1,26 @@
+{
+  "reference_commit": "16a876058d830b6688893f06bd7a96799ed1739d",
+  "method": "UTF-8 JSON with sorted keys and compact separators per pre-modular translation map",
+  "catalogs": {
+    "es": {
+      "entries": 200,
+      "sha256": "aac5972eaeb4f0b44e636e29e2bc6af35f5780233b1a825d7f9a8c681562ffba"
+    },
+    "it": {
+      "entries": 200,
+      "sha256": "37a973d9dc4a3a5debd847cb739878df0dc31e07fbf691a4457bb793616f48ce"
+    },
+    "fr": {
+      "entries": 200,
+      "sha256": "8680f756ab40fc4d708f52039a2a927059cb77831d30c78f2b6521f660e2bd6d"
+    },
+    "de": {
+      "entries": 200,
+      "sha256": "5796ae56b8f641253739b1468b66aee0cbe0318ff638a91f882cebdec0e42e0d"
+    },
+    "ja": {
+      "entries": 200,
+      "sha256": "18ec7285398d5b9d87c16b3e452fd955f03406678e5000fc24027495e5d1b548"
+    }
+  }
+}
