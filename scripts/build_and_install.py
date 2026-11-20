@@ -36,6 +36,7 @@ DIST_ANY_BUNDLE_PATH = DIST_DIR / "orca_box_generator_any.py"
 ICON_SRC_PATH = SRC_PKG_DIR / "icon.svg"
 
 MODULE_ORDER: list[str] = [
+    "locale_catalog.py",
     "schema.py",
     "mesh_generator.py",
     "rugged_geometry.py",
@@ -51,7 +52,7 @@ MODULE_ORDER: list[str] = [
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.3.0"
+DEFAULT_PLUGIN_VERSION = "1.4.0"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION

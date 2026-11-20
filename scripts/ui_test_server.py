@@ -216,7 +216,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             controller.set_current_params(params, history=False)
         context = controller.build_initial_context(mode)
-        context.update(theme=params["theme"], lang=params["lang"])
+        context.update(theme=params["theme"], lang=query.get("lang", [context["lang"]])[0])
         html = mod.get_studio_html(mode, context)
         shim = """<script>
 window.__hostMessages=[];window.__sentMessages=[];

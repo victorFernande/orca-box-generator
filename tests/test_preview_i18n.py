@@ -39,6 +39,7 @@ class PreviewTranslationTests(unittest.TestCase):
         self.assertEqual(len(parser.options), 2)
         self.assertTrue(all(option["dataset"]["i18n"] for option in parser.options))
         script = re.search(r"<script>(.*?)</script>", html, re.S)[1]
+        locale_helpers = script[script.index("const OFFLINE_LANGUAGES"):script.index("(() => {")]
         translations = script[
             script.index("const texts =") : script.index("function send(")
         ]
@@ -57,7 +58,7 @@ class PreviewTranslationTests(unittest.TestCase):
             + """
         const classList=()=>{const values=new Set();return {add:v=>values.add(v),remove:v=>values.delete(v),contains:v=>values.has(v),toggle:(v,on)=>on?values.add(v):values.delete(v)}};
         const nodes={target:{options:[]}};
-        const $=id=>nodes[id]||(nodes[id]={textContent:'',classList:classList()});
+        const $=id=>nodes[id]||(nodes[id]={textContent:'',classList:classList(),setAttribute(key,value){this[key]=value}});
         const document={documentElement:{dataset:{}},querySelectorAll:selector=>selector==='[data-i18n]'?quality:[]};
         let lang='en',theme='dark',lastInterfaceError=.018,statusTranslationKey=null,timers=0;
         const p={width_x:120,height_z:14},mesh={sentinel:'same GPU buffers'},meshes=[mesh];
@@ -85,7 +86,7 @@ class PreviewTranslationTests(unittest.TestCase):
         """
         result = subprocess.run(
             ["node"],
-            input=setup + translations + status + language + checks,
+            input=setup + locale_helpers + translations + status + language + checks,
             text=True, encoding="utf-8",
             capture_output=True,
             timeout=20,

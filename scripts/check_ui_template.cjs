@@ -131,7 +131,7 @@ async function pivotLatchChecks(page,snapshot,passed){
 }
 async function smoke(page,slug,url,passed) {
   await page.goto(url+'/?theme=dark');await waitGeometry(page);passed.push('Python mesh preview');
-  let n=await geometryCount(page);await page.locator('#language, #lang, #btn-lang').first().click();
+  let n=await geometryCount(page);if(await page.locator('#lang-select').count())await page.locator('#lang-select').selectOption('en');else await page.locator('#language, #lang, #btn-lang').first().click();
   await page.waitForFunction(()=>document.documentElement.lang==='en');passed.push('PT/EN');
   if(slug==='thread')await waitGeometry(page,n,{lang:'en'});
   n=await geometryCount(page);await page.locator('#theme, #btn-theme').first().click();

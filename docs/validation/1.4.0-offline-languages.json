@@ -1,0 +1,306 @@
+{
+  "version": "1.4.0",
+  "baseline_commit": "8cc95dfcbcaa6123fb8dac0533075969b3272311",
+  "method": "Actual isolated Chromium controls against the production controller; seven locales x page/dock x dark/light. Each locale switch preserves request count, values and user names. Atomic preference, host-sync, reload and actual independently reopened STL/3MF verified.",
+  "native_application_test": false,
+  "browser": {
+    "locales": [
+      "pt",
+      "en",
+      "es",
+      "it",
+      "fr",
+      "de",
+      "ja"
+    ],
+    "cases": [
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "pt",
+        "heading": "Galeria de Modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "pt",
+        "heading": "Galeria de Modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "en",
+        "heading": "Model Gallery",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "en",
+        "heading": "Model Gallery",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "es",
+        "heading": "Galería de modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "es",
+        "heading": "Galería de modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "it",
+        "heading": "Galleria modelli",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "it",
+        "heading": "Galleria modelli",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "fr",
+        "heading": "Galerie de modèles",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "fr",
+        "heading": "Galerie de modèles",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "de",
+        "heading": "Modellgalerie",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "de",
+        "heading": "Modellgalerie",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "dark",
+        "code": "ja",
+        "heading": "モデルギャラリー",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "dark",
+        "code": "ja",
+        "heading": "モデルギャラリー",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "pt",
+        "heading": "Galeria de Modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "pt",
+        "heading": "Galeria de Modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "en",
+        "heading": "Model Gallery",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "en",
+        "heading": "Model Gallery",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "es",
+        "heading": "Galería de modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "es",
+        "heading": "Galería de modelos",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "it",
+        "heading": "Galleria modelli",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "it",
+        "heading": "Galleria modelli",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "fr",
+        "heading": "Galerie de modèles",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "fr",
+        "heading": "Galerie de modèles",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "de",
+        "heading": "Modellgalerie",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "de",
+        "heading": "Modellgalerie",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "page",
+        "theme": "light",
+        "code": "ja",
+        "heading": "モデルギャラリー",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      },
+      {
+        "mode": "dock",
+        "theme": "light",
+        "code": "ja",
+        "heading": "モデルギャラリー",
+        "preset": "Open bin",
+        "geometryUnchanged": true
+      }
+    ],
+    "errors": [],
+    "nativeApplicationTest": false,
+    "exports": [
+      {
+        "format": "stl",
+        "ok": true,
+        "verified": true,
+        "files": 2
+      },
+      {
+        "format": "3mf",
+        "ok": true,
+        "verified": true,
+        "files": 1
+      }
+    ],
+    "persistence": true,
+    "crossViewSync": true,
+    "manualChoiceSurvivesPrinterSync": true,
+    "ok": true
+  },
+  "unchanged_geometry_source_sha256": {
+    "schema.py": "0fe620149050e20f4b7debc42c2bb03127eeb99e1711aa58fcda23dca00f2f9c",
+    "mesh_generator.py": "b73bf813d872bd6e14d31d58155884b0022dd888d16375f4f92183fe56833a07",
+    "presets_catalog.py": "f13a27e35903b81077265454ccf1f9d1b787683b30741b6c72ce11cbc283a41f",
+    "rugged_geometry.py": "35abe9fc9106d3a8acf0cb955ac7f5c1231f118695a80ed4445a3665c76a5856",
+    "rugged_latch_geometry.py": "645733d213edf60e5a4140c49bd5d31fb19fe8501214e08c94f9beecfcbe215c",
+    "rugged_front_geometry.py": "00ff9d3983cbf6bc6e209c6e8bf2463f61cf635d621df511f66d420d791bd6f6",
+    "rugged_front_mesh.py": "4f80f7de6573d805258e69665a1ed6ed7f3371d304f8cd5a7d6a89bbff2ad765"
+  },
+  "unchanged_prepared_resource_sha256": {
+    "pencil-base.npz": "ed1e6c954438d40b9af4c6d2476119ee0ea019665983814dca081fb7158bbdcd",
+    "pencil-lid.npz": "028358afc060aa201f3d297f8211808f658caccdcdfaf0f2737d6af52c3ca14f",
+    "screw_corner_standard-base.npz": "0ae9369ff4312917d98b765299676c16f1a2eaefa75e0cdfb33729f176a0fbed",
+    "screw_corner_standard-lid.npz": "70108241386c043a3b3f94c3659f02a90d7eea90a794f17f03b8b36119473993",
+    "tool_rugged-base.npz": "82ac798809252ad9f581e4b27cb296d941fa1ef25890461555082a0c0036a482",
+    "tool_rugged-clip_left.npz": "adb8df8f6a49c1ee509038c6bced79ce1ccd4addd0c14833a682ced9e7f61f13",
+    "tool_rugged-lid.npz": "fdc50e11cb5495f4f0a669b992354e3e0def5823b9fdde94fefbca0d5e17c658"
+  },
+  "runtime_source_sha256": {
+    "locale_catalog.py": "3a5e54146d233c2fa0870d9b3a02b6e8c6a75e1cad5dfd0a146faa354bb2202a",
+    "studio_ui.py": "5abe8a82aa7a5904f0732e4d6a827e77f748c12379cb2a8c64d92336aa484bec",
+    "plugin_main.py": "e38cb5e955e8fe49417ba4ccf1a3fcc344271b992ce571e496bc49409e3a88ce"
+  },
+  "artifacts": {
+    "orca_box_generator-1.4.0-py3-none-any.whl": {
+      "bytes": 15873120,
+      "sha256": "edaa275f7c2e0e6fe873b4b5c546b57f8c4e35ce3252affa8f6bd3992ff80d60"
+    },
+    "orca_box_generator.py": {
+      "bytes": 21826161,
+      "sha256": "530ffa6c370d58b114e16fbe742e7b9afa9ef918057e608eab0a842cc6381774"
+    },
+    "orca_box_generator_any.py": {
+      "bytes": 21826161,
+      "sha256": "530ffa6c370d58b114e16fbe742e7b9afa9ef918057e608eab0a842cc6381774"
+    }
+  },
+  "limitations": [
+    "Technical or unknown generator/system diagnostics retain their original wording; no arbitrary user text translation.",
+    "Legacy manufacturing labels remain pt/en, independent of the seven-locale UI preference.",
+    "Native seven-language Orca sessions and translations reviewed by native speakers are pending.",
+    "Earlier1.3.0 performance observations remain historical, not new universal timing guarantees."
+  ]
+}
