@@ -207,8 +207,13 @@ class CanonicalCacheTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which("node"), "Node is needed for embedded UI regressions")
 class LocalEditTests(unittest.TestCase):
     def run_js(self, script):
+        production = re.search(r"<script>(.*?)</script>", get_studio_html(), re.S)[1]
+        runtime = production[production.index("const OFFLINE_LANGUAGES"):production.index("(() => {")]
+        # Unit DOMs keep lang in a local variable. Run the actual catalog and
+        # formatter, supplying that locale where the real DOM supplies html.lang.
+        runtime += "const productionLocaleText=localeText;localeText=(en,pt=en,code=lang)=>productionLocaleText(en,pt,code);"
         result = subprocess.run(
-            ["node"], input=script, text=True, encoding="utf-8", capture_output=True, timeout=20
+            ["node"], input=runtime + script, text=True, encoding="utf-8", capture_output=True, timeout=20
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 

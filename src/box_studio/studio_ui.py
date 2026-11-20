@@ -2868,7 +2868,8 @@ function localeFormat(english, portuguese, values) {
     playing = false,
     angle = 25,
     drag = null;
-  let pendingLanguage = null, lastLanguageRevision = 0;
+  let pendingLanguageRequest = 0, languageRequestSerial = 0, lastLanguageRevision = 0;
+  const languageClientId = window.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36);
   let userOverrodeTheme = false;
   let hostThemeExplicit =
     INITIAL.theme_explicit ?? INITIAL.host?.theme_explicit ?? true;
@@ -3591,10 +3592,10 @@ function localeFormat(english, portuguese, values) {
   $("reset").onclick = () => setDesign(INITIAL.params);
   function selectLanguage(value, persist = true) {
     lang = normalizeLanguage(value);
-    if (persist) pendingLanguage = lang;
+    if (persist) pendingLanguageRequest = ++languageRequestSerial;
     translate();
     sync();
-    if (persist) send({type: "set_language", lang});
+    if (persist) send({type: "set_language", lang, language_request_id: pendingLanguageRequest, language_client_id: languageClientId});
   }
   $("lang-select").onchange = () => selectLanguage($("lang-select").value);
   $("lang").onclick = () => selectLanguage(lang === "pt" ? "en" : "pt");
@@ -4008,10 +4009,11 @@ function localeFormat(english, portuguese, values) {
     }
     if (!m || typeof m !== "object") return;
     if (m.type === "language_changed") {
+      const own = m.origin === INITIAL.mode && m.language_client_id === languageClientId;
+      if (own && m.language_request_id < pendingLanguageRequest) return;
+      if (own && m.language_request_id === pendingLanguageRequest) pendingLanguageRequest = 0;
       if (m.revision && m.revision < lastLanguageRevision) return;
       lastLanguageRevision = m.revision || lastLanguageRevision;
-      if (pendingLanguage && pendingLanguage !== m.lang) return;
-      pendingLanguage = null;
       selectLanguage(m.lang, false);
       return;
     }

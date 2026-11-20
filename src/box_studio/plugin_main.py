@@ -1000,6 +1000,7 @@ class BoxStudioController:
         self._language_override = None
         self._language_loaded = False
         self._language_revision = 0
+        self._language_request_ids = OrderedDict()
 
     def current_params(self):
         with self._lock:
@@ -1635,11 +1636,27 @@ class BoxStudioController:
             action = msg.get("type", "")
             if action == "set_language":
                 with self._lock:
+                    client_id = str(msg.get("language_client_id", ""))[:80]
+                    request_id = msg.get("language_request_id", 0)
+                    request_id = request_id if isinstance(request_id, int) and request_id > 0 else 0
+                    key = (default_mode, client_id)
+                    previous_id = self._language_request_ids.get(key, 0)
+                    if request_id and request_id < previous_id:
+                        send_fn({"type": "language_changed", "lang": self.preferred_language(),
+                                 "revision": self._language_revision, "origin": default_mode,
+                                 "language_request_id": previous_id, "language_client_id": client_id})
+                        return
                     language = self.set_language(msg.get("lang"))
+                    self._language_request_ids[key] = request_id
+                    self._language_request_ids.move_to_end(key)
+                    if len(self._language_request_ids) > 16:
+                        self._language_request_ids.popitem(last=False)
                     self._language_revision += 1
                     for post in list(self._subscriptions.values()):
                         try:
-                            post({"type": "language_changed", "lang": language, "revision": self._language_revision})
+                            post({"type": "language_changed", "lang": language,
+                                  "revision": self._language_revision, "origin": default_mode,
+                                  "language_request_id": request_id, "language_client_id": client_id})
                         except Exception:
                             pass
                 return

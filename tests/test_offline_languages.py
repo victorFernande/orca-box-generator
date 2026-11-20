@@ -61,7 +61,8 @@ class OfflineLanguageTests(unittest.TestCase):
             page.clear(); dock.clear()
             with patch.object(controller, "_enqueue_preview", side_effect=AssertionError("language generated geometry")):
                 controller.handle_message({"type": "set_language", "lang": "it_IT"}, page.append, "page")
-            self.assertEqual(page, [{"type": "language_changed", "lang": "it", "revision": 1}])
+            self.assertEqual(page, [{"type": "language_changed", "lang": "it", "revision": 1,
+                                     "origin": "page", "language_request_id": 0, "language_client_id": ""}])
             self.assertEqual(dock, page)
             self.assertEqual(controller.current_params(), original)
             self.assertEqual(controller._geometry_key(controller.current_params()), key)
@@ -80,6 +81,54 @@ class OfflineLanguageTests(unittest.TestCase):
                 self.assertIn('id="lang-select"', html)
                 self.assertNotRegex(html, r'<(?:script|link)[^>]+(?:src|href)="https?://')
                 self.assertNotRegex(html, r"__BOX_(?:LANGUAGES|TRANSLATIONS|LANGUAGE_OPTIONS)__")
+
+    @unittest.skipUnless(shutil.which("node"), "Node needed for production message handler")
+    def test_stale_own_ack_and_newer_foreign_update_converge_to_latest_revision(self):
+        script = re.search(r"<script>(.*?)</script>", get_studio_html(), re.S)[1]
+        helpers = script[script.index("const OFFLINE_LANGUAGES"):script.index("(() => {")]
+        select = script[script.index("  function selectLanguage("):script.index('  $("lang-select").onchange')]
+        receive = script[script.index("  function receive(raw)"):script.index('  window.addEventListener("message", receive)')]
+        setup = """
+const INITIAL={mode:'page'};const document={documentElement:{lang:'pt'}};
+const languageClientId='unit';
+let lang='pt',pendingLanguageRequest=0,languageRequestSerial=0,lastLanguageRevision=0;
+const sent=[];function translate(){document.documentElement.lang=lang}function sync(){}function send(m){sent.push(m)}
+"""
+        checks = """
+selectLanguage('it');selectLanguage('fr');
+receive({type:'language_changed',lang:'it',origin:'page',language_client_id:'unit',language_request_id:1,revision:1});
+if(lang!=='fr')throw Error('old own ack overwrote latest manual choice');
+receive({type:'language_changed',lang:'fr',origin:'page',language_client_id:'unit',language_request_id:2,revision:2});
+if(lang!=='fr'||pendingLanguageRequest!==0)throw Error('own choice not acknowledged');
+// A newer dock change must survive a delayed acknowledgement from this page.
+lastLanguageRevision=0;selectLanguage('fr');
+receive({type:'language_changed',lang:'de',origin:'dock',language_request_id:9,revision:4});
+receive({type:'language_changed',lang:'fr',origin:'page',language_client_id:'unit',language_request_id:3,revision:3});
+if(lang!=='de'||pendingLanguageRequest!==0||lastLanguageRevision!==4)throw Error('views did not converge to newer foreign revision');
+receive({type:'language_changed',lang:'ja',origin:'dock',language_request_id:1,revision:1});
+if(lang!=='de')throw Error('stale foreign revision overwrote latest state');
+if(sent.length!==3)throw Error('receiving locale updates sent another request');
+"""
+        result = subprocess.run(["node"], input=setup+helpers+select+receive+checks,
+                                text=True, encoding="utf-8", capture_output=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_reordered_requests_do_not_overwrite_preferences_and_reopened_view_can_choose(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(bridge, "_resolve_storage_dir", return_value=Path(folder)):
+            controller = bridge.BoxStudioController()
+            responses = []
+            for language, request, client in (("fr", 2, "first"), ("it", 1, "first")):
+                controller.handle_message({"type": "set_language", "lang": language,
+                                           "language_request_id": request, "language_client_id": client}, responses.append)
+            self.assertEqual(controller.preferred_language(), "fr")
+            self.assertEqual(responses[-1]["revision"], 1)
+            controller.handle_message({"type": "set_language", "lang": "it",
+                                       "language_request_id": 1, "language_client_id": "reopened"}, responses.append)
+            self.assertEqual(controller.preferred_language(), "it")
+            for index in range(25):
+                controller.handle_message({"type": "set_language", "lang": "it",
+                                           "language_request_id": 1, "language_client_id": str(index)}, responses.append)
+            self.assertLessEqual(len(controller._language_request_ids), 16)
 
 
 if __name__ == "__main__":

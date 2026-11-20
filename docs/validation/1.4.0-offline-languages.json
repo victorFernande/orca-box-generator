@@ -280,21 +280,21 @@
   },
   "runtime_source_sha256": {
     "locale_catalog.py": "3a5e54146d233c2fa0870d9b3a02b6e8c6a75e1cad5dfd0a146faa354bb2202a",
-    "studio_ui.py": "5abe8a82aa7a5904f0732e4d6a827e77f748c12379cb2a8c64d92336aa484bec",
-    "plugin_main.py": "e38cb5e955e8fe49417ba4ccf1a3fcc344271b992ce571e496bc49409e3a88ce"
+    "studio_ui.py": "9befde256b86c6c3630d18cb19ac8a39ef2f22cba9efdd30892f5c78fc601140",
+    "plugin_main.py": "33de6e71b69a2b7b3a01a81165f538802003ee5c707c88775471d5fb1426a6ee"
   },
   "artifacts": {
     "orca_box_generator-1.4.0-py3-none-any.whl": {
-      "bytes": 15873120,
-      "sha256": "edaa275f7c2e0e6fe873b4b5c546b57f8c4e35ce3252affa8f6bd3992ff80d60"
+      "bytes": 15873474,
+      "sha256": "c5ddfc7f7bc3896968d42f54d4d355cdb13d5157d1ec50894f8b99c8117efb47"
     },
     "orca_box_generator.py": {
-      "bytes": 21826161,
-      "sha256": "530ffa6c370d58b114e16fbe742e7b9afa9ef918057e608eab0a842cc6381774"
+      "bytes": 21827802,
+      "sha256": "00557deedf036b7a70829fcfe0b7cd3368b9cdac3f26459841a2bf53e1127b04"
     },
     "orca_box_generator_any.py": {
-      "bytes": 21826161,
-      "sha256": "530ffa6c370d58b114e16fbe742e7b9afa9ef918057e608eab0a842cc6381774"
+      "bytes": 21827802,
+      "sha256": "00557deedf036b7a70829fcfe0b7cd3368b9cdac3f26459841a2bf53e1127b04"
     }
   },
   "limitations": [
@@ -302,5 +302,15 @@
     "Legacy manufacturing labels remain pt/en, independent of the seven-locale UI preference.",
     "Native seven-language Orca sessions and translations reviewed by native speakers are pending.",
     "Earlier1.3.0 performance observations remain historical, not new universal timing guarantees."
-  ]
+  ],
+  "language_ordering_regression": {
+    "production_handler_test": true,
+    "newer_foreign_update_survives_older_own_ack": true,
+    "older_own_ack_ignored": true,
+    "older_foreign_revision_ignored": true,
+    "reordered_requests_cannot_overwrite_saved_preference": true,
+    "new_view_can_restart_request_ids": true,
+    "request_history_bounded_clients": 16,
+    "focused_language_tests": 7
+  }
 }
