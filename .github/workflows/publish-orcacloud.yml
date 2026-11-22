@@ -56,6 +56,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name || github.event.workflow_run.head_branch }}
       PLUGIN_FILE: orca_box_generator_any.py
       PLUGIN_ID: orca-box-studio
+      PLUGIN_NAME: Orca Box Studio
       CLOUD_PLUGIN_ID: 559865ca-0508-42ea-9651-387b4718fae7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
