@@ -56,7 +56,7 @@ MODULE_ORDER: list[str] = [
     "plugin_main.py",
 ]
 
-DEFAULT_PLUGIN_VERSION = "1.4.0"
+DEFAULT_PLUGIN_VERSION = "1.4.1"
 PLUGIN_VERSION = (
     os.environ.get("ORCA_PLUGIN_VERSION", "").strip().lstrip("v")
     or DEFAULT_PLUGIN_VERSION
@@ -696,6 +696,7 @@ assert bridge.BoxStudioPageCapability in registered
 assert bridge.BoxStudioDockCapability in registered
 assert bridge.orca._requested_permissions == {"threading": True}
 page = bridge.BoxStudioPageCapability()
+assert page.get_name() == "Box Studio"
 assert "Orca Box Studio" in page.get_ui()
 assert pathlib.Path(page.get_icon()).is_file()
 if sys.argv[2] == "bundle":

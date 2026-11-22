@@ -2,7 +2,7 @@
 
 ## Instalação e interface
 
-Após instalar ou atualizar, feche e reabra o OrcaSlicer. No gerenciador de plugins, confira a versão **1.3.0** e ative **Orca Box Studio**. Abra a aba superior **Gerador de Caixas**.
+Após instalar ou atualizar, feche e reabra o OrcaSlicer. No gerenciador de plugins, confira a versão **1.4.1** e ative **Orca Box Studio**. Abra a aba superior **Box Studio**.
 
 Para abrir o painel lateral no caminho verificado no Windows com OrcaSlicer 2.5.1:
 
@@ -16,7 +16,7 @@ No painel lateral, use **Forma, Recursos, Impressão e Presets**. A prévia comp
 
 ## Criar a caixa
 
-1. Abra o Gerador de Caixas no OrcaSlicer ou execute seu painel lateral.
+1. Abra o Box Studio no OrcaSlicer ou execute seu painel lateral.
 2. Escolha um dos oito modelos padrão, um por estilo, ou mantenha a caixa inicial. A galeria não inclui presets de IoT nem acessórios de eletrônica pré-configurados. Comece pelas medidas e pelo funcionamento da caixa.
 3. Digite as medidas em milímetros: largura X e profundidade Y externas do corpo da base, e altura Z da peça base. No empilhável, essa altura inclui o pé; no estojo articulado, ela é a altura de cada metade; nos outros estilos, vai do fundo externo até a borda. Ajuste parede, fundo e raio dos cantos. A origem XY fica no centro da base; Z=0 corresponde ao fundo externo, ou à face inferior do pé no empilhável. Tampa, ressaltos e travas podem aumentar o envelope total; os campos não representam o espaço interno.
 4. Escolha um dos oito estilos: Lip Snap, Rugged, Sliding, Screw Corner, Caixa aberta, Tampa com travas, Empilhável ou Estojo articulado. Os estilos de armazenamento são detalhados abaixo.

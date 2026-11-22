@@ -2,7 +2,7 @@
 
 <p align="center"><img src="assets/icon.jpg" alt="Orca Box Studio — parametric enclosures" width="240"></p>
 
-Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.4.0 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em **português, inglês, espanhol, italiano, francês, alemão e japonês**, temas claro/escuro, aba principal em três colunas e painel lateral.
+Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.4.1 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em **português, inglês, espanhol, italiano, francês, alemão e japonês**, temas claro/escuro, aba principal em três colunas e painel lateral.
 
 Selecione o idioma pelo menu no cabeçalho. A escolha fica salva e sincronizada entre aba e painel; trocar de idioma preserva o projeto e a malha, sem gerar outra prévia. O pacote de idiomas funciona offline. Veja [idiomas, persistência e limites da tradução](docs/LANGUAGES.md).
 
@@ -48,7 +48,7 @@ Requer Python 3.12+ e NumPy 1.26+. No OrcaSlicer, use o Python embutido, que pod
 
 Depois de instalar ou atualizar, **feche e reabra o OrcaSlicer** para carregar o novo bundle. Em **Plugins**, confira a versão e ative **Orca Box Studio**. A substituição do arquivo enquanto o aplicativo está aberto não atualiza o plugin que já está em memória.
 
-Abra **Gerador de Caixas** na aba superior. Para o painel lateral, o caminho verificado no OrcaSlicer 2.5.1 no Windows é: na área principal, pressione **Espaço** para abrir o Speed Dial, digite **Orca Box**, selecione **Orca Box Studio — Painel Lateral** e pressione **Enter**. Escolha um preset, ajuste as dimensões e confira os acessórios. Use o kit de calibração nos estilos compatíveis; Rugged, caixa aberta, tampa com travas, empilhável e estojo articulado exigem ensaio com peças reais de uma configuração menor. Os botões STL/3MF salvam na pasta de exportação privada do plugin; **Abrir pasta de exportação** localiza os arquivos.
+Abra **Box Studio** na aba superior. Para o painel lateral, o caminho verificado no OrcaSlicer 2.5.1 no Windows é: na área principal, pressione **Espaço** para abrir o Speed Dial, digite **Orca Box**, selecione **Orca Box Studio — Painel Lateral** e pressione **Enter**. Escolha um preset, ajuste as dimensões e confira os acessórios. Use o kit de calibração nos estilos compatíveis; Rugged, caixa aberta, tampa com travas, empilhável e estojo articulado exigem ensaio com peças reais de uma configuração menor. Os botões STL/3MF salvam na pasta de exportação privada do plugin; **Abrir pasta de exportação** localiza os arquivos.
 
 ## Geometria, tolerâncias e impressão
 
