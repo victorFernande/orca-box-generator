@@ -2,7 +2,7 @@
 
 ## Installation and interface
 
-After installation or an update, close and reopen OrcaSlicer. Check version **1.4.1** and enable **Orca Box Studio** in the plugin manager. Open the full **Box Studio** tab.
+After installation or an update, close and reopen OrcaSlicer. Check version **1.4.2** and enable **Orca Box Studio** in the plugin manager. Open the full **Box Studio** tab.
 
 The verified dock route on Windows with OrcaSlicer 2.5.1 is:
 
