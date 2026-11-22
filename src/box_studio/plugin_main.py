@@ -63,7 +63,7 @@ def _build_fallback_orca_module() -> types.ModuleType:
             return self._stored_config
 
         def get_config_version(self) -> str:
-            return "1.4.1"
+            return "1.4.2"
 
         def save_config(self, config: str) -> bool:
             self._stored_config = str(config or "{}")
@@ -1282,7 +1282,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.4.1",
+            "version": "1.4.2",
         }
 
     @staticmethod

@@ -130,5 +130,5 @@ jobs:
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" dist/orca_box_generator.py dist/orca_box_generator_any.py dist/orca_box_generator-*-py3-none-any.whl src/box_studio/icon.svg --clobber
           else
-            gh release create "$RELEASE_TAG" --verify-tag --generate-notes --title "$RELEASE_TAG" dist/orca_box_generator.py dist/orca_box_generator_any.py dist/orca_box_generator-*-py3-none-any.whl src/box_studio/icon.svg
+            gh release create "$RELEASE_TAG" --draft --verify-tag --generate-notes --title "$RELEASE_TAG" dist/orca_box_generator.py dist/orca_box_generator_any.py dist/orca_box_generator-*-py3-none-any.whl src/box_studio/icon.svg
           fi
