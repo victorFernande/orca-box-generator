@@ -2,7 +2,7 @@
 
 ## Installation and interface
 
-After installation or an update, close and reopen OrcaSlicer. Check version **1.3.0** and enable **Orca Box Studio** in the plugin manager. Open the full **Gerador de Caixas** tab.
+After installation or an update, close and reopen OrcaSlicer. Check version **1.4.1** and enable **Orca Box Studio** in the plugin manager. Open the full **Box Studio** tab.
 
 The verified dock route on Windows with OrcaSlicer 2.5.1 is:
 
@@ -16,7 +16,7 @@ The dock uses **Shape, Features, Print and Presets**, with a compact preview abo
 
 ## Design an enclosure
 
-Open the full Gerador de Caixas tab or run the docked panel. Choose one of eight standard designs, one per style. The gallery has no IoT presets or preconfigured electronics accessories. Start by testing box dimensions and operation. All measurements are in millimetres. Width X and depth Y describe the outside base body; height Z is the base-part height. In the stackable style, it includes the foot; in the articulated case, it is the height of each half; for the other styles it runs from the outside bottom to the rim. These are not inside dimensions or the complete envelope including lid, catches and clips. The XY origin is centered on the base; Z=0 is the outside bottom, or the bottom of the foot in the stackable style.
+Open the full Box Studio tab or run the docked panel. Choose one of eight standard designs, one per style. The gallery has no IoT presets or preconfigured electronics accessories. Start by testing box dimensions and operation. All measurements are in millimetres. Width X and depth Y describe the outside base body; height Z is the base-part height. In the stackable style, it includes the foot; in the articulated case, it is the height of each half; for the other styles it runs from the outside bottom to the rim. These are not inside dimensions or the complete envelope including lid, catches and clips. The XY origin is centered on the base; Z=0 is the outside bottom, or the bottom of the foot in the stackable style.
 
 Lip snap includes a locating skirt, a retaining bead and its matching female groove. Rugged reconstructs the supplied SnapLock reference with independent base/lid heights, a snap-assembled rear hinge and two flexible latches pivoting on the lid. Four parts, no loose pins. See [dimensions and assembly](RUGGED_SNAPLOCK.md). Sliding uses 45-degree rails, a front insertion opening, a handle and a rear detent. Screw corner provides four integrated corner posts and matching lid clearance holes.
 

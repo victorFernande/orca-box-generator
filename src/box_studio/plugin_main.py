@@ -63,7 +63,7 @@ def _build_fallback_orca_module() -> types.ModuleType:
             return self._stored_config
 
         def get_config_version(self) -> str:
-            return "1.4.0"
+            return "1.4.1"
 
         def save_config(self, config: str) -> bool:
             self._stored_config = str(config or "{}")
@@ -1282,7 +1282,7 @@ class BoxStudioController:
             "mode": mode,
             "lang": ctx["lang"],
             "theme": ctx["theme"],
-            "version": "1.4.0",
+            "version": "1.4.1",
         }
 
     @staticmethod
@@ -1779,14 +1779,14 @@ _SHARED_CONTROLLER = BoxStudioController()
 
 
 class BoxStudioPageCapability(orca.pages.PagesPluginCapabilityBase):
-    """Full-screen top-bar tab (`Gerador de Caixas`) beside Prepare / Preview / Device."""
+    """Full-screen top-bar tab (`Box Studio`) beside Prepare / Preview / Device."""
 
     def __init__(self, controller: BoxStudioController | None = None) -> None:
         super().__init__()
         self._controller = controller or _SHARED_CONTROLLER
 
     def get_name(self) -> str:
-        return "Gerador de Caixas"
+        return "Box Studio"
 
     def get_default_config(self) -> dict[str, Any]:
         return {
