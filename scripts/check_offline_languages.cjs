@@ -1,4 +1,4 @@
-/* Isolated seven-locale acceptance test. Never controls an installed OrcaSlicer. */
+/* Discover and exercise every offline locale. Never controls an installed OrcaSlicer. */
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -7,8 +7,13 @@ const {spawn} = require('node:child_process');
 const {chromium} = require(process.env.ORCA_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
 const output = process.env.ORCA_LANGUAGE_OUTPUT || path.join(root, 'test-output', 'languages');
-const locales = ['pt','en','es','it','fr','de','ja'];
-const headings = ['Galeria de Modelos','Model Gallery','Galería de modelos','Galleria modelli','Galerie de modèles','Modellgalerie','モデルギャラリー'];
+const catalogs = fs.readdirSync(path.join(root,'src','box_studio','locales'))
+  .filter(name=>name.endsWith('.json'))
+  .map(name=>JSON.parse(fs.readFileSync(path.join(root,'src','box_studio','locales',name),'utf8')))
+  .sort((a,b)=>a.order-b.order || a.code.localeCompare(b.code));
+const locales = catalogs.map(pack=>pack.code);
+const headings = catalogs.map(pack=>pack.translations['ui:sec_presets::Model Gallery'] || pack.translations['Model Gallery'] || 'Model Gallery');
+for(const code of ['ru','cs','zh'])assert(locales.includes(code),'missing published language '+code);
 const server = spawn(process.env.ORCA_TEST_PYTHON || 'python', ['-B','-W','error',path.join(__dirname,'ui_test_server.py')], {cwd:root,stdio:['ignore','pipe','pipe']});
 let stderr='',browser;
 server.stderr.on('data', data=>{stderr+=data.toString();});
@@ -75,8 +80,8 @@ async function state(page){
           assert(actual.labels.every(text=>text&&text!=='undefined'),'untranslated empty parameter');
           assert(await page.evaluate(()=>[...document.querySelectorAll('.preset-card')].some(card=>card.querySelector('.preset-del-btn')&&card.querySelector('.preset-name').textContent==='Open bin')),'user preset was translated');
           report.cases.push({mode,theme,code,heading:actual.heading,preset:actual.preset,geometryUnchanged:true});
-          if(mode==='page'&&((code==='it'&&theme==='light')||(code==='ja'&&theme==='dark')))
-            await page.screenshot({path:path.join(output,code+'-'+theme+'.png')});
+          if(['ru','cs','zh'].includes(code) || (mode==='page'&&((code==='it'&&theme==='light')||(code==='ja'&&theme==='dark'))))
+            await page.screenshot({path:path.join(output,code+'-'+mode+'-'+theme+'.png')});
         }
       }
     }
