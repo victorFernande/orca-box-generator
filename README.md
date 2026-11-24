@@ -1,11 +1,13 @@
 # Orca Box Studio
 
+**1.4.3: dez idiomas / ten languages.** Русский, Čeština e 简体中文 adicionados aos pacotes modulares offline. [Changelog em dez idiomas](CHANGELOG.md).
+
 **1.4.2: publicação automática / automatic publishing.** Publicar uma release no GitHub envia o pacote verificado ao OrcaCloud, após aprovação da CI. Corrigido o envio de notas com Unicode e ponto e vírgula. O fluxo usa credenciais temporárias e verifica o pacote publicado. / Publishing a GitHub release uploads the verified package to OrcaCloud after CI approval.
 
 
 <p align="center"><img src="assets/icon.jpg" alt="Orca Box Studio — parametric enclosures" width="240"></p>
 
-Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.4.2 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em **português, inglês, espanhol, italiano, francês, alemão e japonês**, temas claro/escuro, aba principal em três colunas e painel lateral.
+Estúdio paramétrico offline para **OrcaSlicer 2.5.1+**. A versão 1.4.2 reúne oito estilos: tampa por pressão, dobradiça reforçada, tampa deslizante, parafusos nos quatro cantos, caixa aberta com alças, tampa removível com dois fechos de alavanca, caixa empilhável com acesso frontal e estojo articulado print-in-place. Interface em **português, inglês, espanhol, italiano, francês, alemão, japonês, russo, tcheco e chinês simplificado**, temas claro/escuro, aba principal em três colunas e painel lateral.
 
 Selecione o idioma pelo menu no cabeçalho. A escolha fica salva e sincronizada entre aba e painel; trocar de idioma preserva o projeto e a malha, sem gerar outra prévia. O pacote de idiomas funciona offline. Veja [idiomas, persistência e limites da tradução](docs/LANGUAGES.md).
 

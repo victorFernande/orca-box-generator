@@ -1,4 +1,4 @@
-"""Seven offline locales are preferences, never geometry parameters."""
+"""Offline locales are preferences, never geometry parameters."""
 import hashlib
 import json
 from pathlib import Path
@@ -76,7 +76,7 @@ class OfflineLanguageTests(unittest.TestCase):
                 controller.set_language(code)
                 self.assertEqual(controller.build_initial_context()["lang"], code)
 
-    def test_seven_locales_render_in_page_and_dock_without_external_assets(self):
+    def test_all_locales_render_in_page_and_dock_without_external_assets(self):
         for mode in ("page", "dock"):
             for code in SUPPORTED_LANGUAGES:
                 html = get_studio_html(mode, {"lang": code})
