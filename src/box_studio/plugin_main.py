@@ -1661,10 +1661,25 @@ class BoxStudioController:
                             pass
                 return
             if action == "randomize":
+                import random
+
                 previous = normalize_params(msg.get("params") or self.current_params())
-                candidate = generate_random_printable_params(
-                    previous, msg.get("seed"), self.read_host_context()
-                )
+                seed = msg.get("seed")
+                rng = random.Random(seed)
+                limits = self.read_host_context()
+                for attempt in range(8):
+                    candidate = generate_random_printable_params(
+                        previous, seed if attempt == 0 else rng.getrandbits(64), limits
+                    )
+                    try:
+                        # Validate the same canonical surfaces consumed by preview
+                        # and export. The cache avoids generating them a second time.
+                        self._geometry(candidate, assembled=True, target=candidate["export_target"])
+                    except ValueError:
+                        if attempt == 7:
+                            raise
+                    else:
+                        break
                 self.set_current_params(candidate)
                 for mode, post in list(self._subscriptions.items()):
                     if mode != default_mode:
